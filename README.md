@@ -1,42 +1,37 @@
-# Menu Scan App 🍽️📸
+# Menu Scan App
 
-> Eat out without falling off track.
+Expo SDK 52+ foundation for the Menu Scan MVP.
 
-AI-powered restaurant menu scanner that gives you personalized healthy eating recommendations. Point your camera at any menu — get instant, tailored picks based on your dietary goals, restrictions, and preferences.
+## Foundation Included (Steps 1–4)
+- Expo Router app scaffold with Hermes + New Architecture
+- Premium-ready light/dark design tokens + reusable UI primitives
+- Tab shell: Home, Scan, Search, History, Profile
+- Supabase client bootstrap (`src/lib/supabase.ts`)
+- Initial SQL schema migration (`supabase/migrations/*_init.sql`)
 
-## What It Does
+## Env setup
+Copy `.env.example` to `.env` and fill:
 
-- 📸 **Scan any menu** — camera-based AI reads physical restaurant menus
-- 🎯 **Personalized recommendations** — Top 3 picks based on YOUR goals, diet type, intolerances & dislikes
-- 🚦 **Traffic light scoring** — Green/Amber/Red for every item
-- 💡 **Modification suggestions** — "Ask for dressing on the side (-120 cal)"
-- 💬 **"What to Say" scripts** — Literal ordering scripts to reduce anxiety
-- 🔥 **Healthy Dining Streak** — Gamified engagement
-- 🎭 **Animated mascot** — Personality-driven companion throughout the app
+```bash
+cp .env.example .env
+```
 
-## Tech Stack
+Required now:
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 
-- **Frontend:** React Native + Expo SDK 52+ (New Architecture)
-- **Backend:** Supabase (Auth, Postgres, Storage, Edge Functions)
-- **AI:** OpenAI GPT-4o (menu parsing + recommendations)
-- **Nutrition:** Nutritionix API + USDA FoodData Central
-- **Subscriptions:** RevenueCat
-- **Analytics:** PostHog
-- **Animations:** Lottie / Rive + Reanimated 3
-- **Haptics:** expo-haptics
+## Run
+```bash
+npm install
+npm run start
+```
 
-## Monetization
+## Typecheck
+```bash
+npm run typecheck
+```
 
-Metered freemium — 2 free scans/week, Pro subscription for unlimited.
-
-## Publisher
-
-Soft Focus Apps
-
-## Status
-
-🚧 In development — MVP targeting ~18 weeks.
-
-## License
-
-Proprietary — All rights reserved.
+## Notes
+- Uses `react-native-reanimated` (no legacy Animated API)
+- Uses `@shopify/flash-list` for list rendering standard
+- Camera + notifications plugins pre-wired in `app.json`

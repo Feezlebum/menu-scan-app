@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
+import * as FileSystem from 'expo-file-system';
+import { decode } from 'base64-arraybuffer';
 
 export interface MenuItem {
   name: string;
@@ -39,12 +41,13 @@ export interface ScanResult {
 export async function uploadMenuImage(uri: string): Promise<string> {
   const filename = `menu-${Date.now()}.jpg`;
   
-  // Fetch the image as a blob
-  const response = await fetch(uri);
-  const blob = await response.blob();
+  // Read file as base64 (React Native compatible)
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
   
-  // Convert blob to array buffer
-  const arrayBuffer = await blob.arrayBuffer();
+  // Decode base64 to ArrayBuffer for Supabase upload
+  const arrayBuffer = decode(base64);
   
   const { data, error } = await supabase.storage
     .from('menu-scans')

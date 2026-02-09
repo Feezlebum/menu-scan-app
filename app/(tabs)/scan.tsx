@@ -8,6 +8,8 @@ import { useAppTheme } from '@/src/theme/theme';
 import { ScanFrame } from '@/src/components/scan/ScanFrame';
 import { CaptureButton } from '@/src/components/scan/CaptureButton';
 import { compressImage } from '@/src/utils/imageUtils';
+import { scanMenu } from '@/src/lib/scanService';
+import { useScanStore } from '@/src/stores/scanStore';
 
 type ScanState = 'ready' | 'capturing' | 'processing' | 'error';
 
@@ -17,6 +19,7 @@ export default function ScanScreen() {
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanState, setScanState] = useState<ScanState>('ready');
+  const { setScanResult, setScanError } = useScanStore();
 
   // Request permission on mount if not determined
   useEffect(() => {
@@ -47,26 +50,27 @@ export default function ScanScreen() {
 
       // Compress image
       const compressedUri = await compressImage(photo.uri);
-      
-      // TODO: Upload to Supabase Storage and call Edge Function
-      // For now, navigate to results with mock data
       console.log('Captured and compressed:', compressedUri);
       
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Upload to Supabase Storage and call Edge Function
+      const result = await scanMenu(compressedUri);
       
-      // Navigate to results (to be implemented)
-      Alert.alert(
-        'Scan Complete',
-        'Menu captured successfully! AI analysis coming soon.',
-        [{ text: 'OK', onPress: () => setScanState('ready') }]
-      );
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to parse menu');
+      }
+      
+      // Store results and navigate
+      setScanResult(result);
+      setScanState('ready');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.push('/results');
 
     } catch (error) {
       console.error('Capture error:', error);
       setScanState('error');
+      setScanError(error instanceof Error ? error.message : 'Unknown error');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', 'Failed to capture photo. Please try again.', [
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to capture photo. Please try again.', [
         { text: 'OK', onPress: () => setScanState('ready') }
       ]);
     }

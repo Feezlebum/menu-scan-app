@@ -10,10 +10,15 @@ export type AppTheme = {
     subtext: string;
     border: string;
     brand: string;
+    secondary: string;
     accent: string;
     success: string;
     warning: string;
     danger: string;
+    // Traffic light colors
+    trafficGreen: string;
+    trafficAmber: string;
+    trafficRed: string;
   };
   spacing: typeof spacing;
   radius: typeof radius;
@@ -22,16 +27,20 @@ export type AppTheme = {
 const light: AppTheme = {
   isDark: false,
   colors: {
-    bg: colors.cream,
+    bg: colors.lightBg,      // Cool White #F8FAFA
     card: '#FFFFFF',
     text: '#16181D',
     subtext: '#6B7280',
     border: '#E7E7EA',
-    brand: colors.brand,
-    accent: colors.accent,
+    brand: colors.brand,     // Deep Teal #0D9488
+    secondary: colors.secondary, // Soft Mint #B2DFDB
+    accent: colors.accent,   // Warm Coral #F28B6E
     success: colors.brand,
     warning: colors.amber,
     danger: colors.softRed,
+    trafficGreen: colors.trafficGreen,
+    trafficAmber: colors.trafficAmber,
+    trafficRed: colors.trafficRed,
   },
   spacing,
   radius,
@@ -42,11 +51,11 @@ const dark: AppTheme = {
   isDark: true,
   colors: {
     ...light.colors,
-    bg: colors.trueDark,
-    card: '#161A22',
+    bg: colors.darkBg,       // Deep Slate #0F1A1E
+    card: '#1A2428',
     text: '#F4F7FB',
     subtext: '#9DA6B3',
-    border: '#2B303B',
+    border: '#2B3338',
   },
 };
 

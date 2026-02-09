@@ -3,8 +3,24 @@ import { useAppTheme } from '@/src/theme/theme';
 
 type Tone = 'green' | 'amber' | 'red';
 
-export function TrafficLightDot({ tone }: { tone: Tone }) {
+export function TrafficLightDot({ tone, size = 10 }: { tone: Tone; size?: number }) {
   const theme = useAppTheme();
-  const map = { green: theme.colors.success, amber: theme.colors.warning, red: theme.colors.danger };
-  return <View style={{ width: 10, height: 10, borderRadius: 999, backgroundColor: map[tone] }} />;
+  
+  // Use dedicated traffic light colors
+  const colorMap = { 
+    green: theme.colors.trafficGreen,  // #0D9488 (teal-green)
+    amber: theme.colors.trafficAmber,  // #E9A84C (warm gold)
+    red: theme.colors.trafficRed,      // #E06B5E (coral-red)
+  };
+  
+  return (
+    <View 
+      style={{ 
+        width: size, 
+        height: size, 
+        borderRadius: 999, 
+        backgroundColor: colorMap[tone] 
+      }} 
+    />
+  );
 }

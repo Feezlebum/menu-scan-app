@@ -1,10 +1,22 @@
 export const colors = {
-  brand: '#34C759',
-  accent: '#FF7A59',
-  amber: '#FF9500',
-  softRed: '#FF6B6B',
-  cream: '#F8F6F2',
-  trueDark: '#0B0B0F',
+  // Primary: Deep Teal
+  brand: '#0D9488',
+  // Secondary: Soft Mint
+  secondary: '#B2DFDB',
+  // Accent/CTA: Warm Coral
+  accent: '#F28B6E',
+  // Traffic lights
+  trafficGreen: '#0D9488',
+  trafficAmber: '#E9A84C',
+  trafficRed: '#E06B5E',
+  // Backgrounds
+  lightBg: '#F8FAFA',
+  darkBg: '#0F1A1E',
+  // Legacy (keeping for backwards compat)
+  amber: '#E9A84C',
+  softRed: '#E06B5E',
+  cream: '#F8FAFA',
+  trueDark: '#0F1A1E',
 };
 
 export const spacing = {

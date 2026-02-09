@@ -11,7 +11,7 @@ import { useOnboardingStore } from '@/src/stores/onboardingStore';
 export default function HomeScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { dailyCalorieTarget, goal, macroPriority } = useOnboardingStore();
+  const { goal, macroPriority, dietType } = useOnboardingStore();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -24,6 +24,15 @@ export default function HomeScreen() {
     router.push('/(tabs)/scan');
   };
 
+  const getGoalMessage = () => {
+    switch (goal) {
+      case 'lose': return "Let's find lighter options";
+      case 'gain': return "Time to fuel those gains";
+      case 'maintain': return "Balance is the goal";
+      default: return "Ready to eat smart?";
+    }
+  };
+
   return (
     <Screen>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
@@ -33,26 +42,14 @@ export default function HomeScreen() {
             {getGreeting()} 👋
           </AppText>
           <AppText style={[styles.title, { color: theme.colors.text }]}>
-            Ready to eat smart?
+            {getGoalMessage()}
           </AppText>
         </View>
 
-        {/* Calorie Budget Card */}
-        <Card style={[styles.budgetCard, { backgroundColor: theme.colors.brand }]}>
-          <AppText style={styles.budgetLabel}>Today's Budget</AppText>
-          <View style={styles.budgetRow}>
-            <AppText style={styles.budgetValue}>{dailyCalorieTarget || 2000}</AppText>
-            <AppText style={styles.budgetUnit}>cal remaining</AppText>
-          </View>
-          <View style={[styles.budgetProgress, { backgroundColor: 'rgba(255,255,255,0.3)' }]}>
-            <View style={[styles.budgetProgressFill, { width: '100%' }]} />
-          </View>
-        </Card>
-
         {/* Quick Scan CTA */}
-        <Card style={styles.scanCard}>
+        <Card style={[styles.scanCard, { borderColor: theme.colors.brand, borderWidth: 2 }]}>
           <View style={styles.scanContent}>
-            <View style={[styles.scanIcon, { backgroundColor: theme.colors.brand + '15' }]}>
+            <View style={[styles.scanIcon, { backgroundColor: theme.colors.secondary }]}>
               <AppText style={styles.scanEmoji}>📸</AppText>
             </View>
             <View style={styles.scanText}>
@@ -83,6 +80,39 @@ export default function HomeScreen() {
           />
         </View>
 
+        {/* Your Focus */}
+        <Card style={styles.focusCard}>
+          <AppText style={[styles.focusLabel, { color: theme.colors.subtext }]}>
+            🎯 Your Focus
+          </AppText>
+          <View style={styles.focusTags}>
+            {goal && (
+              <View style={[styles.tag, { backgroundColor: theme.colors.secondary }]}>
+                <AppText style={[styles.tagText, { color: theme.colors.brand }]}>
+                  {goal === 'lose' ? 'Weight Loss' : 
+                   goal === 'gain' ? 'Build Muscle' :
+                   goal === 'maintain' ? 'Maintain' : 'Healthier Eating'}
+                </AppText>
+              </View>
+            )}
+            {macroPriority && macroPriority !== 'balanced' && (
+              <View style={[styles.tag, { backgroundColor: theme.colors.secondary }]}>
+                <AppText style={[styles.tagText, { color: theme.colors.brand }]}>
+                  {macroPriority === 'highprotein' ? 'High Protein' :
+                   macroPriority === 'lowcarb' ? 'Low Carb' : 'Low Cal'}
+                </AppText>
+              </View>
+            )}
+            {dietType && dietType !== 'none' && dietType !== 'cico' && (
+              <View style={[styles.tag, { backgroundColor: theme.colors.secondary }]}>
+                <AppText style={[styles.tagText, { color: theme.colors.brand }]}>
+                  {dietType.charAt(0).toUpperCase() + dietType.slice(1)}
+                </AppText>
+              </View>
+            )}
+          </View>
+        </Card>
+
         {/* Tips */}
         <Card style={styles.tipCard}>
           <AppText style={[styles.tipLabel, { color: theme.colors.subtext }]}>
@@ -90,8 +120,10 @@ export default function HomeScreen() {
           </AppText>
           <AppText style={[styles.tipText, { color: theme.colors.text }]}>
             {macroPriority === 'highprotein' 
-              ? "Look for grilled proteins - they're usually your best bet for high protein, lower calorie meals."
-              : 'Ask for dressings and sauces on the side to control your calorie intake.'
+              ? "Look for grilled proteins — they're usually your best bet for high protein, lower calorie meals."
+              : macroPriority === 'lowcarb'
+              ? "Ask for lettuce wraps instead of buns, or swap fries for a side salad."
+              : 'Ask for dressings and sauces on the side to control your intake.'
             }
           </AppText>
         </Card>
@@ -125,41 +157,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-  },
-  budgetCard: {
-    padding: 20,
-    marginBottom: 16,
-  },
-  budgetLabel: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  budgetRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 12,
-  },
-  budgetValue: {
-    color: '#fff',
-    fontSize: 42,
-    fontWeight: '800',
-    marginRight: 8,
-  },
-  budgetUnit: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 16,
-  },
-  budgetProgress: {
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  budgetProgressFill: {
-    height: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 4,
   },
   scanCard: {
     padding: 20,
@@ -215,6 +212,28 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     marginTop: 2,
+  },
+  focusCard: {
+    padding: 16,
+    marginBottom: 16,
+  },
+  focusLabel: {
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  focusTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  tagText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   tipCard: {
     padding: 16,

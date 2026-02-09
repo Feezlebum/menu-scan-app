@@ -34,20 +34,16 @@ function scoreItem(item: MenuItem, profile: UserProfile): { score: number; reaso
   let score = 50;
   const reasons: string[] = [];
 
-  // === CALORIE FIT (biggest factor) ===
-  const calorieRatio = item.estimatedCalories / profile.remainingCalories;
-  
-  if (calorieRatio <= 0.4) {
-    score += 25;
-    reasons.push('Light meal, plenty of budget left');
-  } else if (calorieRatio <= 0.6) {
-    score += 15;
-    reasons.push('Good calorie fit');
-  } else if (calorieRatio <= 0.8) {
-    score += 5;
-  } else if (calorieRatio > 1) {
-    score -= 20;
-    reasons.push('Exceeds remaining budget');
+  // === CALORIE DENSITY (lower = better for weight loss) ===
+  if (item.estimatedCalories <= 400) {
+    score += 20;
+    reasons.push('Low calorie option');
+  } else if (item.estimatedCalories <= 600) {
+    score += 10;
+    reasons.push('Moderate calories');
+  } else if (item.estimatedCalories > 900) {
+    score -= 10;
+    reasons.push('High calorie dish');
   }
 
   // === MACRO ALIGNMENT ===
@@ -202,10 +198,9 @@ serve(async (req) => {
     // Build user context for personalized AI response
     const userContext = userProfile ? `
 USER PROFILE (personalize your analysis for this person):
-- Daily calorie target: ${userProfile.dailyCalorieTarget} cal
-- Calories remaining today: ${userProfile.remainingCalories} cal
+- Goal: ${userProfile.goal || 'general health'}
 - Diet type: ${userProfile.dietType || 'no specific diet'}
-- Priority: ${userProfile.macroPriority || 'balanced'} ${userProfile.macroPriority === 'highprotein' ? '(wants high protein options)' : userProfile.macroPriority === 'lowcarb' ? '(avoiding carbs)' : userProfile.macroPriority === 'lowcal' ? '(wants lowest calorie options)' : ''}
+- Macro priority: ${userProfile.macroPriority || 'balanced'} ${userProfile.macroPriority === 'highprotein' ? '(wants high protein options)' : userProfile.macroPriority === 'lowcarb' ? '(avoiding carbs)' : userProfile.macroPriority === 'lowcal' ? '(wants lowest calorie options)' : ''}
 - Food allergies/intolerances: ${userProfile.intolerances?.length > 0 ? userProfile.intolerances.join(', ') : 'none'}
 - Foods they dislike: ${userProfile.dislikes?.length > 0 ? userProfile.dislikes.join(', ') : 'none'}
 
@@ -213,7 +208,7 @@ PERSONALIZATION RULES:
 - Flag any items containing their allergens/intolerances in the ingredients
 - Tailor modification tips to their specific goals (e.g., if high-protein priority, suggest adding protein)
 - If they're low-carb/keto, suggest carb swaps (no bun, lettuce wrap, etc.)
-- Consider their remaining calorie budget when suggesting portions
+- For weight loss goals, prioritize lower calorie options
 ` : '';
 
     // Call GPT-4o to parse the menu

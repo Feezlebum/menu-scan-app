@@ -33,13 +33,6 @@ export default function TabLayout() {
         }} 
       />
       <Tabs.Screen 
-        name="search" 
-        options={{ 
-          title: 'Search', 
-          tabBarIcon: ({ color }) => <FontAwesome name="search" size={20} color={color} /> 
-        }} 
-      />
-      <Tabs.Screen 
         name="scan" 
         options={{ 
           title: '',
@@ -62,6 +55,13 @@ export default function TabLayout() {
         options={{ 
           title: 'Profile', 
           tabBarIcon: ({ color }) => <FontAwesome name="user" size={20} color={color} /> 
+        }} 
+      />
+      {/* Hidden - keeping file but removing from tabs */}
+      <Tabs.Screen 
+        name="search" 
+        options={{ 
+          href: null, // Hides from tab bar
         }} 
       />
     </Tabs>

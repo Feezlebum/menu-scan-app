@@ -80,8 +80,7 @@ export async function parseMenu(imageUrl: string): Promise<ScanResult> {
   const store = useOnboardingStore.getState();
   
   const userProfile = {
-    dailyCalorieTarget: store.dailyCalorieTarget || 2000,
-    remainingCalories: store.dailyCalorieTarget || 2000, // TODO: subtract logged meals
+    goal: store.goal || 'health',
     dietType: store.dietType || 'none',
     macroPriority: store.macroPriority || 'balanced',
     intolerances: store.intolerances || [],

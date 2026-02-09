@@ -1,18 +1,21 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Image } from 'react-native';
-
-// Michi assets
-const MichiAvatar = require('@/assets/michi/michi-avatar.png');
-const MichiHero = require('@/assets/michi/michi-hero.png');
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as Haptics from 'expo-haptics';
 import { AppText } from '@/src/components/ui/AppText';
+import { TrafficLightDot } from '@/src/components/ui/TrafficLightDot';
+import { Card } from '@/src/components/ui/Card';
 import { useAppTheme } from '@/src/theme/theme';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
+import { useHistoryStore } from '@/src/stores/historyStore';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Michi assets
+const MichiHero = require('@/assets/michi/michi-hero.png');
+const MichiAvatar = require('@/assets/michi/michi-avatar.png');
 
 // Michi's rotating tips
 const MICHI_TIPS = [
@@ -29,28 +32,13 @@ const getMichiTip = () => {
   return MICHI_TIPS[index];
 };
 
-// Tag icons mapping
-const TAG_ICONS: Record<string, string> = {
-  'Weight Loss': '🔥',
-  'Lower Calorie': '🔥',
-  'Low Cal': '🔥',
-  'Build Muscle': '💪',
-  'Maintain': '⚖️',
-  'Healthier': '💚',
-  'High Protein': '🥩',
-  'Low Carb': '🥗',
-  'Keto': '🥑',
-  'Vegan': '🌱',
-  'Vegetarian': '🌿',
-  'Mediterranean': '🫒',
-  'Paleo': '🦴',
-  'Gluten-Free': '🌾',
-};
-
 export default function HomeScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { goal, macroPriority, dietType, intolerances } = useOnboardingStore();
+  const { loggedMeals } = useHistoryStore();
+  
+  const lastMeal = loggedMeals[0];
 
   const handleScan = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -59,9 +47,9 @@ export default function HomeScreen() {
 
   const getGreetingText = () => {
     switch (goal) {
-      case 'lose': return "Lets find lighter options";
+      case 'lose': return "Let's find lighter options";
       case 'gain': return "Time to fuel those gains";
-      case 'maintain': return "Lets keep it balanced";
+      case 'maintain': return "Let's keep it balanced";
       default: return "Ready to eat smart?";
     }
   };
@@ -88,131 +76,206 @@ export default function HomeScreen() {
       tags.push({ label: 'Mediterranean', icon: '🫒', key: 'diet' });
     }
     
-    // Check for gluten intolerance
     if (intolerances?.includes('gluten') || intolerances?.includes('Gluten')) {
       tags.push({ label: 'Gluten-Free', icon: '🌾', key: 'gluten' });
     }
     
-    return tags.slice(0, 3); // Max 3 tags
+    return tags.slice(0, 3);
   };
 
   const tags = buildTags();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]} edges={['top']}>
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
-        contentContainerStyle={styles.content}
-      >
-        {/* 1️⃣ Greeting Header */}
-        <View style={styles.header}>
-          <AppText 
-            style={[
-              styles.greeting, 
-              { 
-                fontFamily: theme.fonts.heading.bold,
-                color: theme.colors.text 
-              }
-            ]}
-          >
-            {getGreetingText()}
-          </AppText>
-        </View>
+    <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
+      {/* Botanical decorations at low opacity */}
+      <View style={styles.botanicalLayer} pointerEvents="none">
+        <AppText style={[styles.botanical, styles.botTopLeft]}>🌿</AppText>
+        <AppText style={[styles.botanical, styles.botTopRight]}>🥑</AppText>
+        <AppText style={[styles.botanical, styles.botMidLeft]}>✨</AppText>
+        <AppText style={[styles.botanical, styles.botMidRight]}>🍋</AppText>
+        <AppText style={[styles.botanical, styles.botBottomLeft]}>🥦</AppText>
+        <AppText style={[styles.botanical, styles.botBottomRight]}>🌿</AppText>
+        <AppText style={[styles.botanical, styles.botStar1]}>⭐</AppText>
+        <AppText style={[styles.botanical, styles.botStar2]}>✨</AppText>
+      </View>
 
-        {/* 2️⃣ Michi Hero Section */}
-        <View style={styles.michiHero}>
-          <Image 
-            source={MichiHero} 
-            style={styles.michiHeroImage}
-            resizeMode="contain"
-          />
-        </View>
-
-        {/* 3️⃣ Scan a Menu CTA Button */}
-        <TouchableOpacity 
-          style={[styles.scanButton, { backgroundColor: theme.colors.brand }]}
-          onPress={handleScan}
-          activeOpacity={0.9}
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={styles.content}
         >
-          <FontAwesome name="camera" size={20} color="#fff" style={styles.scanIcon} />
-          <AppText 
-            style={[
-              styles.scanButtonText, 
-              { fontFamily: theme.fonts.heading.semiBold }
-            ]}
-          >
-            Scan a Menu
-          </AppText>
-        </TouchableOpacity>
-
-        {/* 4️⃣ Two-Column Card Row */}
-        <View style={styles.cardRow}>
-          {/* Left — Your Focus */}
-          <View style={[styles.focusCard, { backgroundColor: theme.colors.cardSage }]}>
+          {/* Greeting Header */}
+          <View style={styles.header}>
             <AppText 
               style={[
-                styles.cardTitle, 
-                { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }
+                styles.greeting, 
+                { 
+                  fontFamily: theme.fonts.heading.bold,
+                  color: theme.colors.text 
+                }
               ]}
             >
-              Your Focus
+              {getGreetingText()}
             </AppText>
-            <View style={styles.tagsContainer}>
-              {tags.length > 0 ? (
-                tags.map((tag) => (
-                  <View 
-                    key={tag.key} 
-                    style={[styles.tag, { backgroundColor: '#fff', borderColor: theme.colors.secondary }]}
-                  >
-                    <AppText style={styles.tagIcon}>{tag.icon}</AppText>
-                    <AppText 
-                      style={[
-                        styles.tagText, 
-                        { fontFamily: theme.fonts.body.semiBold, color: theme.colors.text }
-                      ]}
-                    >
-                      {tag.label}
-                    </AppText>
-                  </View>
-                ))
-              ) : (
-                <AppText style={[styles.noTags, { color: theme.colors.caption }]}>
-                  Set in Profile
-                </AppText>
-              )}
-            </View>
           </View>
 
-          {/* Right — Michi says */}
-          <View style={[styles.michiCard, { backgroundColor: theme.colors.cardPeach }]}>
-            <View style={styles.michiSaysHeader}>
-              <Image source={MichiAvatar} style={styles.michiAvatar} />
+          {/* Michi Hero - NO card border, sits on background */}
+          <View style={styles.michiHero}>
+            <Image 
+              source={MichiHero} 
+              style={styles.michiHeroImage}
+              resizeMode="contain"
+            />
+          </View>
+
+          {/* Scan a Menu CTA Button */}
+          <TouchableOpacity 
+            style={styles.scanButton}
+            onPress={handleScan}
+            activeOpacity={0.9}
+          >
+            <FontAwesome name="camera" size={20} color="#fff" style={styles.scanIcon} />
+            <AppText 
+              style={[
+                styles.scanButtonText, 
+                { fontFamily: theme.fonts.heading.semiBold }
+              ]}
+            >
+              Scan a Menu
+            </AppText>
+          </TouchableOpacity>
+
+          {/* Two-Column Card Row */}
+          <View style={styles.cardRow}>
+            {/* Left — Your Focus */}
+            <View style={[styles.focusCard, { backgroundColor: '#E8F5E2' }]}>
               <AppText 
                 style={[
-                  styles.michiSaysLabel, 
+                  styles.cardTitle, 
                   { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }
                 ]}
               >
-                Michi says:
+                Your Focus
+              </AppText>
+              <View style={styles.tagsContainer}>
+                {tags.length > 0 ? (
+                  tags.map((tag) => (
+                    <View 
+                      key={tag.key} 
+                      style={[styles.tag, { backgroundColor: '#fff', borderColor: '#6BAF7A' }]}
+                    >
+                      <AppText style={styles.tagIcon}>{tag.icon}</AppText>
+                      <AppText 
+                        style={[
+                          styles.tagText, 
+                          { fontFamily: theme.fonts.body.semiBold, color: theme.colors.text }
+                        ]}
+                      >
+                        {tag.label}
+                      </AppText>
+                    </View>
+                  ))
+                ) : (
+                  <AppText style={[styles.noTags, { color: theme.colors.caption }]}>
+                    Set in Profile
+                  </AppText>
+                )}
+              </View>
+            </View>
+
+            {/* Right — Michi says */}
+            <View style={[styles.michiCard, { backgroundColor: '#FFE8D6' }]}>
+              <View style={styles.michiSaysHeader}>
+                <Image source={MichiAvatar} style={styles.michiAvatar} />
+                <AppText 
+                  style={[
+                    styles.michiSaysLabel, 
+                    { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }
+                  ]}
+                >
+                  Michi says:
+                </AppText>
+              </View>
+              <AppText 
+                style={[
+                  styles.michiSays, 
+                  { fontFamily: theme.fonts.body.regular, color: theme.colors.text }
+                ]}
+              >
+                {getMichiTip()}
               </AppText>
             </View>
-            <AppText 
-              style={[
-                styles.michiSays, 
-                { fontFamily: theme.fonts.body.regular, color: theme.colors.text }
-              ]}
-            >
-              {getMichiTip()}
-            </AppText>
           </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+
+          {/* Last Scan Preview - fills empty space */}
+          {lastMeal ? (
+            <View style={[styles.lastScanCard, { backgroundColor: '#fff', borderColor: theme.colors.border }]}>
+              <View style={styles.lastScanHeader}>
+                <AppText style={[styles.lastScanLabel, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>
+                  📋 Last Logged
+                </AppText>
+                <AppText style={[styles.lastScanTime, { color: theme.colors.caption }]}>
+                  {formatTimeAgo(lastMeal.loggedAt)}
+                </AppText>
+              </View>
+              <View style={styles.lastScanContent}>
+                <TrafficLightDot tone={lastMeal.item.trafficLight} size={12} />
+                <View style={styles.lastScanInfo}>
+                  <AppText 
+                    style={[styles.lastScanName, { fontFamily: theme.fonts.body.semiBold, color: theme.colors.text }]} 
+                    numberOfLines={1}
+                  >
+                    {lastMeal.item.name}
+                  </AppText>
+                  <AppText style={[styles.lastScanMacros, { color: theme.colors.caption }]}>
+                    {lastMeal.item.estimatedCalories} cal · {lastMeal.item.estimatedProtein}g P · {lastMeal.item.estimatedCarbs}g C
+                  </AppText>
+                </View>
+              </View>
+              {lastMeal.restaurantName && (
+                <AppText style={[styles.restaurantName, { color: theme.colors.caption }]}>
+                  {lastMeal.restaurantName}
+                </AppText>
+              )}
+            </View>
+          ) : (
+            <View style={[styles.welcomeCard, { backgroundColor: '#FFF0D4' }]}>
+              <AppText style={[styles.welcomeEmoji]}>👋</AppText>
+              <AppText style={[styles.welcomeTitle, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>
+                Welcome to MenuScan!
+              </AppText>
+              <AppText style={[styles.welcomeText, { fontFamily: theme.fonts.body.regular, color: theme.colors.subtext }]}>
+                Scan your first restaurant menu to get personalized healthy recommendations.
+              </AppText>
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
+}
+
+function formatTimeAgo(isoDate: string): string {
+  const date = new Date(isoDate);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  safeArea: {
     flex: 1,
   },
   content: {
@@ -220,21 +283,42 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
   },
+  // Botanical decorations
+  botanicalLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+  },
+  botanical: {
+    position: 'absolute',
+    fontSize: 28,
+    opacity: 0.12,
+  },
+  botTopLeft: { top: 60, left: 15, fontSize: 32, transform: [{ rotate: '-15deg' }] },
+  botTopRight: { top: 80, right: 20, fontSize: 26 },
+  botMidLeft: { top: SCREEN_HEIGHT * 0.35, left: 10, fontSize: 20 },
+  botMidRight: { top: SCREEN_HEIGHT * 0.4, right: 15, fontSize: 24, transform: [{ rotate: '15deg' }] },
+  botBottomLeft: { bottom: 180, left: 20, fontSize: 22 },
+  botBottomRight: { bottom: 220, right: 25, fontSize: 28, transform: [{ rotate: '10deg' }] },
+  botStar1: { top: 150, right: 50, fontSize: 16 },
+  botStar2: { top: SCREEN_HEIGHT * 0.5, left: 30, fontSize: 18 },
+  // Header
   header: {
-    marginBottom: 16,
+    marginBottom: 8,
+    zIndex: 1,
   },
   greeting: {
-    fontSize: 28,
-    lineHeight: 36,
+    fontSize: 32,
+    lineHeight: 40,
   },
-  // Michi Hero
+  // Michi Hero - larger, no card
   michiHero: {
-    marginBottom: 16,
     alignItems: 'center',
+    marginBottom: 12,
+    zIndex: 1,
   },
   michiHeroImage: {
-    width: SCREEN_WIDTH - 40,
-    height: 220,
+    width: SCREEN_WIDTH * 0.75,
+    height: SCREEN_WIDTH * 0.75,
   },
   // Scan Button
   scanButton: {
@@ -244,11 +328,13 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     marginBottom: 16,
+    backgroundColor: '#E86B50',
     shadowColor: '#E86B50',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 12,
     elevation: 6,
+    zIndex: 1,
   },
   scanIcon: {
     marginRight: 10,
@@ -261,6 +347,8 @@ const styles = StyleSheet.create({
   cardRow: {
     flexDirection: 'row',
     gap: 12,
+    marginBottom: 16,
+    zIndex: 1,
   },
   focusCard: {
     flex: 1,
@@ -280,7 +368,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 14,
-    borderWidth: 1,
+    borderWidth: 1.5,
     gap: 4,
   },
   tagIcon: {
@@ -304,9 +392,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   michiAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   michiSaysLabel: {
     fontSize: 14,
@@ -314,5 +402,64 @@ const styles = StyleSheet.create({
   michiSays: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  // Last Scan Card
+  lastScanCard: {
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    zIndex: 1,
+  },
+  lastScanHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  lastScanLabel: {
+    fontSize: 15,
+  },
+  lastScanTime: {
+    fontSize: 12,
+  },
+  lastScanContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  lastScanInfo: {
+    flex: 1,
+  },
+  lastScanName: {
+    fontSize: 15,
+  },
+  lastScanMacros: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  restaurantName: {
+    fontSize: 12,
+    marginTop: 8,
+  },
+  // Welcome Card (when no history)
+  welcomeCard: {
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  welcomeEmoji: {
+    fontSize: 40,
+    marginBottom: 12,
+  },
+  welcomeTitle: {
+    fontSize: 18,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  welcomeText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

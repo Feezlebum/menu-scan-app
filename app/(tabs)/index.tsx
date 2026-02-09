@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -7,7 +7,6 @@ import * as Haptics from 'expo-haptics';
 import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
-import { useHistoryStore } from '@/src/stores/historyStore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -22,15 +21,32 @@ const MICHI_TIPS = [
 ];
 
 const getMichiTip = () => {
-  const index = Math.floor(Date.now() / 60000) % MICHI_TIPS.length; // Changes every minute
+  const index = Math.floor(Date.now() / 60000) % MICHI_TIPS.length;
   return MICHI_TIPS[index];
+};
+
+// Tag icons mapping
+const TAG_ICONS: Record<string, string> = {
+  'Weight Loss': '🔥',
+  'Lower Calorie': '🔥',
+  'Low Cal': '🔥',
+  'Build Muscle': '💪',
+  'Maintain': '⚖️',
+  'Healthier': '💚',
+  'High Protein': '🥩',
+  'Low Carb': '🥗',
+  'Keto': '🥑',
+  'Vegan': '🌱',
+  'Vegetarian': '🌿',
+  'Mediterranean': '🫒',
+  'Paleo': '🦴',
+  'Gluten-Free': '🌾',
 };
 
 export default function HomeScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { goal, macroPriority, dietType } = useOnboardingStore();
-  const { loggedMeals } = useHistoryStore();
+  const { goal, macroPriority, dietType, intolerances } = useOnboardingStore();
 
   const handleScan = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -39,54 +55,41 @@ export default function HomeScreen() {
 
   const getGreetingText = () => {
     switch (goal) {
-      case 'lose': return "Let's find lighter options";
+      case 'lose': return "Lets find lighter options";
       case 'gain': return "Time to fuel those gains";
-      case 'maintain': return "Balance is the goal";
+      case 'maintain': return "Lets keep it balanced";
       default: return "Ready to eat smart?";
     }
   };
 
-  // Build unique tags (no duplicates)
+  // Build unique tags with icons
   const buildTags = () => {
-    const tags: { label: string; key: string }[] = [];
+    const tags: { label: string; icon: string; key: string }[] = [];
     
-    if (goal) {
-      const goalLabels: Record<string, string> = {
-        lose: 'Weight Loss',
-        gain: 'Build Muscle',
-        maintain: 'Maintain',
-        health: 'Healthier',
-      };
-      tags.push({ label: goalLabels[goal] || goal, key: 'goal' });
+    if (goal === 'lose') {
+      tags.push({ label: 'Lower Calorie', icon: '🔥', key: 'goal' });
+    } else if (goal === 'gain') {
+      tags.push({ label: 'Build Muscle', icon: '💪', key: 'goal' });
+    } else if (goal === 'maintain') {
+      tags.push({ label: 'Maintain', icon: '⚖️', key: 'goal' });
     }
     
-    // Add macro priority only if different from diet type
-    if (macroPriority && macroPriority !== 'balanced') {
-      const macroLabels: Record<string, string> = {
-        highprotein: 'High Protein',
-        lowcarb: 'Low Carb',
-        lowcal: 'Low Cal',
-      };
-      const macroLabel = macroLabels[macroPriority];
-      // Avoid duplicate with diet type
-      if (macroLabel && !(dietType === 'lowcarb' && macroPriority === 'lowcarb')) {
-        tags.push({ label: macroLabel, key: 'macro' });
-      }
+    if (dietType === 'vegan') {
+      tags.push({ label: 'Vegan', icon: '🌱', key: 'diet' });
+    } else if (dietType === 'keto') {
+      tags.push({ label: 'Keto', icon: '🥑', key: 'diet' });
+    } else if (dietType === 'lowcarb' || macroPriority === 'lowcarb') {
+      tags.push({ label: 'Low Carb', icon: '🥗', key: 'diet' });
+    } else if (dietType === 'mediterranean') {
+      tags.push({ label: 'Mediterranean', icon: '🫒', key: 'diet' });
     }
     
-    if (dietType && dietType !== 'none' && dietType !== 'cico') {
-      const dietLabels: Record<string, string> = {
-        keto: 'Keto',
-        vegan: 'Vegan',
-        vegetarian: 'Vegetarian',
-        lowcarb: 'Low Carb',
-        mediterranean: 'Mediterranean',
-        paleo: 'Paleo',
-      };
-      tags.push({ label: dietLabels[dietType] || dietType, key: 'diet' });
+    // Check for gluten intolerance
+    if (intolerances?.includes('gluten') || intolerances?.includes('Gluten')) {
+      tags.push({ label: 'Gluten-Free', icon: '🌾', key: 'gluten' });
     }
     
-    return tags;
+    return tags.slice(0, 3); // Max 3 tags
   };
 
   const tags = buildTags();
@@ -113,12 +116,18 @@ export default function HomeScreen() {
         </View>
 
         {/* 2️⃣ Michi Hero Section */}
-        <View style={[styles.michiHero, { backgroundColor: theme.colors.cardCream }]}>
-          <AppText style={[styles.michiPlaceholderText, { color: theme.colors.caption }]}>
-            Michi animation placeholder
-          </AppText>
-          <View style={[styles.michiPlaceholderIcon, { backgroundColor: theme.colors.michiTeal }]}>
-            <AppText style={styles.michiEmoji}>🐱</AppText>
+        <View style={[styles.michiHero, { backgroundColor: theme.colors.bg }]}>
+          {/* Placeholder for Michi illustration */}
+          <View style={[styles.michiPlaceholder, { backgroundColor: theme.colors.cardCream }]}>
+            <View style={[styles.michiCircle, { backgroundColor: theme.colors.michiTeal }]}>
+              <AppText style={styles.michiEmoji}>🐹</AppText>
+            </View>
+            <AppText style={[styles.michiPlaceholderText, { color: theme.colors.caption }]}>
+              Michi illustration placeholder
+            </AppText>
+            {/* Decorative elements placeholders */}
+            <View style={[styles.deco1, { backgroundColor: theme.colors.secondary + '40' }]} />
+            <View style={[styles.deco2, { backgroundColor: theme.colors.accent + '40' }]} />
           </View>
         </View>
 
@@ -143,28 +152,26 @@ export default function HomeScreen() {
         <View style={styles.cardRow}>
           {/* Left — Your Focus */}
           <View style={[styles.focusCard, { backgroundColor: theme.colors.cardSage }]}>
-            <View style={styles.cardHeader}>
-              <AppText 
-                style={[
-                  styles.cardTitle, 
-                  { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }
-                ]}
-              >
-                Your Focus
-              </AppText>
-              <AppText style={styles.leafIcon}>🌿</AppText>
-            </View>
+            <AppText 
+              style={[
+                styles.cardTitle, 
+                { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }
+              ]}
+            >
+              Your Focus
+            </AppText>
             <View style={styles.tagsContainer}>
               {tags.length > 0 ? (
                 tags.map((tag) => (
                   <View 
                     key={tag.key} 
-                    style={[styles.tag, { borderColor: theme.colors.secondary }]}
+                    style={[styles.tag, { backgroundColor: '#fff', borderColor: theme.colors.secondary }]}
                   >
+                    <AppText style={styles.tagIcon}>{tag.icon}</AppText>
                     <AppText 
                       style={[
                         styles.tagText, 
-                        { fontFamily: theme.fonts.body.semiBold, color: theme.colors.secondary }
+                        { fontFamily: theme.fonts.body.semiBold, color: theme.colors.text }
                       ]}
                     >
                       {tag.label}
@@ -181,28 +188,29 @@ export default function HomeScreen() {
 
           {/* Right — Michi says */}
           <View style={[styles.michiCard, { backgroundColor: theme.colors.cardPeach }]}>
-            <View style={[styles.michiAvatar, { backgroundColor: theme.colors.michiTeal }]}>
-              <AppText style={styles.michiAvatarEmoji}>🐱</AppText>
+            <View style={styles.michiSaysHeader}>
+              <View style={[styles.michiAvatar, { backgroundColor: theme.colors.michiTeal }]}>
+                <AppText style={styles.michiAvatarEmoji}>🐹</AppText>
+              </View>
+              <AppText 
+                style={[
+                  styles.michiSaysLabel, 
+                  { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }
+                ]}
+              >
+                Michi says:
+              </AppText>
             </View>
             <AppText 
               style={[
                 styles.michiSays, 
-                { fontFamily: theme.fonts.body.semiBold, color: theme.colors.text }
+                { fontFamily: theme.fonts.body.regular, color: theme.colors.text }
               ]}
             >
               {getMichiTip()}
             </AppText>
           </View>
         </View>
-
-        {/* Last logged meal (if exists) */}
-        {loggedMeals.length > 0 && (
-          <View style={[styles.lastMealCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <AppText style={[styles.lastMealLabel, { color: theme.colors.caption }]}>
-              📋 Last logged: {loggedMeals[0].item.name}
-            </AppText>
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -214,37 +222,58 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 8,
     paddingBottom: 24,
   },
   header: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   greeting: {
-    fontSize: 32,
-    lineHeight: 40,
+    fontSize: 28,
+    lineHeight: 36,
   },
   // Michi Hero
   michiHero: {
-    height: 280,
-    borderRadius: 20,
     marginBottom: 16,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  michiPlaceholderText: {
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  michiPlaceholderIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  michiPlaceholder: {
+    width: '100%',
+    height: 220,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  michiCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   michiEmoji: {
-    fontSize: 48,
+    fontSize: 64,
+  },
+  michiPlaceholderText: {
+    fontSize: 13,
+  },
+  deco1: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  deco2: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
   },
   // Scan Button
   scanButton: {
@@ -252,9 +281,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 56,
-    borderRadius: 16,
+    borderRadius: 28,
     marginBottom: 16,
-    // Coral shadow
     shadowColor: '#E86B50',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -272,36 +300,30 @@ const styles = StyleSheet.create({
   cardRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 16,
   },
   focusCard: {
     flex: 1,
-    borderRadius: 16,
-    padding: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+    borderRadius: 20,
+    padding: 14,
   },
   cardTitle: {
-    fontSize: 16,
-  },
-  leafIcon: {
-    fontSize: 16,
+    fontSize: 15,
+    marginBottom: 10,
   },
   tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 6,
   },
   tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    backgroundColor: '#fff',
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 4,
+  },
+  tagIcon: {
+    fontSize: 12,
   },
   tagText: {
     fontSize: 12,
@@ -311,31 +333,30 @@ const styles = StyleSheet.create({
   },
   michiCard: {
     flex: 1,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 14,
+  },
+  michiSaysHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
   michiAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
   },
   michiAvatarEmoji: {
-    fontSize: 20,
+    fontSize: 14,
+  },
+  michiSaysLabel: {
+    fontSize: 14,
   },
   michiSays: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  // Last meal
-  lastMealCard: {
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-  },
-  lastMealLabel: {
     fontSize: 13,
+    lineHeight: 18,
   },
 });

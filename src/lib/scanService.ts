@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 
 export interface MenuItem {

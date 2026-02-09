@@ -130,6 +130,9 @@ export default function ItemDetailScreen() {
                 {item.allergenWarning}
               </AppText>
             </View>
+            <AppText style={[styles.allergenDisclaimer, { color: '#FF3B30' }]}>
+              ⚠️ Always confirm allergens with restaurant staff
+            </AppText>
           </Card>
         )}
 
@@ -186,6 +189,9 @@ export default function ItemDetailScreen() {
               theme={theme} 
             />
           </View>
+          <AppText style={[styles.disclaimer, { color: theme.colors.subtext }]}>
+            Nutrition values are AI estimates and may vary. Always confirm allergens with staff.
+          </AppText>
         </Card>
 
         {/* Dietary Tags */}
@@ -374,6 +380,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
+  allergenDisclaimer: {
+    fontSize: 12,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
   reasonsCard: {
     padding: 16,
     marginBottom: 16,
@@ -415,6 +426,12 @@ const styles = StyleSheet.create({
   nutritionLabel: {
     fontSize: 12,
     marginTop: 4,
+  },
+  disclaimer: {
+    fontSize: 11,
+    marginTop: 12,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   tagsRow: {
     flexDirection: 'row',

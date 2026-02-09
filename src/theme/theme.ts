@@ -1,65 +1,103 @@
 import { useColorScheme } from 'react-native';
-import { colors, radius, spacing } from './tokens';
+import { colors, radius, spacing, fonts, typography } from './tokens';
 
 export type AppTheme = {
   isDark: boolean;
   colors: {
+    // Backgrounds
     bg: string;
     card: string;
+    cardCream: string;
+    cardSage: string;
+    cardPeach: string;
+    // Text
     text: string;
     subtext: string;
+    caption: string;
+    // UI Elements
     border: string;
     brand: string;
     secondary: string;
     accent: string;
+    // Semantic
     success: string;
     warning: string;
     danger: string;
-    // Traffic light colors
+    // Traffic lights
     trafficGreen: string;
     trafficAmber: string;
     trafficRed: string;
+    // Character
+    michiTeal: string;
+    // Shadows
+    shadow: string;
+    coralShadow: string;
   };
   spacing: typeof spacing;
   radius: typeof radius;
+  fonts: typeof fonts;
+  typography: typeof typography;
 };
 
-const light: AppTheme = {
+// Illustrated warm theme (primary)
+const illustrated: AppTheme = {
   isDark: false,
   colors: {
-    bg: colors.lightBg,      // Cool White #F8FAFA
-    card: '#FFFFFF',
-    text: '#16181D',
-    subtext: '#6B7280',
-    border: '#E7E7EA',
-    brand: colors.brand,     // Deep Teal #0D9488
-    secondary: colors.secondary, // Soft Mint #B2DFDB
-    accent: colors.accent,   // Warm Coral #F28B6E
-    success: colors.brand,
+    // Backgrounds
+    bg: colors.warmCream,
+    card: colors.white,
+    cardCream: colors.cardCream,
+    cardSage: colors.cardSage,
+    cardPeach: colors.cardPeach,
+    // Text
+    text: colors.textPrimary,
+    subtext: colors.textSecondary,
+    caption: colors.textCaption,
+    // UI Elements
+    border: colors.borderLight,
+    brand: colors.coral,
+    secondary: colors.sage,
+    accent: colors.amber,
+    // Semantic
+    success: colors.sage,
     warning: colors.amber,
-    danger: colors.softRed,
+    danger: colors.coral,
+    // Traffic lights
     trafficGreen: colors.trafficGreen,
     trafficAmber: colors.trafficAmber,
     trafficRed: colors.trafficRed,
+    // Character
+    michiTeal: colors.michiTeal,
+    // Shadows
+    shadow: colors.shadow,
+    coralShadow: colors.coralShadow,
   },
   spacing,
   radius,
+  fonts,
+  typography,
 };
 
+// Dark theme (for screens that need it, e.g., camera)
 const dark: AppTheme = {
-  ...light,
+  ...illustrated,
   isDark: true,
   colors: {
-    ...light.colors,
-    bg: colors.darkBg,       // Deep Slate #0F1A1E
-    card: '#1A2428',
-    text: '#F4F7FB',
-    subtext: '#9DA6B3',
-    border: '#2B3338',
+    ...illustrated.colors,
+    bg: colors.darkBg,
+    card: '#3D3428',
+    text: '#F4F0EB',
+    subtext: '#B8AFA5',
+    caption: '#8A8078',
+    border: '#4D4438',
   },
 };
 
+// Always use illustrated theme for now (light mode focus)
 export const useAppTheme = (): AppTheme => {
-  const scheme = useColorScheme();
-  return scheme === 'dark' ? dark : light;
+  // Force light/illustrated theme
+  return illustrated;
 };
+
+// Export for components that need dark theme explicitly (e.g., camera)
+export const useDarkTheme = (): AppTheme => dark;

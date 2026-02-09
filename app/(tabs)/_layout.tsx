@@ -10,19 +10,19 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.brand,
-        tabBarInactiveTintColor: theme.colors.subtext,
+        tabBarActiveTintColor: theme.colors.brand, // Coral #E86B50
+        tabBarInactiveTintColor: theme.colors.caption, // #9B8B7E
         tabBarStyle: {
           height: Platform.OS === 'ios' ? 85 : 65,
           paddingBottom: Platform.OS === 'ios' ? 25 : 8,
           paddingTop: 8,
-          backgroundColor: theme.colors.card,
-          borderTopColor: theme.colors.border,
+          backgroundColor: '#FFFFFF',
+          borderTopColor: theme.colors.border, // #F0E6D6
           borderTopWidth: 1,
         },
         tabBarLabelStyle: {
+          fontFamily: theme.fonts.body.semiBold,
           fontSize: 11,
-          fontWeight: '500',
         },
       }}>
       <Tabs.Screen 
@@ -44,7 +44,7 @@ export default function TabLayout() {
         options={{ 
           title: '',
           tabBarIcon: ({ focused }) => (
-            <View style={[styles.scanButton, { backgroundColor: theme.colors.brand }]}>
+            <View style={[styles.scanFab, { backgroundColor: theme.colors.brand }]}>
               <FontAwesome name="camera" size={24} color="#fff" />
             </View>
           ),
@@ -79,17 +79,18 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  scanButton: {
+  scanFab: {
     width: 56,
     height: 56,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: -20,
-    shadowColor: '#000',
+    // Coral shadow
+    shadowColor: '#E86B50',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
     elevation: 8,
   },
 });

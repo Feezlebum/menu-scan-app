@@ -13,8 +13,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: theme.colors.brand,
         tabBarInactiveTintColor: theme.colors.subtext,
         tabBarStyle: {
-          height: Platform.OS === 'ios' ? 85 : 70,
-          paddingBottom: Platform.OS === 'ios' ? 25 : 10,
+          height: Platform.OS === 'ios' ? 85 : 65,
+          paddingBottom: Platform.OS === 'ios' ? 25 : 8,
           paddingTop: 8,
           backgroundColor: theme.colors.card,
           borderTopColor: theme.colors.border,
@@ -33,6 +33,13 @@ export default function TabLayout() {
         }} 
       />
       <Tabs.Screen 
+        name="history" 
+        options={{ 
+          title: 'History', 
+          tabBarIcon: ({ color }) => <FontAwesome name="history" size={20} color={color} /> 
+        }} 
+      />
+      <Tabs.Screen 
         name="scan" 
         options={{ 
           title: '',
@@ -41,13 +48,9 @@ export default function TabLayout() {
               <FontAwesome name="camera" size={24} color="#fff" />
             </View>
           ),
-        }} 
-      />
-      <Tabs.Screen 
-        name="history" 
-        options={{ 
-          title: 'History', 
-          tabBarIcon: ({ color }) => <FontAwesome name="history" size={20} color={color} /> 
+          tabBarItemStyle: {
+            height: 70,
+          },
         }} 
       />
       <Tabs.Screen 
@@ -75,7 +78,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginTop: -20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

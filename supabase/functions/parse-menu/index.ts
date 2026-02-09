@@ -28,14 +28,10 @@ interface UserProfile {
   dislikes: string[];
 }
 
-// Score each item 0-100 based on user profile
-// New scoring: calorie density + macro alignment + diet compliance + allergen safety
 function scoreItem(item: MenuItem, profile: UserProfile): { score: number; reasons: string[] } {
   let score = 50;
   const reasons: string[] = [];
 
-  // === CALORIE DENSITY (lower = better for weight loss) ===
-  // This is the primary factor now
   const caloriesPerServing = item.estimatedCalories;
   if (caloriesPerServing <= 350) {
     score += 25;
@@ -50,7 +46,6 @@ function scoreItem(item: MenuItem, profile: UserProfile): { score: number; reaso
     reasons.push('High calorie dish');
   }
 
-  // === MACRO ALIGNMENT ===
   if (profile.macroPriority === 'highprotein') {
     const proteinRatio = item.estimatedProtein / (item.estimatedCalories / 100);
     if (item.estimatedProtein >= 40) {
@@ -64,7 +59,6 @@ function scoreItem(item: MenuItem, profile: UserProfile): { score: number; reaso
     } else if (item.estimatedProtein < 15) {
       score -= 10;
     }
-    // Bonus for excellent protein-to-calorie ratio
     if (proteinRatio > 6) {
       score += 5;
       reasons.push('Great protein density');
@@ -100,7 +94,6 @@ function scoreItem(item: MenuItem, profile: UserProfile): { score: number; reaso
     }
   }
 
-  // === DIET COMPLIANCE ===
   if (profile.dietType === 'keto') {
     if (item.estimatedCarbs <= 8) {
       score += 20;
@@ -119,7 +112,7 @@ function scoreItem(item: MenuItem, profile: UserProfile): { score: number; reaso
       score += 15;
       reasons.push('Vegan');
     } else {
-      score = -100; // Hard filter
+      score = -100;
       reasons.push('Not vegan');
     }
   }
@@ -140,7 +133,6 @@ function scoreItem(item: MenuItem, profile: UserProfile): { score: number; reaso
   }
 
   if (profile.dietType === 'mediterranean') {
-    // Favor fish, vegetables, olive oil based dishes
     const itemText = [item.name, item.description || '', ...item.ingredients].join(' ').toLowerCase();
     if (itemText.match(/fish|salmon|tuna|shrimp|seafood|olive|vegetable|salad|grilled/)) {
       score += 10;
@@ -148,16 +140,10 @@ function scoreItem(item: MenuItem, profile: UserProfile): { score: number; reaso
     }
   }
 
-  // === ALLERGEN SAFETY (hard filter) ===
-  const itemText = [
-    item.name,
-    item.description || '',
-    ...item.ingredients
-  ].join(' ').toLowerCase();
+  const itemText = [item.name, item.description || '', ...item.ingredients].join(' ').toLowerCase();
   
   for (const intolerance of profile.intolerances) {
     const intoleranceLower = intolerance.toLowerCase();
-    // Check for common variations
     const variations = [intoleranceLower];
     if (intoleranceLower === 'dairy') variations.push('milk', 'cheese', 'cream', 'butter', 'yogurt');
     if (intoleranceLower === 'gluten') variations.push('wheat', 'bread', 'flour', 'pasta', 'breaded');
@@ -175,7 +161,6 @@ function scoreItem(item: MenuItem, profile: UserProfile): { score: number; reaso
     }
   }
 
-  // === DISLIKES (soft filter) ===
   for (const dislike of profile.dislikes) {
     if (itemText.includes(dislike.toLowerCase())) {
       score -= 30;
@@ -183,15 +168,12 @@ function scoreItem(item: MenuItem, profile: UserProfile): { score: number; reaso
     }
   }
 
-  // === GOAL-BASED ADJUSTMENTS ===
   if (profile.goal === 'lose') {
-    // Extra weight on calorie density for weight loss
     if (caloriesPerServing <= 400) score += 5;
     if (caloriesPerServing > 800) score -= 5;
   }
   
   if (profile.goal === 'gain') {
-    // For muscle gain, prefer higher protein and moderate calories
     if (item.estimatedProtein >= 35 && caloriesPerServing >= 500) {
       score += 10;
       reasons.push('Good for gains');
@@ -200,7 +182,7 @@ function scoreItem(item: MenuItem, profile: UserProfile): { score: number; reaso
 
   return {
     score: Math.max(0, Math.min(100, score)),
-    reasons: reasons.slice(0, 3), // Top 3 reasons only
+    reasons: reasons.slice(0, 3),
   };
 }
 
@@ -235,7 +217,6 @@ serve(async (req) => {
     const openaiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiKey) throw new Error('OPENAI_API_KEY not configured');
 
-    // Build user context for personalized AI response
     const userContext = userProfile ? `
 USER PROFILE (personalize your analysis for this person):
 - Goal: ${userProfile.goal || 'general health'}
@@ -245,13 +226,12 @@ USER PROFILE (personalize your analysis for this person):
 - Foods they dislike: ${userProfile.dislikes?.length > 0 ? userProfile.dislikes.join(', ') : 'none'}
 
 PERSONALIZATION RULES:
-- Flag any items containing their allergens/intolerances in the ingredients
-- Tailor modification tips to their specific goals (e.g., if high-protein priority, suggest adding protein)
-- If they're low-carb/keto, suggest carb swaps (no bun, lettuce wrap, etc.)
+- Flag any items containing their allergens/intolerances
+- Tailor modification tips to their specific goals
+- If they're low-carb/keto, suggest carb swaps
 - For weight loss goals, prioritize lower calorie density options
 ` : '';
 
-    // Call GPT-4o to parse the menu
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -265,7 +245,21 @@ PERSONALIZATION RULES:
             role: 'system',
             content: `You are an expert nutritionist and menu analyzer helping someone make healthy choices when eating out.
 ${userContext}
-Extract ALL menu items from the restaurant menu photo.
+Extract ALL orderable dishes from the restaurant menu photo.
+
+CRITICAL PARSING RULES:
+1. **"Choose Your Protein" menus**: Many Asian restaurants list dish STYLES (e.g., "Garlic", "Ginger", "Cashew Nut") separately from PROTEIN choices (Chicken, Beef, Shrimp, etc.). 
+   - These are NOT standalone dishes - they are preparation styles
+   - Create COMPLETE dish names by combining: "[Style] [Protein]" (e.g., "Garlic Chicken", "Ginger Beef", "Cashew Nut Shrimp")
+   - Use the CHICKEN version as the default representative dish for each style (most commonly ordered)
+   - Include the price for chicken in the price field
+   - Mention in description that other proteins are available
+
+2. **Include default sides**: If the menu says "served with rice" or similar, INCLUDE the rice/side in your nutrition estimates
+
+3. **Don't list sauce names or ingredients as dishes**: "Garlic", "Ginger", "Basil" alone are NOT dishes - they describe a preparation style
+
+4. **Soups with protein choices**: Same rule - create representative dishes like "Tom Yum Soup with Chicken"
 
 Return JSON with this exact structure:
 {
@@ -273,37 +267,36 @@ Return JSON with this exact structure:
   "restaurantType": "chain" | "independent",
   "items": [
     {
-      "name": string,
-      "description": string | null,
-      "price": string | null,
-      "section": string | null (e.g., "Appetizers", "Mains", "Salads"),
-      "estimatedCalories": number,
+      "name": string (FULL dish name a customer would order, e.g., "Garlic Chicken" not just "Garlic"),
+      "description": string | null (include "Other proteins available: Beef, Shrimp, etc." if applicable),
+      "price": string | null (use chicken/default price if multiple options),
+      "section": string | null (e.g., "Entrees", "Soups", "Salads"),
+      "estimatedCalories": number (INCLUDE any default sides like rice),
       "estimatedProtein": number (grams),
-      "estimatedCarbs": number (grams),
+      "estimatedCarbs": number (grams - INCLUDE rice if served with),
       "estimatedFat": number (grams),
-      "ingredients": string[] (main ingredients you can identify or infer),
+      "ingredients": string[] (main ingredients),
       "isVegetarian": boolean,
       "isVegan": boolean,
       "isGlutenFree": boolean,
-      "allergenWarning": string | null (if this item contains user's allergens, explain here),
-      "modificationTips": string[] (2-3 ways to make it healthier FOR THIS SPECIFIC USER based on their goals)
+      "allergenWarning": string | null,
+      "modificationTips": string[] (2-3 personalized tips)
     }
   ]
 }
 
 IMPORTANT:
-- Estimate nutrition based on TYPICAL RESTAURANT PORTIONS (usually larger than home cooking)
-- Be conservative — restaurants use more oil, butter, and larger portions than expected
-- Modification tips should be PERSONALIZED to the user's goals and restrictions
+- Estimate nutrition for TYPICAL RESTAURANT PORTIONS (larger than home cooking)
+- Be conservative — restaurants use more oil, butter, and larger portions
+- If dish is served with rice, add ~200 cal and ~45g carbs for the rice
 - If you recognize a chain restaurant, use your knowledge of their actual nutrition data
-- If an item contains the user's allergens, set allergenWarning to explain (e.g., "Contains dairy")
 - Only return valid JSON, no markdown or extra text.`
           },
           {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: imageUrl } },
-              { type: 'text', text: 'Parse this menu and extract all items with personalized nutrition estimates and modification tips for my goals.' }
+              { type: 'text', text: 'Parse this menu and extract all ORDERABLE dishes with complete names. Remember: if there are "choose your protein" sections, combine the style + protein into proper dish names.' }
             ]
           }
         ],
@@ -318,11 +311,9 @@ IMPORTANT:
     const content = data.choices[0]?.message?.content;
     if (!content) throw new Error('No response from OpenAI');
 
-    // Parse the JSON response
     const jsonStr = content.replace(/```json\n?|\n?```/g, '').trim();
     const parsedMenu = JSON.parse(jsonStr);
 
-    // Default profile if none provided
     const profile: UserProfile = userProfile || {
       goal: 'health',
       dietType: 'none',
@@ -331,7 +322,6 @@ IMPORTANT:
       dislikes: [],
     };
 
-    // Score each item
     const scoredItems = parsedMenu.items.map((item: MenuItem) => {
       const { score, reasons } = scoreItem(item, profile);
       return {
@@ -343,19 +333,15 @@ IMPORTANT:
       };
     });
 
-    // Sort by score descending
     scoredItems.sort((a: any, b: any) => b.score - a.score);
 
-    // Get top 3 picks (score > 40)
     const topPicks = scoredItems
       .filter((item: any) => item.score >= 40)
       .slice(0, 3)
       .map((item: any, index: number) => ({
         ...item,
         rank: index + 1,
-        badge: index === 0 ? 'Best Match' : 
-               index === 1 ? 'Runner Up' :
-               'Great Option',
+        badge: index === 0 ? 'Best Match' : index === 1 ? 'Runner Up' : 'Great Option',
       }));
 
     return new Response(JSON.stringify({

@@ -1,15 +1,18 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
 
+const InsightsBackground = require('@/assets/botanicals/insights-background.png');
+
 export default function InsightsScreen() {
   const theme = useAppTheme();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]} edges={['top']}>
+    <ImageBackground source={InsightsBackground} style={styles.container} resizeMode="cover">
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
         <AppText style={[styles.title, { color: theme.colors.text }]}>Insights</AppText>
       </View>
@@ -25,12 +28,16 @@ export default function InsightsScreen() {
           Track your dining patterns, nutrition trends,{'\n'}and progress over time.
         </AppText>
       </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  safeArea: {
     flex: 1,
   },
   header: {

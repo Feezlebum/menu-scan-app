@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, ActivityIndicator, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const ProfileBackground = require('@/assets/botanicals/profile-background.png');
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
 import { AppText } from '@/src/components/ui/AppText';
@@ -186,8 +188,9 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <ImageBackground source={ProfileBackground} style={styles.container} resizeMode="cover">
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <View style={[styles.avatar, { backgroundColor: theme.colors.brand }]}>
@@ -354,9 +357,10 @@ export default function ProfileScreen() {
         {/* Version */}
         <AppText style={[styles.version, { color: theme.colors.subtext }]}>
           MenuScan v1.0.0
-        </AppText>
-      </ScrollView>
-    </SafeAreaView>
+          </AppText>
+        </ScrollView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
@@ -379,6 +383,9 @@ function ProfileRow({ icon, label, value, theme }: {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  safeArea: {
     flex: 1,
   },
   header: {

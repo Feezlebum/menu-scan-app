@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, SectionList, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, SectionList, TouchableOpacity, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const HistoryBackground = require('@/assets/botanicals/history-background.png');
 import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as Haptics from 'expo-haptics';
@@ -124,9 +126,10 @@ export default function HistoryScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
+    <ImageBackground source={HistoryBackground} style={styles.container} resizeMode="cover">
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* Header */}
+        <View style={styles.header}>
         <AppText style={[styles.title, { color: theme.colors.text }]}>History</AppText>
         <AppText style={[styles.subtitle, { color: theme.colors.subtext }]}>
           {loggedMeals.length} meals logged
@@ -163,7 +166,8 @@ export default function HistoryScreen() {
           </TouchableOpacity>
         </View>
       )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
@@ -214,6 +218,9 @@ function formatDateHeader(dateStr: string): string {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  safeArea: {
     flex: 1,
   },
   header: {

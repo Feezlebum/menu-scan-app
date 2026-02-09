@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Image, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -10,22 +10,14 @@ import { useAppTheme } from '@/src/theme/theme';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import { useHistoryStore } from '@/src/stores/historyStore';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Michi assets
 const MichiHero = require('@/assets/michi-hero.png');
 const MichiAvatar = require('@/assets/michi-avatar.png');
 
-// Botanical assets - clean transparency versions
-const GarlandTopLeft = require('@/assets/botanicals/garland-top-left.png');
-const GarlandTopRight = require('@/assets/botanicals/garland-top-right.png');
-const GarlandBottomLeft = require('@/assets/botanicals/garland-bottom-left-new.png');
-const AvocadoClean = require('@/assets/botanicals/avocado-clean.png');
-const LemonClean = require('@/assets/botanicals/lemon-clean.png');
-const BasilClean = require('@/assets/botanicals/basil-clean.png');
-const TomatoClean = require('@/assets/botanicals/tomato-clean.png');
-const SparkleClean = require('@/assets/botanicals/sparkle-clean.png');
-const LeafClean = require('@/assets/botanicals/leaf-clean.png');
+// Background with botanicals baked in
+const HomeBackground = require('@/assets/botanicals/home-background.png');
 
 // Michi's rotating tips
 const MICHI_TIPS = [
@@ -96,29 +88,11 @@ export default function HomeScreen() {
   const tags = buildTags();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
-      {/* Botanical decorations - corner garlands at 20% opacity */}
-      <View style={styles.botanicalLayer} pointerEvents="none">
-        {/* Corner garlands - clean transparency versions */}
-        <Image source={GarlandTopLeft} style={styles.garlandTopLeft} resizeMode="contain" />
-        <Image source={GarlandTopRight} style={styles.garlandTopRight} resizeMode="contain" />
-        <Image source={GarlandBottomLeft} style={styles.garlandBottomLeft} resizeMode="contain" />
-        <Image source={GarlandBottomLeft} style={styles.garlandBottomRight} resizeMode="contain" />
-        
-        {/* Scattered food items - 12-18% opacity, slight random rotations */}
-        {/* Near Michi (left side) */}
-        <Image source={AvocadoClean} style={styles.avocadoScattered} resizeMode="contain" />
-        {/* Between cards area (right side) */}
-        <Image source={LemonClean} style={styles.lemonScattered} resizeMode="contain" />
-        {/* Near scan button */}
-        <Image source={BasilClean} style={styles.basilScattered} resizeMode="contain" />
-        {/* Near Last Logged card */}
-        <Image source={TomatoClean} style={styles.tomatoScattered} resizeMode="contain" />
-        {/* Sparkle and leaf accents */}
-        <Image source={SparkleClean} style={styles.sparkleScattered} resizeMode="contain" />
-        <Image source={LeafClean} style={styles.leafScattered} resizeMode="contain" />
-      </View>
-
+    <ImageBackground 
+      source={HomeBackground} 
+      style={styles.container} 
+      resizeMode="cover"
+    >
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView 
           showsVerticalScrollIndicator={false} 
@@ -272,7 +246,7 @@ export default function HomeScreen() {
           )}
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </ImageBackground>
   );
 }
 
@@ -303,101 +277,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 24,
-  },
-  // Botanical decorations layer
-  botanicalLayer: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 0,
-    overflow: 'hidden',
-  },
-  // Corner garlands - 20% opacity (clean transparency versions)
-  garlandTopLeft: {
-    position: 'absolute',
-    top: 30,
-    left: -30,
-    width: 180,
-    height: 180,
-    opacity: 0.20,
-  },
-  garlandTopRight: {
-    position: 'absolute',
-    top: 40,
-    right: -30,
-    width: 170,
-    height: 170,
-    opacity: 0.20,
-  },
-  garlandBottomLeft: {
-    position: 'absolute',
-    bottom: 70,
-    left: -25,
-    width: 160,
-    height: 160,
-    opacity: 0.20,
-  },
-  garlandBottomRight: {
-    position: 'absolute',
-    bottom: 70,
-    right: -25,
-    width: 160,
-    height: 160,
-    opacity: 0.20,
-    transform: [{ scaleX: -1 }], // Flip horizontally
-  },
-  // Scattered food items - 12-18% opacity, 25-35px, slight rotations (-25° to +25°)
-  avocadoScattered: {
-    position: 'absolute',
-    top: 310,
-    left: 12,
-    width: 32,
-    height: 32,
-    opacity: 0.16,
-    transform: [{ rotate: '-18deg' }],
-  },
-  lemonScattered: {
-    position: 'absolute',
-    top: 670,
-    right: 18,
-    width: 28,
-    height: 28,
-    opacity: 0.14,
-    transform: [{ rotate: '22deg' }],
-  },
-  basilScattered: {
-    position: 'absolute',
-    top: 545,
-    left: 20,
-    width: 30,
-    height: 30,
-    opacity: 0.15,
-    transform: [{ rotate: '12deg' }],
-  },
-  tomatoScattered: {
-    position: 'absolute',
-    top: 820,
-    right: 25,
-    width: 26,
-    height: 26,
-    opacity: 0.13,
-    transform: [{ rotate: '-20deg' }],
-  },
-  sparkleScattered: {
-    position: 'absolute',
-    top: 195,
-    right: 35,
-    width: 22,
-    height: 22,
-    opacity: 0.18,
-    transform: [{ rotate: '8deg' }],
-  },
-  leafScattered: {
-    position: 'absolute',
-    top: 460,
-    right: 15,
-    width: 25,
-    height: 25,
-    opacity: 0.14,
-    transform: [{ rotate: '-15deg' }],
   },
   // Header
   header: {

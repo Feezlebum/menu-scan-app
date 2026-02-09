@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Share } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -9,11 +9,16 @@ import { AppText } from '@/src/components/ui/AppText';
 import { Card } from '@/src/components/ui/Card';
 import { useAppTheme } from '@/src/theme/theme';
 import { useScanStore } from '@/src/stores/scanStore';
+import { useHistoryStore } from '@/src/stores/historyStore';
+import { useTrackerExport } from '@/src/hooks/useTrackerExport';
 
 export default function ItemDetailScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { selectedItem, setSelectedItem } = useScanStore();
+  const { selectedItem, setSelectedItem, currentResult } = useScanStore();
+  const { saveScan, logMeal, scans } = useHistoryStore();
+  const { exportToTrackers, hasEnabledTrackers } = useTrackerExport();
+  const [isLogging, setIsLogging] = useState(false);
 
   if (!selectedItem) {
     return (
@@ -31,9 +36,9 @@ export default function ItemDetailScreen() {
   const item = selectedItem;
   
   const getScoreColor = (score: number) => {
-    if (score >= 70) return '#34C759'; // Green
-    if (score >= 40) return '#FF9500'; // Amber
-    return '#FF3B30'; // Red
+    if (score >= 70) return theme.colors.trafficGreen;
+    if (score >= 40) return theme.colors.trafficAmber;
+    return theme.colors.trafficRed;
   };
 
   const handleClose = () => {
@@ -47,7 +52,6 @@ export default function ItemDetailScreen() {
       return `"Hi, I'd like the ${item.name}, please."`;
     }
     const modText = mods.slice(0, 2).map(m => {
-      // Convert tip to order language
       if (m.toLowerCase().includes('sauce on the side')) return 'with the sauce on the side';
       if (m.toLowerCase().includes('dressing on the side')) return 'with dressing on the side';
       if (m.toLowerCase().includes('no bread')) return 'without the bread';
@@ -73,6 +77,70 @@ export default function ItemDetailScreen() {
       });
     } catch (e) {
       console.log('Share failed:', e);
+    }
+  };
+
+  const handleLogMeal = async () => {
+    if (isLogging) return;
+    
+    setIsLogging(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    try {
+      // Check if we already have this scan saved, or save it now
+      let scanId: string;
+      const restaurantName = currentResult?.restaurantName || null;
+      
+      // Find existing scan from this session or create new one
+      const existingScan = scans.find(
+        (s) => s.restaurantName === restaurantName && 
+               new Date(s.scannedAt).getTime() > Date.now() - 30 * 60 * 1000 // Within last 30 mins
+      );
+      
+      if (existingScan) {
+        scanId = existingScan.id;
+      } else if (currentResult) {
+        scanId = saveScan(currentResult);
+      } else {
+        // Fallback: create a minimal scan entry
+        scanId = saveScan({
+          success: true,
+          restaurantName,
+          restaurantType: 'independent',
+          items: [item],
+          topPicks: [],
+          totalItems: 1,
+        });
+      }
+
+      // Log the meal
+      logMeal(scanId, item, restaurantName);
+
+      // Export to trackers (Apple Health, MFP, Lose It)
+      if (hasEnabledTrackers) {
+        await exportToTrackers({
+          foodName: item.name,
+          calories: item.estimatedCalories,
+          protein: item.estimatedProtein,
+          carbs: item.estimatedCarbs,
+          fat: item.estimatedFat,
+        });
+      }
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      // Show confirmation and close
+      Alert.alert(
+        'Meal Logged! ✓',
+        `${item.name} has been saved to your history.`,
+        [{ text: 'OK', onPress: handleClose }]
+      );
+    } catch (error) {
+      console.error('Error logging meal:', error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert('Error', 'Failed to log meal. Please try again.');
+    } finally {
+      setIsLogging(false);
     }
   };
 
@@ -123,14 +191,14 @@ export default function ItemDetailScreen() {
 
         {/* Allergen Warning */}
         {item.allergenWarning && (
-          <Card style={[styles.allergenCard, { backgroundColor: '#FF3B3015', borderColor: '#FF3B30' }]}>
+          <Card style={[styles.allergenCard, { backgroundColor: theme.colors.trafficRed + '15', borderColor: theme.colors.trafficRed }]}>
             <View style={styles.allergenRow}>
-              <FontAwesome name="exclamation-triangle" size={18} color="#FF3B30" />
-              <AppText style={[styles.allergenText, { color: '#FF3B30' }]}>
+              <FontAwesome name="exclamation-triangle" size={18} color={theme.colors.trafficRed} />
+              <AppText style={[styles.allergenText, { color: theme.colors.trafficRed }]}>
                 {item.allergenWarning}
               </AppText>
             </View>
-            <AppText style={[styles.allergenDisclaimer, { color: '#FF3B30' }]}>
+            <AppText style={[styles.allergenDisclaimer, { color: theme.colors.trafficRed }]}>
               ⚠️ Always confirm allergens with restaurant staff
             </AppText>
           </Card>
@@ -147,7 +215,7 @@ export default function ItemDetailScreen() {
                 <FontAwesome 
                   name={item.score >= 50 ? 'check-circle' : 'info-circle'} 
                   size={16} 
-                  color={item.score >= 50 ? '#34C759' : '#FF9500'} 
+                  color={item.score >= 50 ? theme.colors.trafficGreen : theme.colors.trafficAmber} 
                 />
                 <AppText style={[styles.reasonText, { color: theme.colors.text }]}>
                   {reason}
@@ -190,25 +258,25 @@ export default function ItemDetailScreen() {
             />
           </View>
           <AppText style={[styles.disclaimer, { color: theme.colors.subtext }]}>
-            Nutrition values are estimates and may vary. Always confirm allergens with staff.
+            Nutrition values are estimates and may vary.
           </AppText>
         </Card>
 
         {/* Dietary Tags */}
         <View style={styles.tagsRow}>
           {item.isVegetarian && (
-            <View style={[styles.tag, { backgroundColor: '#34C75920' }]}>
-              <AppText style={[styles.tagText, { color: '#34C759' }]}>🥬 Vegetarian</AppText>
+            <View style={[styles.tag, { backgroundColor: theme.colors.trafficGreen + '20' }]}>
+              <AppText style={[styles.tagText, { color: theme.colors.trafficGreen }]}>🥬 Vegetarian</AppText>
             </View>
           )}
           {item.isVegan && (
-            <View style={[styles.tag, { backgroundColor: '#34C75920' }]}>
-              <AppText style={[styles.tagText, { color: '#34C759' }]}>🌱 Vegan</AppText>
+            <View style={[styles.tag, { backgroundColor: theme.colors.trafficGreen + '20' }]}>
+              <AppText style={[styles.tagText, { color: theme.colors.trafficGreen }]}>🌱 Vegan</AppText>
             </View>
           )}
           {item.isGlutenFree && (
-            <View style={[styles.tag, { backgroundColor: '#FF950020' }]}>
-              <AppText style={[styles.tagText, { color: '#FF9500' }]}>🌾 Gluten-Free</AppText>
+            <View style={[styles.tag, { backgroundColor: theme.colors.trafficAmber + '20' }]}>
+              <AppText style={[styles.tagText, { color: theme.colors.trafficAmber }]}>🌾 Gluten-Free</AppText>
             </View>
           )}
         </View>
@@ -231,7 +299,7 @@ export default function ItemDetailScreen() {
         )}
 
         {/* What to Say */}
-        <Card style={[styles.scriptCard, { backgroundColor: theme.colors.brand + '10', borderColor: theme.colors.brand }]}>
+        <Card style={[styles.scriptCard, { backgroundColor: theme.colors.secondary, borderColor: theme.colors.brand }]}>
           <View style={styles.scriptHeader}>
             <AppText style={[styles.cardTitle, { color: theme.colors.text }]}>
               🗣️ What to Say
@@ -260,16 +328,25 @@ export default function ItemDetailScreen() {
 
         {/* Log Button */}
         <TouchableOpacity 
-          style={[styles.logButton, { backgroundColor: theme.colors.brand }]}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            // TODO: Log this meal
-            handleClose();
-          }}
+          style={[
+            styles.logButton, 
+            { backgroundColor: theme.colors.brand },
+            isLogging && { opacity: 0.7 }
+          ]}
+          onPress={handleLogMeal}
+          disabled={isLogging}
         >
-          <FontAwesome name="plus" size={18} color="#fff" />
-          <AppText style={styles.logButtonText}>Log This Meal</AppText>
+          <FontAwesome name={isLogging ? 'spinner' : 'plus'} size={18} color="#fff" />
+          <AppText style={styles.logButtonText}>
+            {isLogging ? 'Logging...' : 'Log This Meal'}
+          </AppText>
         </TouchableOpacity>
+
+        {hasEnabledTrackers && (
+          <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}>
+            Will also log to your connected trackers
+          </AppText>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -283,7 +360,7 @@ function NutritionBox({ label, value, unit, theme, highlight = false }: {
   highlight?: boolean;
 }) {
   return (
-    <View style={[styles.nutritionBox, highlight && { backgroundColor: theme.colors.brand + '15' }]}>
+    <View style={[styles.nutritionBox, highlight && { backgroundColor: theme.colors.secondary }]}>
       <AppText style={[styles.nutritionValue, { color: theme.colors.text }]}>
         {value}{unit}
       </AppText>
@@ -518,5 +595,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 17,
     fontWeight: '600',
+  },
+  trackerHint: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
   },
 });

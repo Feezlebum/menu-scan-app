@@ -9,7 +9,7 @@ export default function ScanScreen() {
       <Card>
         <AppText style={{ fontSize: 22, fontWeight: '700' }}>Scan</AppText>
         <AppText style={{ marginVertical: 8 }}>Camera capture + AI parsing hooks start here.</AppText>
-        <PrimaryButton title="Open Camera" />
+        <PrimaryButton label="Open Camera" />
       </Card>
     </Screen>
   );

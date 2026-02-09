@@ -1,8 +1,13 @@
 import { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, ViewStyle, StyleProp } from 'react-native';
 import { useAppTheme } from '@/src/theme/theme';
 
-export function Card({ children }: { children: ReactNode }) {
+interface Props {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+}
+
+export function Card({ children, style }: Props) {
   const theme = useAppTheme();
   return (
     <View
@@ -13,6 +18,7 @@ export function Card({ children }: { children: ReactNode }) {
           borderColor: theme.colors.border,
           borderRadius: theme.radius.md,
         },
+        style,
       ]}>
       {children}
     </View>

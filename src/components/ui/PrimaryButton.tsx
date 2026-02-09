@@ -1,18 +1,50 @@
-import { Pressable, Text } from 'react-native';
+import { Pressable, Text, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/src/theme/theme';
 
-export function PrimaryButton({ title, onPress }: { title: string; onPress?: () => void }) {
+interface Props {
+  label: string;
+  onPress?: () => void;
+  disabled?: boolean;
+}
+
+export function PrimaryButton({ label, onPress, disabled = false }: Props) {
   const theme = useAppTheme();
+
+  const handlePress = () => {
+    if (!disabled && onPress) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onPress();
+    }
+  };
+
   return (
     <Pressable
-      onPress={onPress}
-      style={{
-        backgroundColor: theme.colors.brand,
-        borderRadius: theme.radius.pill,
-        paddingVertical: 12,
-        paddingHorizontal: 18,
-      }}>
-      <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '700', fontSize: 16 }}>{title}</Text>
+      onPress={handlePress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.button,
+        {
+          backgroundColor: disabled ? theme.colors.border : theme.colors.brand,
+          borderRadius: theme.radius.pill,
+          opacity: pressed ? 0.9 : 1,
+        },
+      ]}>
+      <Text style={[styles.text, { color: disabled ? theme.colors.subtext : '#fff' }]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  button: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  text: {
+    fontWeight: '700',
+    fontSize: 17,
+  },
+});

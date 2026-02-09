@@ -6,7 +6,6 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as Haptics from 'expo-haptics';
 import { AppText } from '@/src/components/ui/AppText';
 import { TrafficLightDot } from '@/src/components/ui/TrafficLightDot';
-import { Card } from '@/src/components/ui/Card';
 import { useAppTheme } from '@/src/theme/theme';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import { useHistoryStore } from '@/src/stores/historyStore';
@@ -14,8 +13,19 @@ import { useHistoryStore } from '@/src/stores/historyStore';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Michi assets
-const MichiHero = require('@/assets/michi/michi-hero.png');
-const MichiAvatar = require('@/assets/michi/michi-avatar.png');
+const MichiHero = require('@/assets/michi-hero.png');
+const MichiAvatar = require('@/assets/michi-avatar.png');
+
+// Botanical assets
+const CornerTopLeft = require('@/assets/botanicals/corner-top-left.png');
+const CornerTopRight = require('@/assets/botanicals/corner-top-right.png');
+const CornerBottomLeft = require('@/assets/botanicals/corner-bottom-left.png');
+const Leaf1 = require('@/assets/botanicals/leaf-1.png');
+const Leaf2 = require('@/assets/botanicals/leaf-2.png');
+const Sparkle = require('@/assets/botanicals/sparkle.png');
+const Star = require('@/assets/botanicals/star.png');
+const Lemon = require('@/assets/botanicals/lemon.png');
+const Avocado = require('@/assets/botanicals/avocado.png');
 
 // Michi's rotating tips
 const MICHI_TIPS = [
@@ -87,16 +97,19 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
-      {/* Botanical decorations at low opacity */}
+      {/* Botanical decorations - corner garlands at 10-15% opacity */}
       <View style={styles.botanicalLayer} pointerEvents="none">
-        <AppText style={[styles.botanical, styles.botTopLeft]}>🌿</AppText>
-        <AppText style={[styles.botanical, styles.botTopRight]}>🥑</AppText>
-        <AppText style={[styles.botanical, styles.botMidLeft]}>✨</AppText>
-        <AppText style={[styles.botanical, styles.botMidRight]}>🍋</AppText>
-        <AppText style={[styles.botanical, styles.botBottomLeft]}>🥦</AppText>
-        <AppText style={[styles.botanical, styles.botBottomRight]}>🌿</AppText>
-        <AppText style={[styles.botanical, styles.botStar1]}>⭐</AppText>
-        <AppText style={[styles.botanical, styles.botStar2]}>✨</AppText>
+        {/* Corner garlands */}
+        <Image source={CornerTopLeft} style={[styles.cornerTopLeft]} resizeMode="contain" />
+        <Image source={CornerTopRight} style={[styles.cornerTopRight]} resizeMode="contain" />
+        <Image source={CornerBottomLeft} style={[styles.cornerBottomLeft]} resizeMode="contain" />
+        
+        {/* Scattered elements */}
+        <Image source={Leaf1} style={[styles.leaf1]} resizeMode="contain" />
+        <Image source={Leaf2} style={[styles.leaf2]} resizeMode="contain" />
+        <Image source={Star} style={[styles.star1]} resizeMode="contain" />
+        <Image source={Sparkle} style={[styles.sparkle1]} resizeMode="contain" />
+        <Image source={Lemon} style={[styles.lemon]} resizeMode="contain" />
       </View>
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -283,24 +296,82 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
   },
-  // Botanical decorations
+  // Botanical decorations layer
   botanicalLayer: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 0,
+    overflow: 'hidden',
   },
-  botanical: {
+  // Corner garlands - 12% opacity
+  cornerTopLeft: {
     position: 'absolute',
-    fontSize: 28,
+    top: 40,
+    left: -20,
+    width: 150,
+    height: 150,
     opacity: 0.12,
   },
-  botTopLeft: { top: 60, left: 15, fontSize: 32, transform: [{ rotate: '-15deg' }] },
-  botTopRight: { top: 80, right: 20, fontSize: 26 },
-  botMidLeft: { top: SCREEN_HEIGHT * 0.35, left: 10, fontSize: 20 },
-  botMidRight: { top: SCREEN_HEIGHT * 0.4, right: 15, fontSize: 24, transform: [{ rotate: '15deg' }] },
-  botBottomLeft: { bottom: 180, left: 20, fontSize: 22 },
-  botBottomRight: { bottom: 220, right: 25, fontSize: 28, transform: [{ rotate: '10deg' }] },
-  botStar1: { top: 150, right: 50, fontSize: 16 },
-  botStar2: { top: SCREEN_HEIGHT * 0.5, left: 30, fontSize: 18 },
+  cornerTopRight: {
+    position: 'absolute',
+    top: 60,
+    right: -30,
+    width: 140,
+    height: 140,
+    opacity: 0.12,
+    transform: [{ scaleX: -1 }],
+  },
+  cornerBottomLeft: {
+    position: 'absolute',
+    bottom: 80,
+    left: -20,
+    width: 130,
+    height: 130,
+    opacity: 0.12,
+  },
+  // Scattered elements - 10-15% opacity
+  leaf1: {
+    position: 'absolute',
+    top: SCREEN_HEIGHT * 0.35,
+    right: 10,
+    width: 30,
+    height: 30,
+    opacity: 0.15,
+    transform: [{ rotate: '25deg' }],
+  },
+  leaf2: {
+    position: 'absolute',
+    bottom: 200,
+    left: 15,
+    width: 25,
+    height: 25,
+    opacity: 0.12,
+    transform: [{ rotate: '-15deg' }],
+  },
+  star1: {
+    position: 'absolute',
+    top: 180,
+    right: 40,
+    width: 20,
+    height: 20,
+    opacity: 0.15,
+  },
+  sparkle1: {
+    position: 'absolute',
+    top: SCREEN_HEIGHT * 0.45,
+    left: 25,
+    width: 18,
+    height: 18,
+    opacity: 0.12,
+  },
+  lemon: {
+    position: 'absolute',
+    bottom: 150,
+    right: 20,
+    width: 35,
+    height: 35,
+    opacity: 0.10,
+    transform: [{ rotate: '20deg' }],
+  },
   // Header
   header: {
     marginBottom: 8,

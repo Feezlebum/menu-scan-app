@@ -5,13 +5,13 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
 
-const InsightsBackground = require('@/assets/botanicals/insights-background.png');
+const HomeBackground = require('@/assets/botanicals/home-background.png');
 
 export default function InsightsScreen() {
   const theme = useAppTheme();
 
   return (
-    <ImageBackground source={InsightsBackground} style={styles.container} resizeMode="cover">
+    <ImageBackground source={HomeBackground} style={styles.container} resizeMode="cover">
       <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
         <AppText style={[styles.title, { color: theme.colors.text }]}>Insights</AppText>

@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, StyleSheet, SectionList, TouchableOpacity, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const HistoryBackground = require('@/assets/botanicals/history-background.png');
+const HomeBackground = require('@/assets/botanicals/home-background.png');
 import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as Haptics from 'expo-haptics';
@@ -126,7 +126,7 @@ export default function HistoryScreen() {
   };
 
   return (
-    <ImageBackground source={HistoryBackground} style={styles.container} resizeMode="cover">
+    <ImageBackground source={HomeBackground} style={styles.container} resizeMode="cover">
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>

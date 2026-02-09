@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, ActivityIndicator, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const ProfileBackground = require('@/assets/botanicals/profile-background.png');
+const HomeBackground = require('@/assets/botanicals/home-background.png');
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
 import { AppText } from '@/src/components/ui/AppText';
@@ -188,7 +188,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ImageBackground source={ProfileBackground} style={styles.container} resizeMode="cover">
+    <ImageBackground source={HomeBackground} style={styles.container} resizeMode="cover">
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}

@@ -1,5 +1,4 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,12 +20,6 @@ interface MenuItem {
   isGlutenFree: boolean;
 }
 
-interface ParsedMenu {
-  restaurantName: string | null;
-  restaurantType: 'chain' | 'independent';
-  items: MenuItem[];
-}
-
 interface UserProfile {
   dailyCalorieTarget: number;
   remainingCalories: number;
@@ -36,53 +29,161 @@ interface UserProfile {
   dislikes: string[];
 }
 
-// Score each item 0-100
-function scoreItem(item: MenuItem, profile: UserProfile): number {
+// Score each item 0-100 based on user profile
+function scoreItem(item: MenuItem, profile: UserProfile): { score: number; reasons: string[] } {
   let score = 50;
+  const reasons: string[] = [];
 
-  // Calorie fit (biggest factor)
-  if (item.estimatedCalories <= profile.remainingCalories * 0.5) score += 25;
-  else if (item.estimatedCalories <= profile.remainingCalories * 0.7) score += 15;
-  else if (item.estimatedCalories > profile.remainingCalories) score -= 20;
+  // === CALORIE FIT (biggest factor) ===
+  const calorieRatio = item.estimatedCalories / profile.remainingCalories;
+  
+  if (calorieRatio <= 0.4) {
+    score += 25;
+    reasons.push('Light meal, plenty of budget left');
+  } else if (calorieRatio <= 0.6) {
+    score += 15;
+    reasons.push('Good calorie fit');
+  } else if (calorieRatio <= 0.8) {
+    score += 5;
+  } else if (calorieRatio > 1) {
+    score -= 20;
+    reasons.push('Exceeds remaining budget');
+  }
 
-  // Macro alignment
-  if (profile.macroPriority === 'highprotein' && item.estimatedProtein > 30) score += 15;
-  if (profile.macroPriority === 'lowcarb' && item.estimatedCarbs < 30) score += 15;
-  if (profile.macroPriority === 'lowcal' && item.estimatedCalories < 500) score += 15;
-
-  // Diet compliance
-  if (profile.dietType === 'keto' && item.estimatedCarbs > 20) score -= 30;
-  if (profile.dietType === 'vegan' && !item.isVegan) score = -100;
-  if (profile.dietType === 'lowcarb' && item.estimatedCarbs > 50) score -= 20;
-
-  // Intolerances (hard filter)
-  const itemIngredients = item.ingredients.map(i => i.toLowerCase()).join(' ');
-  for (const intolerance of profile.intolerances) {
-    if (itemIngredients.includes(intolerance.toLowerCase())) {
-      score = -100;
-      break;
+  // === MACRO ALIGNMENT ===
+  if (profile.macroPriority === 'highprotein') {
+    if (item.estimatedProtein >= 40) {
+      score += 20;
+      reasons.push(`High protein (${item.estimatedProtein}g)`);
+    } else if (item.estimatedProtein >= 30) {
+      score += 12;
+      reasons.push(`Good protein (${item.estimatedProtein}g)`);
+    } else if (item.estimatedProtein < 15) {
+      score -= 10;
+    }
+  }
+  
+  if (profile.macroPriority === 'lowcarb') {
+    if (item.estimatedCarbs <= 20) {
+      score += 20;
+      reasons.push(`Low carb (${item.estimatedCarbs}g)`);
+    } else if (item.estimatedCarbs <= 35) {
+      score += 10;
+    } else if (item.estimatedCarbs > 60) {
+      score -= 15;
+      reasons.push('High carb content');
+    }
+  }
+  
+  if (profile.macroPriority === 'lowcal') {
+    if (item.estimatedCalories <= 400) {
+      score += 20;
+      reasons.push('Low calorie option');
+    } else if (item.estimatedCalories <= 550) {
+      score += 10;
+    } else if (item.estimatedCalories > 800) {
+      score -= 10;
     }
   }
 
-  // Dislikes (soft filter)
-  for (const dislike of profile.dislikes) {
-    if (itemIngredients.includes(dislike.toLowerCase()) || 
-        item.name.toLowerCase().includes(dislike.toLowerCase())) {
+  // === DIET COMPLIANCE ===
+  if (profile.dietType === 'keto') {
+    if (item.estimatedCarbs <= 10) {
+      score += 15;
+      reasons.push('Keto-friendly');
+    } else if (item.estimatedCarbs <= 20) {
+      score += 5;
+    } else if (item.estimatedCarbs > 30) {
       score -= 25;
+      reasons.push('Too many carbs for keto');
+    }
+  }
+  
+  if (profile.dietType === 'vegan') {
+    if (item.isVegan) {
+      score += 15;
+      reasons.push('Vegan');
+    } else {
+      score = -100; // Hard filter
+      reasons.push('Not vegan');
+    }
+  }
+  
+  if (profile.dietType === 'vegetarian') {
+    if (item.isVegetarian) {
+      score += 10;
+      reasons.push('Vegetarian');
+    } else {
+      score = -100;
+      reasons.push('Contains meat');
+    }
+  }
+  
+  if (profile.dietType === 'lowcarb' && item.estimatedCarbs > 50) {
+    score -= 20;
+  }
+
+  // === INTOLERANCES (hard filter) ===
+  const itemText = [
+    item.name,
+    item.description || '',
+    ...item.ingredients
+  ].join(' ').toLowerCase();
+  
+  for (const intolerance of profile.intolerances) {
+    const intoleranceLower = intolerance.toLowerCase();
+    // Check for common variations
+    const variations = [intoleranceLower];
+    if (intoleranceLower === 'dairy') variations.push('milk', 'cheese', 'cream', 'butter');
+    if (intoleranceLower === 'gluten') variations.push('wheat', 'bread', 'flour', 'pasta');
+    if (intoleranceLower === 'nuts') variations.push('peanut', 'almond', 'walnut', 'cashew');
+    
+    for (const v of variations) {
+      if (itemText.includes(v)) {
+        score = -100;
+        reasons.push(`Contains ${intolerance}`);
+        break;
+      }
     }
   }
 
-  return Math.max(-100, Math.min(100, score));
+  // === DISLIKES (soft filter) ===
+  for (const dislike of profile.dislikes) {
+    if (itemText.includes(dislike.toLowerCase())) {
+      score -= 30;
+      reasons.push(`Contains ${dislike}`);
+    }
+  }
+
+  // === BONUS: Protein-to-calorie ratio ===
+  const proteinRatio = item.estimatedProtein / (item.estimatedCalories / 100);
+  if (proteinRatio > 5 && profile.macroPriority !== 'lowcarb') {
+    score += 5;
+    reasons.push('Great protein-to-calorie ratio');
+  }
+
+  return {
+    score: Math.max(0, Math.min(100, score)),
+    reasons: reasons.slice(0, 3), // Top 3 reasons only
+  };
 }
 
 function getTrafficLight(score: number): 'green' | 'amber' | 'red' {
-  if (score >= 40) return 'green';
-  if (score >= 10) return 'amber';
+  if (score >= 70) return 'green';
+  if (score >= 40) return 'amber';
   return 'red';
 }
 
+function getMatchLabel(score: number): string {
+  if (score >= 85) return 'Perfect Match';
+  if (score >= 70) return 'Great Choice';
+  if (score >= 55) return 'Good Option';
+  if (score >= 40) return 'Okay with Tweaks';
+  if (score >= 20) return 'Occasional Treat';
+  return 'Splurge';
+}
+
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -91,16 +192,12 @@ serve(async (req) => {
     const { imageUrl, userProfile } = await req.json();
 
     if (!imageUrl) {
-      return new Response(
-        JSON.stringify({ error: 'imageUrl is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'imageUrl is required' }), 
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const openaiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiKey) {
-      throw new Error('OPENAI_API_KEY not configured');
-    }
+    if (!openaiKey) throw new Error('OPENAI_API_KEY not configured');
 
     // Call GPT-4o to parse the menu
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -114,7 +211,8 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a menu parser. Extract all menu items from this restaurant menu photo.
+            content: `You are an expert nutritionist and menu analyzer. Extract ALL menu items from this restaurant menu photo.
+
 Return JSON with this exact structure:
 {
   "restaurantName": string | null,
@@ -124,34 +222,32 @@ Return JSON with this exact structure:
       "name": string,
       "description": string | null,
       "price": string | null,
-      "section": string | null (e.g., "Appetizers", "Mains", "Desserts"),
+      "section": string | null (e.g., "Appetizers", "Mains", "Salads"),
       "estimatedCalories": number,
       "estimatedProtein": number (grams),
       "estimatedCarbs": number (grams),
       "estimatedFat": number (grams),
-      "ingredients": string[] (main ingredients),
+      "ingredients": string[] (main ingredients you can identify or infer),
       "isVegetarian": boolean,
       "isVegan": boolean,
-      "isGlutenFree": boolean
+      "isGlutenFree": boolean,
+      "modificationTips": string[] (2-3 ways to make it healthier, e.g., "Ask for sauce on the side", "Sub fries for salad")
     }
   ]
 }
 
-For each item, estimate nutrition based on typical restaurant portions.
-If you recognize a chain restaurant, note it. Be conservative with calorie estimates (restaurant portions are usually larger than expected).
-Only return valid JSON, no markdown or extra text.`
+IMPORTANT:
+- Estimate nutrition based on TYPICAL RESTAURANT PORTIONS (usually larger than home cooking)
+- Be conservative — restaurants use more oil, butter, and larger portions than expected
+- For each item, include 2-3 practical modification tips that would reduce calories
+- If you recognize a chain restaurant, use your knowledge of their actual nutrition data
+- Only return valid JSON, no markdown or extra text.`
           },
           {
             role: 'user',
             content: [
-              {
-                type: 'image_url',
-                image_url: { url: imageUrl }
-              },
-              {
-                type: 'text',
-                text: 'Parse this menu and extract all items with nutrition estimates.'
-              }
+              { type: 'image_url', image_url: { url: imageUrl } },
+              { type: 'text', text: 'Parse this menu and extract all items with nutrition estimates and modification tips.' }
             ]
           }
         ],
@@ -160,79 +256,66 @@ Only return valid JSON, no markdown or extra text.`
       }),
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`OpenAI API error: ${error}`);
-    }
-
+    if (!response.ok) throw new Error(`OpenAI error: ${await response.text()}`);
+    
     const data = await response.json();
     const content = data.choices[0]?.message?.content;
-
-    if (!content) {
-      throw new Error('No response from OpenAI');
-    }
+    if (!content) throw new Error('No response from OpenAI');
 
     // Parse the JSON response
-    let parsedMenu: ParsedMenu;
-    try {
-      // Remove markdown code blocks if present
-      const jsonStr = content.replace(/```json\n?|\n?```/g, '').trim();
-      parsedMenu = JSON.parse(jsonStr);
-    } catch (e) {
-      console.error('Failed to parse OpenAI response:', content);
-      throw new Error('Failed to parse menu data');
-    }
+    const jsonStr = content.replace(/```json\n?|\n?```/g, '').trim();
+    const parsedMenu = JSON.parse(jsonStr);
 
-    // If user profile provided, score and rank items
-    let scoredItems = parsedMenu.items.map(item => ({
-      ...item,
-      score: 50,
-      trafficLight: 'amber' as const,
-    }));
+    // Default profile if none provided
+    const profile: UserProfile = userProfile || {
+      dailyCalorieTarget: 2000,
+      remainingCalories: 2000,
+      dietType: 'none',
+      macroPriority: 'balanced',
+      intolerances: [],
+      dislikes: [],
+    };
 
-    if (userProfile) {
-      scoredItems = parsedMenu.items.map(item => {
-        const score = scoreItem(item, userProfile);
-        return {
-          ...item,
-          score,
-          trafficLight: getTrafficLight(score),
-        };
-      });
+    // Score each item
+    const scoredItems = parsedMenu.items.map((item: MenuItem) => {
+      const { score, reasons } = scoreItem(item, profile);
+      return {
+        ...item,
+        score,
+        scoreReasons: reasons,
+        trafficLight: getTrafficLight(score),
+        matchLabel: getMatchLabel(score),
+      };
+    });
 
-      // Sort by score descending
-      scoredItems.sort((a, b) => b.score - a.score);
-    }
+    // Sort by score descending
+    scoredItems.sort((a: any, b: any) => b.score - a.score);
 
-    // Get top 3 picks
+    // Get top 3 picks (score > 40)
     const topPicks = scoredItems
-      .filter(item => item.score > 0)
+      .filter((item: any) => item.score >= 40)
       .slice(0, 3)
-      .map((item, index) => ({
+      .map((item: any, index: number) => ({
         ...item,
         rank: index + 1,
-        badge: index === 0 ? 'Best Overall' : 
-               index === 1 ? (userProfile?.macroPriority === 'highprotein' ? 'Highest Protein' : 'Runner Up') :
-               'Best with Mods',
+        badge: index === 0 ? 'Best Match' : 
+               index === 1 ? 'Runner Up' :
+               'Great Option',
       }));
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        restaurantName: parsedMenu.restaurantName,
-        restaurantType: parsedMenu.restaurantType,
-        items: scoredItems,
-        topPicks,
-        totalItems: scoredItems.length,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({
+      success: true,
+      restaurantName: parsedMenu.restaurantName,
+      restaurantType: parsedMenu.restaurantType,
+      items: scoredItems,
+      topPicks,
+      totalItems: scoredItems.length,
+      userCaloriesRemaining: profile.remainingCalories,
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
     console.error('Error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: error.message }), 
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });

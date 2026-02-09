@@ -12,7 +12,7 @@ import type { MenuItem, TopPick } from '@/src/lib/scanService';
 export default function ResultsScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { currentResult, clearScan } = useScanStore();
+  const { currentResult, clearScan, setSelectedItem } = useScanStore();
 
   if (!currentResult) {
     return (
@@ -36,8 +36,8 @@ export default function ResultsScreen() {
 
   const handleItemPress = (item: MenuItem) => {
     Haptics.selectionAsync();
-    // TODO: Navigate to item detail
-    console.log('Selected item:', item.name);
+    setSelectedItem(item);
+    router.push('/item-detail');
   };
 
   const handleClose = () => {

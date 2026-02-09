@@ -16,8 +16,11 @@ export interface MenuItem {
   isVegetarian: boolean;
   isVegan: boolean;
   isGlutenFree: boolean;
+  modificationTips: string[];
   score: number;
+  scoreReasons: string[];
   trafficLight: 'green' | 'amber' | 'red';
+  matchLabel: string;
 }
 
 export interface TopPick extends MenuItem {

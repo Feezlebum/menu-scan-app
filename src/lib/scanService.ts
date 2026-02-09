@@ -43,7 +43,7 @@ export async function uploadMenuImage(uri: string): Promise<string> {
   
   // Read file as base64 (React Native compatible)
   const base64 = await FileSystem.readAsStringAsync(uri, {
-    encoding: FileSystem.EncodingType.Base64,
+    encoding: 'base64',
   });
   
   // Decode base64 to ArrayBuffer for Supabase upload

@@ -33,10 +33,10 @@ export default function TabLayout() {
         }} 
       />
       <Tabs.Screen 
-        name="history" 
+        name="insights" 
         options={{ 
-          title: 'History', 
-          tabBarIcon: ({ color }) => <FontAwesome name="history" size={20} color={color} /> 
+          title: 'Insights', 
+          tabBarIcon: ({ color }) => <FontAwesome name="line-chart" size={20} color={color} /> 
         }} 
       />
       <Tabs.Screen 
@@ -54,17 +54,24 @@ export default function TabLayout() {
         }} 
       />
       <Tabs.Screen 
+        name="history" 
+        options={{ 
+          title: 'History', 
+          tabBarIcon: ({ color }) => <FontAwesome name="history" size={20} color={color} /> 
+        }} 
+      />
+      <Tabs.Screen 
         name="profile" 
         options={{ 
           title: 'Profile', 
           tabBarIcon: ({ color }) => <FontAwesome name="user" size={20} color={color} /> 
         }} 
       />
-      {/* Hidden - keeping file but removing from tabs */}
+      {/* Hidden screens */}
       <Tabs.Screen 
         name="search" 
         options={{ 
-          href: null, // Hides from tab bar
+          href: null,
         }} 
       />
     </Tabs>

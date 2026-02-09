@@ -190,7 +190,7 @@ export default function ItemDetailScreen() {
             />
           </View>
           <AppText style={[styles.disclaimer, { color: theme.colors.subtext }]}>
-            Nutrition values are AI estimates and may vary. Always confirm allergens with staff.
+            Nutrition values are estimates and may vary. Always confirm allergens with staff.
           </AppText>
         </Card>
 

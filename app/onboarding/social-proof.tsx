@@ -29,7 +29,7 @@ export default function SocialProofScreen() {
   const router = useRouter();
 
   const handleContinue = () => {
-    router.push('/onboarding/paywall');
+    router.push('/onboarding/disclaimer');
   };
 
   return (

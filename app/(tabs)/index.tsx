@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Image } fro
 
 // Michi assets
 const MichiAvatar = require('@/assets/michi/michi-avatar.png');
+const MichiHero = require('@/assets/michi/michi-hero.png');
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -119,19 +120,12 @@ export default function HomeScreen() {
         </View>
 
         {/* 2️⃣ Michi Hero Section */}
-        <View style={[styles.michiHero, { backgroundColor: theme.colors.bg }]}>
-          {/* Placeholder for Michi illustration */}
-          <View style={[styles.michiPlaceholder, { backgroundColor: theme.colors.cardCream }]}>
-            <View style={[styles.michiCircle, { backgroundColor: theme.colors.michiTeal }]}>
-              <AppText style={styles.michiEmoji}>🐹</AppText>
-            </View>
-            <AppText style={[styles.michiPlaceholderText, { color: theme.colors.caption }]}>
-              Michi illustration placeholder
-            </AppText>
-            {/* Decorative elements placeholders */}
-            <View style={[styles.deco1, { backgroundColor: theme.colors.secondary + '40' }]} />
-            <View style={[styles.deco2, { backgroundColor: theme.colors.accent + '40' }]} />
-          </View>
+        <View style={styles.michiHero}>
+          <Image 
+            source={MichiHero} 
+            style={styles.michiHeroImage}
+            resizeMode="contain"
+          />
         </View>
 
         {/* 3️⃣ Scan a Menu CTA Button */}
@@ -238,43 +232,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     alignItems: 'center',
   },
-  michiPlaceholder: {
-    width: '100%',
+  michiHeroImage: {
+    width: SCREEN_WIDTH - 40,
     height: 220,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  michiCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  michiEmoji: {
-    fontSize: 64,
-  },
-  michiPlaceholderText: {
-    fontSize: 13,
-  },
-  deco1: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  deco2: {
-    position: 'absolute',
-    bottom: 30,
-    right: 30,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
   },
   // Scan Button
   scanButton: {

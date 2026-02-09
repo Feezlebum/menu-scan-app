@@ -58,23 +58,23 @@ export function ScanFrame({ isScanning = false }: Props) {
     <View style={styles.container}>
       {/* Corner frames */}
       <Animated.View style={[styles.cornerTopLeft, cornerStyle]}>
-        <View style={[styles.cornerHorizontal, styles.cornerTop]} />
-        <View style={[styles.cornerVertical, styles.cornerLeft]} />
+        <View style={[styles.cornerHorizontal, { top: 0, left: 0 }]} />
+        <View style={[styles.cornerVertical, { top: 0, left: 0 }]} />
       </Animated.View>
       
       <Animated.View style={[styles.cornerTopRight, cornerStyle]}>
-        <View style={[styles.cornerHorizontal, styles.cornerTop]} />
-        <View style={[styles.cornerVertical, styles.cornerRight]} />
+        <View style={[styles.cornerHorizontal, { top: 0, right: 0 }]} />
+        <View style={[styles.cornerVertical, { top: 0, right: 0 }]} />
       </Animated.View>
       
       <Animated.View style={[styles.cornerBottomLeft, cornerStyle]}>
-        <View style={[styles.cornerHorizontal, styles.cornerBottom]} />
-        <View style={[styles.cornerVertical, styles.cornerLeft]} />
+        <View style={[styles.cornerHorizontal, { bottom: 0, left: 0 }]} />
+        <View style={[styles.cornerVertical, { bottom: 0, left: 0 }]} />
       </Animated.View>
       
       <Animated.View style={[styles.cornerBottomRight, cornerStyle]}>
-        <View style={[styles.cornerHorizontal, styles.cornerBottom]} />
-        <View style={[styles.cornerVertical, styles.cornerRight]} />
+        <View style={[styles.cornerHorizontal, { bottom: 0, right: 0 }]} />
+        <View style={[styles.cornerVertical, { bottom: 0, right: 0 }]} />
       </Animated.View>
 
       {/* Scan line */}
@@ -122,18 +122,6 @@ const styles = StyleSheet.create({
     height: CORNER_SIZE,
     backgroundColor: '#34C759',
     position: 'absolute',
-  },
-  cornerTop: {
-    top: 0,
-  },
-  cornerBottom: {
-    bottom: 0,
-  },
-  cornerLeft: {
-    left: 0,
-  },
-  cornerRight: {
-    right: 0,
   },
   scanLine: {
     position: 'absolute',

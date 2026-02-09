@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, SafeAreaView, TouchableOpacity, Alert, Platform } from 'react-native';
-import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { AppText } from '@/src/components/ui/AppText';
@@ -17,7 +17,6 @@ export default function ScanScreen() {
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanState, setScanState] = useState<ScanState>('ready');
-  const [facing, setFacing] = useState<CameraType>('back');
 
   // Request permission on mount if not determined
   useEffect(() => {
@@ -73,11 +72,6 @@ export default function ScanScreen() {
     }
   };
 
-  const toggleCameraFacing = () => {
-    Haptics.selectionAsync();
-    setFacing(current => (current === 'back' ? 'front' : 'back'));
-  };
-
   // Permission not yet determined
   if (!permission) {
     return (
@@ -117,7 +111,7 @@ export default function ScanScreen() {
       <CameraView
         ref={cameraRef}
         style={styles.camera}
-        facing={facing}
+        facing="back"
       >
         {/* Header */}
         <SafeAreaView style={styles.header}>
@@ -137,20 +131,11 @@ export default function ScanScreen() {
 
         {/* Controls */}
         <SafeAreaView style={styles.controls}>
-          {/* Flip camera button */}
-          <TouchableOpacity onPress={toggleCameraFacing} style={styles.flipButton}>
-            <AppText style={styles.flipIcon}>🔄</AppText>
-          </TouchableOpacity>
-
-          {/* Capture button */}
           <CaptureButton
             onPress={handleCapture}
             disabled={scanState !== 'ready'}
             isProcessing={scanState === 'processing'}
           />
-
-          {/* Placeholder for symmetry */}
-          <View style={styles.flipButton} />
         </SafeAreaView>
       </CameraView>
     </View>
@@ -214,19 +199,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 40,
-    paddingBottom: 40,
-  },
-  flipButton: {
-    width: 50,
-    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  flipIcon: {
-    fontSize: 28,
+    paddingBottom: 40,
   },
 });

@@ -16,16 +16,16 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MichiHero = require('@/assets/michi-hero.png');
 const MichiAvatar = require('@/assets/michi-avatar.png');
 
-// Botanical assets
-const CornerTopLeft = require('@/assets/botanicals/corner-top-left.png');
-const CornerTopRight = require('@/assets/botanicals/corner-top-right.png');
-const CornerBottomLeft = require('@/assets/botanicals/corner-bottom-left.png');
-const Leaf1 = require('@/assets/botanicals/leaf-1.png');
-const SmallLeaf = require('@/assets/botanicals/small-leaf.png');
-const Sparkle = require('@/assets/botanicals/sparkle.png');
-const Star = require('@/assets/botanicals/star.png');
-const Lemon = require('@/assets/botanicals/lemon.png');
-const Avocado = require('@/assets/botanicals/avocado.png');
+// Botanical assets - clean transparency versions
+const GarlandTopLeft = require('@/assets/botanicals/garland-top-left.png');
+const GarlandTopRight = require('@/assets/botanicals/garland-top-right.png');
+const GarlandBottomLeft = require('@/assets/botanicals/garland-bottom-left-new.png');
+const AvocadoClean = require('@/assets/botanicals/avocado-clean.png');
+const LemonClean = require('@/assets/botanicals/lemon-clean.png');
+const BasilClean = require('@/assets/botanicals/basil-clean.png');
+const TomatoClean = require('@/assets/botanicals/tomato-clean.png');
+const SparkleClean = require('@/assets/botanicals/sparkle-clean.png');
+const LeafClean = require('@/assets/botanicals/leaf-clean.png');
 
 // Michi's rotating tips
 const MICHI_TIPS = [
@@ -97,26 +97,26 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
-      {/* Botanical decorations - corner garlands at 15-20% opacity */}
+      {/* Botanical decorations - corner garlands at 20% opacity */}
       <View style={styles.botanicalLayer} pointerEvents="none">
-        {/* Corner garlands - clearly visible warm illustrated frames */}
-        <Image source={CornerTopLeft} style={styles.cornerTopLeft} resizeMode="contain" />
-        <Image source={CornerTopRight} style={styles.cornerTopRight} resizeMode="contain" />
-        <Image source={CornerBottomLeft} style={styles.cornerBottomLeft} resizeMode="contain" />
-        <Image source={CornerBottomLeft} style={styles.cornerBottomRight} resizeMode="contain" />
+        {/* Corner garlands - clean transparency versions */}
+        <Image source={GarlandTopLeft} style={styles.garlandTopLeft} resizeMode="contain" />
+        <Image source={GarlandTopRight} style={styles.garlandTopRight} resizeMode="contain" />
+        <Image source={GarlandBottomLeft} style={styles.garlandBottomLeft} resizeMode="contain" />
+        <Image source={GarlandBottomLeft} style={styles.garlandBottomRight} resizeMode="contain" />
         
-        {/* Scattered food items in content area - 15-20% opacity */}
-        {/* Near Michi (left side, around salad area) */}
-        <Image source={Avocado} style={styles.avocadoNearMichi} resizeMode="contain" />
+        {/* Scattered food items - 12-18% opacity, slight random rotations */}
+        {/* Near Michi (left side) */}
+        <Image source={AvocadoClean} style={styles.avocadoScattered} resizeMode="contain" />
         {/* Between cards area (right side) */}
-        <Image source={Lemon} style={styles.lemonBetweenCards} resizeMode="contain" />
-        {/* Near scan button (left) */}
-        <Image source={Leaf1} style={styles.leafNearScan} resizeMode="contain" />
+        <Image source={LemonClean} style={styles.lemonScattered} resizeMode="contain" />
+        {/* Near scan button */}
+        <Image source={BasilClean} style={styles.basilScattered} resizeMode="contain" />
         {/* Near Last Logged card */}
-        <Image source={SmallLeaf} style={styles.leafNearLastLogged} resizeMode="contain" />
-        {/* Sparkle stars scattered */}
-        <Image source={Sparkle} style={styles.sparkleTop} resizeMode="contain" />
-        <Image source={Star} style={styles.starMid} resizeMode="contain" />
+        <Image source={TomatoClean} style={styles.tomatoScattered} resizeMode="contain" />
+        {/* Sparkle and leaf accents */}
+        <Image source={SparkleClean} style={styles.sparkleScattered} resizeMode="contain" />
+        <Image source={LeafClean} style={styles.leafScattered} resizeMode="contain" />
       </View>
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -310,93 +310,94 @@ const styles = StyleSheet.create({
     zIndex: 0,
     overflow: 'hidden',
   },
-  // Corner garlands - 18% opacity (clearly visible warm illustrated frames)
-  cornerTopLeft: {
+  // Corner garlands - 20% opacity (clean transparency versions)
+  garlandTopLeft: {
+    position: 'absolute',
+    top: 30,
+    left: -30,
+    width: 180,
+    height: 180,
+    opacity: 0.20,
+  },
+  garlandTopRight: {
     position: 'absolute',
     top: 40,
-    left: -20,
+    right: -30,
+    width: 170,
+    height: 170,
+    opacity: 0.20,
+  },
+  garlandBottomLeft: {
+    position: 'absolute',
+    bottom: 70,
+    left: -25,
     width: 160,
     height: 160,
-    opacity: 0.18,
+    opacity: 0.20,
   },
-  cornerTopRight: {
+  garlandBottomRight: {
     position: 'absolute',
-    top: 50,
+    bottom: 70,
     right: -25,
-    width: 150,
-    height: 150,
-    opacity: 0.18,
-    transform: [{ scaleX: -1 }],
-  },
-  cornerBottomLeft: {
-    position: 'absolute',
-    bottom: 80,
-    left: -20,
-    width: 140,
-    height: 140,
-    opacity: 0.18,
-  },
-  cornerBottomRight: {
-    position: 'absolute',
-    bottom: 80,
-    right: -20,
-    width: 140,
-    height: 140,
-    opacity: 0.18,
+    width: 160,
+    height: 160,
+    opacity: 0.20,
     transform: [{ scaleX: -1 }], // Flip horizontally
   },
-  // Scattered food items - 15-20% opacity with slight rotations
-  avocadoNearMichi: {
+  // Scattered food items - 12-18% opacity, 25-35px, slight rotations (-25° to +25°)
+  avocadoScattered: {
     position: 'absolute',
-    top: 320,
-    left: 15,
-    width: 35,
-    height: 35,
-    opacity: 0.15,
-    transform: [{ rotate: '-15deg' }],
+    top: 310,
+    left: 12,
+    width: 32,
+    height: 32,
+    opacity: 0.16,
+    transform: [{ rotate: '-18deg' }],
   },
-  lemonBetweenCards: {
+  lemonScattered: {
     position: 'absolute',
-    top: 680,
-    right: 20,
+    top: 670,
+    right: 18,
+    width: 28,
+    height: 28,
+    opacity: 0.14,
+    transform: [{ rotate: '22deg' }],
+  },
+  basilScattered: {
+    position: 'absolute',
+    top: 545,
+    left: 20,
     width: 30,
     height: 30,
-    opacity: 0.12,
-    transform: [{ rotate: '20deg' }],
+    opacity: 0.15,
+    transform: [{ rotate: '12deg' }],
   },
-  leafNearScan: {
+  tomatoScattered: {
     position: 'absolute',
-    top: 560,
-    left: 25,
+    top: 820,
+    right: 25,
+    width: 26,
+    height: 26,
+    opacity: 0.13,
+    transform: [{ rotate: '-20deg' }],
+  },
+  sparkleScattered: {
+    position: 'absolute',
+    top: 195,
+    right: 35,
+    width: 22,
+    height: 22,
+    opacity: 0.18,
+    transform: [{ rotate: '8deg' }],
+  },
+  leafScattered: {
+    position: 'absolute',
+    top: 460,
+    right: 15,
     width: 25,
     height: 25,
-    opacity: 0.15,
-    transform: [{ rotate: '30deg' }],
-  },
-  leafNearLastLogged: {
-    position: 'absolute',
-    top: 850,
-    right: 30,
-    width: 20,
-    height: 20,
-    opacity: 0.12,
-    transform: [{ rotate: '-25deg' }],
-  },
-  sparkleTop: {
-    position: 'absolute',
-    top: 200,
-    right: 40,
-    width: 18,
-    height: 18,
-    opacity: 0.15,
-  },
-  starMid: {
-    position: 'absolute',
-    top: 480,
-    right: 25,
-    width: 16,
-    height: 16,
-    opacity: 0.12,
+    opacity: 0.14,
+    transform: [{ rotate: '-15deg' }],
   },
   // Header
   header: {

@@ -121,6 +121,18 @@ export default function ItemDetailScreen() {
           )}
         </View>
 
+        {/* Allergen Warning */}
+        {item.allergenWarning && (
+          <Card style={[styles.allergenCard, { backgroundColor: '#FF3B3015', borderColor: '#FF3B30' }]}>
+            <View style={styles.allergenRow}>
+              <FontAwesome name="exclamation-triangle" size={18} color="#FF3B30" />
+              <AppText style={[styles.allergenText, { color: '#FF3B30' }]}>
+                {item.allergenWarning}
+              </AppText>
+            </View>
+          </Card>
+        )}
+
         {/* Score Reasons */}
         {item.scoreReasons && item.scoreReasons.length > 0 && (
           <Card style={styles.reasonsCard}>
@@ -346,6 +358,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 22,
+  },
+  allergenCard: {
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  allergenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  allergenText: {
+    fontSize: 15,
+    fontWeight: '600',
+    flex: 1,
   },
   reasonsCard: {
     padding: 16,

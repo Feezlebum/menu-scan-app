@@ -199,6 +199,23 @@ serve(async (req) => {
     const openaiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiKey) throw new Error('OPENAI_API_KEY not configured');
 
+    // Build user context for personalized AI response
+    const userContext = userProfile ? `
+USER PROFILE (personalize your analysis for this person):
+- Daily calorie target: ${userProfile.dailyCalorieTarget} cal
+- Calories remaining today: ${userProfile.remainingCalories} cal
+- Diet type: ${userProfile.dietType || 'no specific diet'}
+- Priority: ${userProfile.macroPriority || 'balanced'} ${userProfile.macroPriority === 'highprotein' ? '(wants high protein options)' : userProfile.macroPriority === 'lowcarb' ? '(avoiding carbs)' : userProfile.macroPriority === 'lowcal' ? '(wants lowest calorie options)' : ''}
+- Food allergies/intolerances: ${userProfile.intolerances?.length > 0 ? userProfile.intolerances.join(', ') : 'none'}
+- Foods they dislike: ${userProfile.dislikes?.length > 0 ? userProfile.dislikes.join(', ') : 'none'}
+
+PERSONALIZATION RULES:
+- Flag any items containing their allergens/intolerances in the ingredients
+- Tailor modification tips to their specific goals (e.g., if high-protein priority, suggest adding protein)
+- If they're low-carb/keto, suggest carb swaps (no bun, lettuce wrap, etc.)
+- Consider their remaining calorie budget when suggesting portions
+` : '';
+
     // Call GPT-4o to parse the menu
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -211,7 +228,9 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert nutritionist and menu analyzer. Extract ALL menu items from this restaurant menu photo.
+            content: `You are an expert nutritionist and menu analyzer helping someone make healthy choices when eating out.
+${userContext}
+Extract ALL menu items from the restaurant menu photo.
 
 Return JSON with this exact structure:
 {
@@ -231,7 +250,8 @@ Return JSON with this exact structure:
       "isVegetarian": boolean,
       "isVegan": boolean,
       "isGlutenFree": boolean,
-      "modificationTips": string[] (2-3 ways to make it healthier, e.g., "Ask for sauce on the side", "Sub fries for salad")
+      "allergenWarning": string | null (if this item contains user's allergens, explain here),
+      "modificationTips": string[] (2-3 ways to make it healthier FOR THIS SPECIFIC USER based on their goals)
     }
   ]
 }
@@ -239,15 +259,16 @@ Return JSON with this exact structure:
 IMPORTANT:
 - Estimate nutrition based on TYPICAL RESTAURANT PORTIONS (usually larger than home cooking)
 - Be conservative — restaurants use more oil, butter, and larger portions than expected
-- For each item, include 2-3 practical modification tips that would reduce calories
+- Modification tips should be PERSONALIZED to the user's goals and restrictions
 - If you recognize a chain restaurant, use your knowledge of their actual nutrition data
+- If an item contains the user's allergens, set allergenWarning to explain (e.g., "Contains dairy")
 - Only return valid JSON, no markdown or extra text.`
           },
           {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: imageUrl } },
-              { type: 'text', text: 'Parse this menu and extract all items with nutrition estimates and modification tips.' }
+              { type: 'text', text: 'Parse this menu and extract all items with personalized nutrition estimates and modification tips for my goals.' }
             ]
           }
         ],

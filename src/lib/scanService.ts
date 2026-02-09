@@ -16,6 +16,7 @@ export interface MenuItem {
   isVegetarian: boolean;
   isVegan: boolean;
   isGlutenFree: boolean;
+  allergenWarning: string | null;
   modificationTips: string[];
   score: number;
   scoreReasons: string[];

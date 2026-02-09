@@ -21,7 +21,7 @@ const CornerTopLeft = require('@/assets/botanicals/corner-top-left.png');
 const CornerTopRight = require('@/assets/botanicals/corner-top-right.png');
 const CornerBottomLeft = require('@/assets/botanicals/corner-bottom-left.png');
 const Leaf1 = require('@/assets/botanicals/leaf-1.png');
-const Leaf2 = require('@/assets/botanicals/leaf-2.png');
+const SmallLeaf = require('@/assets/botanicals/small-leaf.png');
 const Sparkle = require('@/assets/botanicals/sparkle.png');
 const Star = require('@/assets/botanicals/star.png');
 const Lemon = require('@/assets/botanicals/lemon.png');
@@ -97,19 +97,26 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
-      {/* Botanical decorations - corner garlands at 10-15% opacity */}
+      {/* Botanical decorations - corner garlands at 15-20% opacity */}
       <View style={styles.botanicalLayer} pointerEvents="none">
-        {/* Corner garlands */}
-        <Image source={CornerTopLeft} style={[styles.cornerTopLeft]} resizeMode="contain" />
-        <Image source={CornerTopRight} style={[styles.cornerTopRight]} resizeMode="contain" />
-        <Image source={CornerBottomLeft} style={[styles.cornerBottomLeft]} resizeMode="contain" />
+        {/* Corner garlands - clearly visible warm illustrated frames */}
+        <Image source={CornerTopLeft} style={styles.cornerTopLeft} resizeMode="contain" />
+        <Image source={CornerTopRight} style={styles.cornerTopRight} resizeMode="contain" />
+        <Image source={CornerBottomLeft} style={styles.cornerBottomLeft} resizeMode="contain" />
+        <Image source={CornerBottomLeft} style={styles.cornerBottomRight} resizeMode="contain" />
         
-        {/* Scattered elements */}
-        <Image source={Leaf1} style={[styles.leaf1]} resizeMode="contain" />
-        <Image source={Leaf2} style={[styles.leaf2]} resizeMode="contain" />
-        <Image source={Star} style={[styles.star1]} resizeMode="contain" />
-        <Image source={Sparkle} style={[styles.sparkle1]} resizeMode="contain" />
-        <Image source={Lemon} style={[styles.lemon]} resizeMode="contain" />
+        {/* Scattered food items in content area - 15-20% opacity */}
+        {/* Near Michi (left side, around salad area) */}
+        <Image source={Avocado} style={styles.avocadoNearMichi} resizeMode="contain" />
+        {/* Between cards area (right side) */}
+        <Image source={Lemon} style={styles.lemonBetweenCards} resizeMode="contain" />
+        {/* Near scan button (left) */}
+        <Image source={Leaf1} style={styles.leafNearScan} resizeMode="contain" />
+        {/* Near Last Logged card */}
+        <Image source={SmallLeaf} style={styles.leafNearLastLogged} resizeMode="contain" />
+        {/* Sparkle stars scattered */}
+        <Image source={Sparkle} style={styles.sparkleTop} resizeMode="contain" />
+        <Image source={Star} style={styles.starMid} resizeMode="contain" />
       </View>
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -120,10 +127,11 @@ export default function HomeScreen() {
           {/* Greeting Header */}
           <View style={styles.header}>
             <AppText 
+              variant="heading"
               style={[
                 styles.greeting, 
                 { 
-                  fontFamily: theme.fonts.heading.bold,
+                  fontFamily: 'Baloo2-Bold',
                   color: theme.colors.text 
                 }
               ]}
@@ -302,75 +310,93 @@ const styles = StyleSheet.create({
     zIndex: 0,
     overflow: 'hidden',
   },
-  // Corner garlands - 12% opacity
+  // Corner garlands - 18% opacity (clearly visible warm illustrated frames)
   cornerTopLeft: {
     position: 'absolute',
     top: 40,
     left: -20,
-    width: 150,
-    height: 150,
-    opacity: 0.12,
+    width: 160,
+    height: 160,
+    opacity: 0.18,
   },
   cornerTopRight: {
     position: 'absolute',
-    top: 60,
-    right: -30,
-    width: 140,
-    height: 140,
-    opacity: 0.12,
+    top: 50,
+    right: -25,
+    width: 150,
+    height: 150,
+    opacity: 0.18,
     transform: [{ scaleX: -1 }],
   },
   cornerBottomLeft: {
     position: 'absolute',
     bottom: 80,
     left: -20,
-    width: 130,
-    height: 130,
-    opacity: 0.12,
+    width: 140,
+    height: 140,
+    opacity: 0.18,
   },
-  // Scattered elements - 10-15% opacity
-  leaf1: {
+  cornerBottomRight: {
     position: 'absolute',
-    top: SCREEN_HEIGHT * 0.35,
-    right: 10,
-    width: 30,
-    height: 30,
-    opacity: 0.15,
-    transform: [{ rotate: '25deg' }],
+    bottom: 80,
+    right: -20,
+    width: 140,
+    height: 140,
+    opacity: 0.18,
+    transform: [{ scaleX: -1 }], // Flip horizontally
   },
-  leaf2: {
+  // Scattered food items - 15-20% opacity with slight rotations
+  avocadoNearMichi: {
     position: 'absolute',
-    bottom: 200,
+    top: 320,
     left: 15,
-    width: 25,
-    height: 25,
-    opacity: 0.12,
-    transform: [{ rotate: '-15deg' }],
-  },
-  star1: {
-    position: 'absolute',
-    top: 180,
-    right: 40,
-    width: 20,
-    height: 20,
-    opacity: 0.15,
-  },
-  sparkle1: {
-    position: 'absolute',
-    top: SCREEN_HEIGHT * 0.45,
-    left: 25,
-    width: 18,
-    height: 18,
-    opacity: 0.12,
-  },
-  lemon: {
-    position: 'absolute',
-    bottom: 150,
-    right: 20,
     width: 35,
     height: 35,
-    opacity: 0.10,
+    opacity: 0.15,
+    transform: [{ rotate: '-15deg' }],
+  },
+  lemonBetweenCards: {
+    position: 'absolute',
+    top: 680,
+    right: 20,
+    width: 30,
+    height: 30,
+    opacity: 0.12,
     transform: [{ rotate: '20deg' }],
+  },
+  leafNearScan: {
+    position: 'absolute',
+    top: 560,
+    left: 25,
+    width: 25,
+    height: 25,
+    opacity: 0.15,
+    transform: [{ rotate: '30deg' }],
+  },
+  leafNearLastLogged: {
+    position: 'absolute',
+    top: 850,
+    right: 30,
+    width: 20,
+    height: 20,
+    opacity: 0.12,
+    transform: [{ rotate: '-25deg' }],
+  },
+  sparkleTop: {
+    position: 'absolute',
+    top: 200,
+    right: 40,
+    width: 18,
+    height: 18,
+    opacity: 0.15,
+  },
+  starMid: {
+    position: 'absolute',
+    top: 480,
+    right: 25,
+    width: 16,
+    height: 16,
+    opacity: 0.12,
   },
   // Header
   header: {

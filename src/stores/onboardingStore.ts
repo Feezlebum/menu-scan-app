@@ -1,22 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { createMMKV } from 'react-native-mmkv';
-
-// MMKV storage adapter for Zustand
-const mmkvStorage = createMMKV({ id: 'onboarding' });
-
-const zustandStorage = {
-  getItem: (name: string): string | null => {
-    const value = mmkvStorage.getString(name);
-    return value ?? null;
-  },
-  setItem: (name: string, value: string): void => {
-    mmkvStorage.set(name, value);
-  },
-  removeItem: (name: string): void => {
-    mmkvStorage.remove(name);
-  },
-};
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Types
 export type Goal = 'lose' | 'maintain' | 'gain' | 'health';
@@ -222,7 +206,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
     }),
     {
       name: 'onboarding-storage',
-      storage: createJSONStorage(() => zustandStorage),
+      storage: createJSONStorage(() => AsyncStorage),
     }
   )
 );

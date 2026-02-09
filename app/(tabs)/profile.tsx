@@ -16,7 +16,6 @@ export default function ProfileScreen() {
     goal, 
     dietType, 
     macroPriority,
-    dailyCalorieTarget,
     intolerances,
     dislikes,
     resetOnboarding,
@@ -85,12 +84,6 @@ export default function ProfileScreen() {
           <AppText style={[styles.name, { color: theme.colors.text }]}>
             {name || 'User'}
           </AppText>
-          <View style={[styles.calorieBadge, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <FontAwesome name="fire" size={14} color={theme.colors.brand} />
-            <AppText style={[styles.calorieText, { color: theme.colors.text }]}>
-              {dailyCalorieTarget || 2000} cal/day target
-            </AppText>
-          </View>
         </View>
 
         {/* Diet Preferences */}
@@ -144,26 +137,39 @@ export default function ProfileScreen() {
           </Card>
         </View>
 
-        {/* Subscription */}
+        {/* Connected Trackers */}
         <View style={styles.section}>
           <AppText style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Subscription
+            Export to Tracker
           </AppText>
-          <Card style={styles.subscriptionCard}>
-            <View style={styles.subscriptionRow}>
-              <View>
-                <AppText style={[styles.planName, { color: theme.colors.text }]}>
-                  Free Plan
-                </AppText>
-                <AppText style={[styles.planDesc, { color: theme.colors.subtext }]}>
-                  3 scans remaining this week
-                </AppText>
+          <Card style={styles.prefsCard}>
+            <TouchableOpacity style={styles.trackerRow}>
+              <View style={styles.trackerLeft}>
+                <FontAwesome name="heart" size={18} color="#FF3B30" />
+                <AppText style={[styles.trackerName, { color: theme.colors.text }]}>Apple Health</AppText>
               </View>
-              <TouchableOpacity style={[styles.upgradeButton, { backgroundColor: theme.colors.brand }]}>
-                <AppText style={styles.upgradeText}>Upgrade</AppText>
-              </TouchableOpacity>
-            </View>
+              <AppText style={[styles.trackerStatus, { color: theme.colors.subtext }]}>Connect</AppText>
+            </TouchableOpacity>
+            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+            <TouchableOpacity style={styles.trackerRow}>
+              <View style={styles.trackerLeft}>
+                <FontAwesome name="cutlery" size={18} color="#0066CC" />
+                <AppText style={[styles.trackerName, { color: theme.colors.text }]}>MyFitnessPal</AppText>
+              </View>
+              <AppText style={[styles.trackerStatus, { color: theme.colors.subtext }]}>Connect</AppText>
+            </TouchableOpacity>
+            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+            <TouchableOpacity style={styles.trackerRow}>
+              <View style={styles.trackerLeft}>
+                <FontAwesome name="line-chart" size={18} color="#FF9500" />
+                <AppText style={[styles.trackerName, { color: theme.colors.text }]}>Lose It!</AppText>
+              </View>
+              <AppText style={[styles.trackerStatus, { color: theme.colors.subtext }]}>Connect</AppText>
+            </TouchableOpacity>
           </Card>
+          <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}>
+            Log scanned meals directly to your favorite tracker
+          </AppText>
         </View>
 
         {/* Actions */}
@@ -232,20 +238,6 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 24,
     fontWeight: '700',
-    marginBottom: 8,
-  },
-  calorieBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 6,
-  },
-  calorieText: {
-    fontSize: 14,
-    fontWeight: '500',
   },
   section: {
     paddingHorizontal: 20,
@@ -284,31 +276,29 @@ const styles = StyleSheet.create({
     height: 1,
     marginHorizontal: 12,
   },
-  subscriptionCard: {
-    padding: 16,
-  },
-  subscriptionRow: {
+  trackerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
   },
-  planName: {
-    fontSize: 17,
-    fontWeight: '600',
+  trackerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  planDesc: {
+  trackerName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  trackerStatus: {
     fontSize: 14,
-    marginTop: 2,
   },
-  upgradeButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  upgradeText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+  trackerHint: {
+    fontSize: 13,
+    marginTop: 8,
+    paddingHorizontal: 4,
   },
   actionCard: {
     padding: 16,

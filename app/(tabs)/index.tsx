@@ -1,5 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Image } from 'react-native';
+
+// Michi assets
+const MichiAvatar = require('@/assets/michi/michi-avatar.png');
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -189,9 +192,7 @@ export default function HomeScreen() {
           {/* Right — Michi says */}
           <View style={[styles.michiCard, { backgroundColor: theme.colors.cardPeach }]}>
             <View style={styles.michiSaysHeader}>
-              <View style={[styles.michiAvatar, { backgroundColor: theme.colors.michiTeal }]}>
-                <AppText style={styles.michiAvatarEmoji}>🐹</AppText>
-              </View>
+              <Image source={MichiAvatar} style={styles.michiAvatar} />
               <AppText 
                 style={[
                   styles.michiSaysLabel, 
@@ -343,14 +344,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   michiAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  michiAvatarEmoji: {
-    fontSize: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   michiSaysLabel: {
     fontSize: 14,

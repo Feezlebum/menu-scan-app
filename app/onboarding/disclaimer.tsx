@@ -21,7 +21,6 @@ export default function DisclaimerScreen() {
       subtitle="A quick note about our recommendations"
       buttonText="I Understand"
       onContinue={handleContinue}
-      progress={0.95}
     >
       <View style={styles.content}>
         <Card style={[styles.card, { backgroundColor: theme.colors.card }]}>

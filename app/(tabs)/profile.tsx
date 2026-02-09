@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
@@ -7,19 +7,48 @@ import { AppText } from '@/src/components/ui/AppText';
 import { Card } from '@/src/components/ui/Card';
 import { useAppTheme } from '@/src/theme/theme';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
+import { useHealthStore } from '@/src/stores/healthStore';
+import { healthService } from '@/src/services/healthService';
+import { trackerService, TrackerApp } from '@/src/services/trackerService';
 
 export default function ProfileScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { 
-    name,
     goal, 
     dietType, 
     macroPriority,
     intolerances,
     dislikes,
-    resetOnboarding,
+    reset: resetOnboarding,
   } = useOnboardingStore();
+
+  // For now, derive a display name from goal or use a placeholder
+  // TODO: Add name to onboarding flow if needed
+  const name = 'User';
+
+  const {
+    appleHealthConnected,
+    appleHealthError,
+    myFitnessPalEnabled,
+    loseItEnabled,
+    isConnecting,
+    connectAppleHealth,
+    disconnectAppleHealth,
+    toggleMyFitnessPal,
+    toggleLoseIt,
+    checkAppleHealthStatus,
+  } = useHealthStore();
+
+  const [checkingApps, setCheckingApps] = useState<Record<TrackerApp, boolean>>({
+    myFitnessPal: false,
+    loseIt: false,
+  });
+
+  // Check Apple Health status on mount
+  useEffect(() => {
+    checkAppleHealthStatus();
+  }, []);
 
   const formatGoal = (g: string | null) => {
     const goals: Record<string, string> = {
@@ -69,6 +98,91 @@ export default function ProfileScreen() {
         },
       ]
     );
+  };
+
+  const handleAppleHealthPress = async () => {
+    if (Platform.OS !== 'ios') {
+      Alert.alert('Not Available', 'Apple Health is only available on iOS devices.');
+      return;
+    }
+
+    if (appleHealthConnected) {
+      // Disconnect
+      Alert.alert(
+        'Disconnect Apple Health',
+        'Scanned meals will no longer be logged to Apple Health.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Disconnect', 
+            style: 'destructive',
+            onPress: disconnectAppleHealth,
+          },
+        ]
+      );
+    } else {
+      // Connect
+      const success = await connectAppleHealth();
+      if (success) {
+        Alert.alert('Connected!', 'Scanned meals will now be logged to Apple Health.');
+      } else if (appleHealthError) {
+        Alert.alert('Connection Failed', appleHealthError);
+      }
+    }
+  };
+
+  const handleTrackerPress = async (app: TrackerApp) => {
+    const appName = app === 'myFitnessPal' ? 'MyFitnessPal' : 'Lose It!';
+    const isEnabled = app === 'myFitnessPal' ? myFitnessPalEnabled : loseItEnabled;
+    const toggle = app === 'myFitnessPal' ? toggleMyFitnessPal : toggleLoseIt;
+
+    if (isEnabled) {
+      // Disable
+      Alert.alert(
+        `Disable ${appName}`,
+        `You won't be prompted to log to ${appName} after scans.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Disable', style: 'destructive', onPress: toggle },
+        ]
+      );
+    } else {
+      // Check if app is installed and enable
+      setCheckingApps(prev => ({ ...prev, [app]: true }));
+      const installed = await trackerService.isAppInstalled(app);
+      setCheckingApps(prev => ({ ...prev, [app]: false }));
+
+      if (installed) {
+        toggle();
+        Alert.alert(
+          `${appName} Enabled`,
+          `After scanning a menu, you'll have the option to open ${appName} to log your meal.`
+        );
+      } else {
+        Alert.alert(
+          `${appName} Not Found`,
+          `Would you like to download ${appName}?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Download', 
+              onPress: () => trackerService.openAppStore(app),
+            },
+          ]
+        );
+      }
+    }
+  };
+
+  const getTrackerStatus = (app: TrackerApp) => {
+    if (checkingApps[app]) return 'Checking...';
+    const isEnabled = app === 'myFitnessPal' ? myFitnessPalEnabled : loseItEnabled;
+    return isEnabled ? 'Enabled' : 'Connect';
+  };
+
+  const getTrackerStatusColor = (app: TrackerApp) => {
+    const isEnabled = app === 'myFitnessPal' ? myFitnessPalEnabled : loseItEnabled;
+    return isEnabled ? theme.colors.brand : theme.colors.subtext;
   };
 
   return (
@@ -143,32 +257,82 @@ export default function ProfileScreen() {
             Export to Tracker
           </AppText>
           <Card style={styles.prefsCard}>
-            <TouchableOpacity style={styles.trackerRow}>
-              <View style={styles.trackerLeft}>
-                <FontAwesome name="heart" size={18} color="#FF3B30" />
-                <AppText style={[styles.trackerName, { color: theme.colors.text }]}>Apple Health</AppText>
-              </View>
-              <AppText style={[styles.trackerStatus, { color: theme.colors.subtext }]}>Connect</AppText>
-            </TouchableOpacity>
-            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            <TouchableOpacity style={styles.trackerRow}>
+            {/* Apple Health - iOS only */}
+            {Platform.OS === 'ios' && (
+              <>
+                <TouchableOpacity 
+                  style={styles.trackerRow} 
+                  onPress={handleAppleHealthPress}
+                  disabled={isConnecting}
+                >
+                  <View style={styles.trackerLeft}>
+                    <FontAwesome name="heart" size={18} color="#FF3B30" />
+                    <AppText style={[styles.trackerName, { color: theme.colors.text }]}>
+                      Apple Health
+                    </AppText>
+                  </View>
+                  {isConnecting ? (
+                    <ActivityIndicator size="small" color={theme.colors.brand} />
+                  ) : (
+                    <AppText style={[
+                      styles.trackerStatus, 
+                      { color: appleHealthConnected ? theme.colors.brand : theme.colors.subtext }
+                    ]}>
+                      {appleHealthConnected ? 'Connected' : 'Connect'}
+                    </AppText>
+                  )}
+                </TouchableOpacity>
+                <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+              </>
+            )}
+            
+            {/* MyFitnessPal */}
+            <TouchableOpacity 
+              style={styles.trackerRow}
+              onPress={() => handleTrackerPress('myFitnessPal')}
+              disabled={checkingApps.myFitnessPal}
+            >
               <View style={styles.trackerLeft}>
                 <FontAwesome name="cutlery" size={18} color="#0066CC" />
-                <AppText style={[styles.trackerName, { color: theme.colors.text }]}>MyFitnessPal</AppText>
+                <AppText style={[styles.trackerName, { color: theme.colors.text }]}>
+                  MyFitnessPal
+                </AppText>
               </View>
-              <AppText style={[styles.trackerStatus, { color: theme.colors.subtext }]}>Connect</AppText>
+              {checkingApps.myFitnessPal ? (
+                <ActivityIndicator size="small" color={theme.colors.brand} />
+              ) : (
+                <AppText style={[styles.trackerStatus, { color: getTrackerStatusColor('myFitnessPal') }]}>
+                  {getTrackerStatus('myFitnessPal')}
+                </AppText>
+              )}
             </TouchableOpacity>
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            <TouchableOpacity style={styles.trackerRow}>
+            
+            {/* Lose It! */}
+            <TouchableOpacity 
+              style={styles.trackerRow}
+              onPress={() => handleTrackerPress('loseIt')}
+              disabled={checkingApps.loseIt}
+            >
               <View style={styles.trackerLeft}>
                 <FontAwesome name="line-chart" size={18} color="#FF9500" />
-                <AppText style={[styles.trackerName, { color: theme.colors.text }]}>Lose It!</AppText>
+                <AppText style={[styles.trackerName, { color: theme.colors.text }]}>
+                  Lose It!
+                </AppText>
               </View>
-              <AppText style={[styles.trackerStatus, { color: theme.colors.subtext }]}>Connect</AppText>
+              {checkingApps.loseIt ? (
+                <ActivityIndicator size="small" color={theme.colors.brand} />
+              ) : (
+                <AppText style={[styles.trackerStatus, { color: getTrackerStatusColor('loseIt') }]}>
+                  {getTrackerStatus('loseIt')}
+                </AppText>
+              )}
             </TouchableOpacity>
           </Card>
           <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}>
-            Log scanned meals directly to your favorite tracker
+            {Platform.OS === 'ios' 
+              ? 'Apple Health logs automatically. Other apps open after scans for easy logging.'
+              : 'Enable trackers to quickly log scanned meals.'}
           </AppText>
         </View>
 

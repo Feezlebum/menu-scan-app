@@ -40,6 +40,28 @@ export interface ScanResult {
 }
 
 /**
+ * Convert OCR-extracted price text to a normalized number.
+ */
+export const parsePrice = (priceText: string | null): number | null => {
+  if (!priceText) return null;
+
+  const normalized = priceText.trim().toLowerCase();
+  if (
+    normalized === 'mp' ||
+    normalized.includes('market') ||
+    normalized.includes('seasonal')
+  ) {
+    return null;
+  }
+
+  const match = priceText.match(/(\d+\.?\d*)/);
+  if (!match) return null;
+
+  const parsed = Number.parseFloat(match[1]);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+/**
  * Upload image to Supabase Storage
  */
 export async function uploadMenuImage(uri: string): Promise<string> {

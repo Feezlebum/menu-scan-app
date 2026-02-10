@@ -1,3 +1,4 @@
+import { getMealPrice } from '@/src/stores/historyStore';
 import type { LoggedMeal, ScanHistoryEntry } from '@/src/stores/historyStore';
 import type { Goal } from '@/src/stores/onboardingStore';
 
@@ -186,6 +187,60 @@ export function isCalorieTrendDown(meals: LoggedMeal[], days: number): boolean {
   const secondAvg = secondHalf.reduce((s, d) => s + d.avgCalories, 0) / secondHalf.length;
   
   return secondAvg < firstAvg * 0.95; // 5% decrease threshold
+}
+
+// ==========================================
+// Spending
+// ==========================================
+
+export function getWeeklySpending(meals: LoggedMeal[], weekOffset: number = 0): number {
+  const today = new Date();
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - (weekOffset * 7) - today.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  return meals.reduce((total, meal) => {
+    const mealDate = new Date(meal.loggedAt);
+    if (mealDate < weekStart || mealDate > weekEnd) return total;
+    const price = getMealPrice(meal);
+    return total + (price || 0);
+  }, 0);
+}
+
+export function getSpendingTrend(meals: LoggedMeal[]): number {
+  const thisWeek = getWeeklySpending(meals, 0);
+  const lastWeek = getWeeklySpending(meals, 1);
+  return thisWeek - lastWeek;
+}
+
+export interface RestaurantSpending {
+  restaurant: string;
+  amount: number;
+  meals: number;
+}
+
+export function getRestaurantSpending(meals: LoggedMeal[]): RestaurantSpending[] {
+  const spending: Record<string, { amount: number; meals: number }> = {};
+
+  meals.forEach((meal) => {
+    const price = getMealPrice(meal);
+    if (!price || !meal.restaurantName) return;
+
+    if (!spending[meal.restaurantName]) {
+      spending[meal.restaurantName] = { amount: 0, meals: 0 };
+    }
+
+    spending[meal.restaurantName].amount += price;
+    spending[meal.restaurantName].meals += 1;
+  });
+
+  return Object.entries(spending)
+    .map(([restaurant, data]) => ({ restaurant, ...data }))
+    .sort((a, b) => b.amount - a.amount);
 }
 
 // ==========================================

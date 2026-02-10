@@ -14,7 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { AppText } from '@/src/components/ui/AppText';
 import { TrafficLightDot } from '@/src/components/ui/TrafficLightDot';
 import { useAppTheme } from '@/src/theme/theme';
-import { useHistoryStore } from '@/src/stores/historyStore';
+import { useHistoryStore, getMealPrice } from '@/src/stores/historyStore';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import {
   getWeeklyScans,
@@ -25,6 +25,9 @@ import {
   getWeeklyConsistency,
   getRestaurantBreakdown,
   getMichiRecapMessage,
+  getWeeklySpending,
+  getSpendingTrend,
+  getRestaurantSpending,
 } from '@/src/utils/insightsCalculations';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -52,9 +55,32 @@ export default function InsightsScreen() {
   const topDishes = useMemo(() => getTopDishes(loggedMeals, 5), [loggedMeals]);
   const consistency = useMemo(() => getWeeklyConsistency(scans, 0), [scans]);
   const restaurants = useMemo(() => getRestaurantBreakdown(scans), [scans]);
+  const weekSpending = useMemo(() => getWeeklySpending(loggedMeals, 0), [loggedMeals]);
+  const spendingTrend = useMemo(() => getSpendingTrend(loggedMeals), [loggedMeals]);
+  const restaurantSpending = useMemo(() => getRestaurantSpending(loggedMeals), [loggedMeals]);
   const michiRecap = useMemo(() => getMichiRecapMessage(loggedMeals, scans, goal), [loggedMeals, scans, goal]);
 
   const hasData = scans.length > 0 || loggedMeals.length > 0;
+  const weekMeals = useMemo(() => {
+    const today = new Date();
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    return loggedMeals.filter((meal) => {
+      const d = new Date(meal.loggedAt);
+      return d >= weekStart && d <= weekEnd;
+    });
+  }, [loggedMeals]);
+
+  const mealsWithPrices = useMemo(
+    () => weekMeals.filter((meal) => getMealPrice(meal) !== null).length,
+    [weekMeals]
+  );
 
   const handleTogglePeriod = (period: 7 | 30) => {
     Haptics.selectionAsync();
@@ -79,7 +105,24 @@ export default function InsightsScreen() {
             hasData={hasData}
           />
 
-          {/* 3. Calorie & Macro Trends */}
+          {/* 3. Weekly Spending */}
+          <WeeklySpendingCard
+            theme={theme}
+            weekSpending={weekSpending}
+            spendingTrend={spendingTrend}
+            weekMeals={weekMeals.length}
+            mealsWithPrices={mealsWithPrices}
+            hasData={loggedMeals.length > 0}
+          />
+
+          {/* 4. Cost Breakdown */}
+          <CostBreakdownCard
+            theme={theme}
+            restaurantSpending={restaurantSpending}
+            hasData={restaurantSpending.length > 0}
+          />
+
+          {/* 5. Calorie & Macro Trends */}
           <NutritionTrendsCard
             theme={theme}
             calorieTrend={calorieTrend}
@@ -90,7 +133,7 @@ export default function InsightsScreen() {
             hasData={loggedMeals.length > 0}
           />
 
-          {/* 4. Top Choices */}
+          {/* 6. Top Choices */}
           <TopChoicesCard theme={theme} dishes={topDishes} hasData={topDishes.length > 0} />
 
           {/* 5. Weekly Consistency */}
@@ -214,7 +257,95 @@ function WeeklyScanCard({
   );
 }
 
-// 3. Nutrition Trends Card
+// 3. Weekly Spending Card
+function WeeklySpendingCard({
+  theme,
+  weekSpending,
+  spendingTrend,
+  weekMeals,
+  mealsWithPrices,
+  hasData,
+}: CardProps & {
+  weekSpending: number;
+  spendingTrend: number;
+  weekMeals: number;
+  mealsWithPrices: number;
+  hasData: boolean;
+}) {
+  if (!hasData) {
+    return (
+      <View style={[styles.card, { backgroundColor: theme.colors.cardCream }]}> 
+        <AppText style={[styles.sectionHeader, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>
+          Weekly Spending
+        </AppText>
+        <EmptyState theme={theme} message="Scan menus with prices to track spending" />
+      </View>
+    );
+  }
+
+  const avgPerMeal = weekMeals > 0 ? weekSpending / weekMeals : 0;
+
+  return (
+    <View style={[styles.card, { backgroundColor: theme.colors.cardCream }]}> 
+      <AppText style={[styles.sectionHeader, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>Weekly Spending</AppText>
+      <View style={styles.spendingRow}>
+        <AppText style={[styles.spendingAmount, { color: theme.colors.text }]}>${weekSpending.toFixed(0)}</AppText>
+        <View style={styles.spendingTrend}>
+          {spendingTrend > 0 ? (
+            <AppText style={styles.trendUp}>↑ ${Math.abs(spendingTrend).toFixed(0)} vs last week</AppText>
+          ) : spendingTrend < 0 ? (
+            <AppText style={styles.trendDown}>↓ ${Math.abs(spendingTrend).toFixed(0)} vs last week</AppText>
+          ) : (
+            <AppText style={[styles.trendFlat, { color: theme.colors.subtext }]}>Same as last week</AppText>
+          )}
+        </View>
+      </View>
+      <AppText style={[styles.spendingDetail, { color: theme.colors.subtext }]}> 
+        ${avgPerMeal.toFixed(2)} per meal · {mealsWithPrices}/{weekMeals} priced
+      </AppText>
+    </View>
+  );
+}
+
+// 4. Cost Breakdown Card
+function CostBreakdownCard({
+  theme,
+  restaurantSpending,
+  hasData,
+}: CardProps & {
+  restaurantSpending: ReturnType<typeof getRestaurantSpending>;
+  hasData: boolean;
+}) {
+  if (!hasData) {
+    return (
+      <View style={[styles.card, { backgroundColor: theme.colors.cardCream }]}> 
+        <AppText style={[styles.sectionHeader, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>
+          Cost Breakdown
+        </AppText>
+        <EmptyState theme={theme} message="No priced meals yet" />
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.card, { backgroundColor: theme.colors.card }]}> 
+      <AppText style={[styles.sectionHeader, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>Cost Breakdown</AppText>
+      {restaurantSpending.slice(0, 3).map(({ restaurant, amount, meals }) => (
+        <View key={restaurant} style={styles.breakdownRow}>
+          <AppText style={[styles.breakdownRestaurantName, { color: theme.colors.text }]} numberOfLines={1}>
+            {restaurant}
+          </AppText>
+          <View style={styles.breakdownMeta}>
+            <AppText style={[styles.breakdownAmount, { color: theme.colors.text }]}>${amount.toFixed(0)}</AppText>
+            <AppText style={[styles.breakdownMeals, { color: theme.colors.subtext }]}>{meals} meals</AppText>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// 5. Nutrition Trends Card
 function NutritionTrendsCard({
   theme,
   calorieTrend,
@@ -676,6 +807,63 @@ const styles = StyleSheet.create({
   },
   scanDiff: {
     fontSize: 13,
+  },
+
+  // Spending
+  spendingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 10,
+  },
+  spendingAmount: {
+    fontSize: 36,
+    fontWeight: '700',
+  },
+  spendingTrend: {
+    alignItems: 'flex-end',
+  },
+  trendUp: {
+    color: '#E86B50',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  trendDown: {
+    color: '#6BAF7A',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  trendFlat: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  spendingDetail: {
+    fontSize: 13,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0E6D6',
+  },
+  breakdownRestaurantName: {
+    flex: 1,
+    fontSize: 14,
+    marginRight: 8,
+  },
+  breakdownMeta: {
+    alignItems: 'flex-end',
+  },
+  breakdownAmount: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  breakdownMeals: {
+    fontSize: 12,
+    marginTop: 2,
   },
 
   // Trend Header

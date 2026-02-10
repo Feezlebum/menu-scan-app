@@ -261,6 +261,13 @@ CRITICAL PARSING RULES:
 
 4. **Soups with protein choices**: Same rule - create representative dishes like "Tom Yum Soup with Chicken"
 
+5. **Price extraction rules**:
+   - Extract a price for each dish when visible
+   - Return `price` as a numeric string only (e.g., "12.95", never "$12.95")
+   - If a dish has multiple prices/sizes, use the smallest/first listed price
+   - If price is listed as "Market Price", "MP", or not shown, set `price` to null
+   - For text like "Starting at $15", return "15.00"
+
 Return JSON with this exact structure:
 {
   "restaurantName": string | null,

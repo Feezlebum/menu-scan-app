@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { parsePrice } from '@/src/lib/scanService';
 import type { MenuItem, TopPick, ScanResult } from '@/src/lib/scanService';
 
 export interface LoggedMeal {
@@ -42,6 +43,35 @@ interface HistoryState {
 }
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+export const getMealPrice = (meal: LoggedMeal): number | null => {
+  return parsePrice(meal.item.price);
+};
+
+export const getDaySpending = (meals: LoggedMeal[]): number => {
+  return meals.reduce((total, meal) => {
+    const price = getMealPrice(meal);
+    return total + (price || 0);
+  }, 0);
+};
+
+export const getWeekSpending = (meals: LoggedMeal[], weekOffset: number = 0): number => {
+  const today = new Date();
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - (weekOffset * 7) - today.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  const weekMeals = meals.filter((meal) => {
+    const mealDate = new Date(meal.loggedAt);
+    return mealDate >= weekStart && mealDate <= weekEnd;
+  });
+
+  return getDaySpending(weekMeals);
+};
 
 export const useHistoryStore = create<HistoryState>()(
   persist(

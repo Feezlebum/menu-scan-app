@@ -5,8 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Platform,
-  ActivityIndicator,
   ImageBackground,
   Image,
   Modal,
@@ -16,14 +14,18 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { useRouter } from 'expo-router';
 
 import { AppText } from '@/src/components/ui/AppText';
 import { Card } from '@/src/components/ui/Card';
 import { useAppTheme } from '@/src/theme/theme';
-import { useOnboardingStore, Goal, DietType, MacroPriority } from '@/src/stores/onboardingStore';
-import { useHealthStore } from '@/src/stores/healthStore';
-import { trackerService, TrackerApp } from '@/src/services/trackerService';
+import {
+  useOnboardingStore,
+  Goal,
+  DietType,
+  MacroPriority,
+  ActivityLevel,
+  Gender,
+} from '@/src/stores/onboardingStore';
 
 const HomeBackground = require('@/assets/botanicals/home-background.png');
 const MichiAvatar = require('@/assets/michi-avatar.png');
@@ -34,42 +36,46 @@ const PROFILE_PHOTO_KEY = '@profile_photo';
 const PROFILE_MICHI_KEY = '@profile_michi';
 
 type MichiVariant = 'avatar' | 'hero' | 'thinking';
+type EditableField =
+  | 'goal'
+  | 'dietType'
+  | 'macroPriority'
+  | 'age'
+  | 'gender'
+  | 'activityLevel'
+  | 'currentWeightKg'
+  | 'goalWeightKg';
 
 export default function ProfileScreen() {
   const theme = useAppTheme();
-  const router = useRouter();
   const {
     goal,
     dietType,
     macroPriority,
     intolerances,
     dislikes,
-    reset: resetOnboarding,
+    age,
+    gender,
+    activityLevel,
+    currentWeightKg,
+    goalWeightKg,
+    setGoal,
+    setDietType,
+    setMacroPriority,
+    setAge,
+    setGender,
+    setActivityLevel,
+    setCurrentWeight,
+    setGoalWeight,
   } = useOnboardingStore();
-
-  const {
-    appleHealthConnected,
-    appleHealthError,
-    myFitnessPalEnabled,
-    loseItEnabled,
-    isConnecting,
-    connectAppleHealth,
-    disconnectAppleHealth,
-    toggleMyFitnessPal,
-    toggleLoseIt,
-    checkAppleHealthStatus,
-  } = useHealthStore();
 
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [selectedMichi, setSelectedMichi] = useState<MichiVariant>('avatar');
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
-  const [checkingApps, setCheckingApps] = useState<Record<TrackerApp, boolean>>({
-    myFitnessPal: false,
-    loseIt: false,
-  });
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingField, setEditingField] = useState<EditableField | null>(null);
 
   useEffect(() => {
-    checkAppleHealthStatus();
     loadAvatarSettings();
   }, []);
 
@@ -103,30 +109,11 @@ export default function ProfileScreen() {
     }
   };
 
-  const formatDatabaseString = (str: string): string => {
-    return str
+  const formatDatabaseString = (str: string): string =>
+    str
       .split('_')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
-  };
-
-  const handleRedoOnboarding = () => {
-    Alert.alert(
-      'Redo Setup',
-      'This will reset your preferences and take you through onboarding again.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          style: 'destructive',
-          onPress: () => {
-            resetOnboarding();
-            router.replace('/onboarding');
-          },
-        },
-      ]
-    );
-  };
 
   const requestPhotoPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -157,79 +144,6 @@ export default function ProfileScreen() {
     setAvatarModalVisible(false);
   };
 
-  const handleAppleHealthPress = async () => {
-    if (Platform.OS !== 'ios') {
-      Alert.alert('Not Available', 'Apple Health is only available on iOS devices.');
-      return;
-    }
-
-    if (appleHealthConnected) {
-      Alert.alert(
-        'Disconnect Apple Health',
-        'Scanned meals will no longer be logged to Apple Health.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Disconnect', style: 'destructive', onPress: disconnectAppleHealth },
-        ]
-      );
-      return;
-    }
-
-    const success = await connectAppleHealth();
-    if (success) {
-      Alert.alert('Connected!', 'Scanned meals will now be logged to Apple Health.');
-    } else if (appleHealthError) {
-      Alert.alert('Connection Failed', appleHealthError);
-    }
-  };
-
-  const handleTrackerPress = async (app: TrackerApp) => {
-    const appName = app === 'myFitnessPal' ? 'MyFitnessPal' : 'Lose It!';
-    const isEnabled = app === 'myFitnessPal' ? myFitnessPalEnabled : loseItEnabled;
-    const toggle = app === 'myFitnessPal' ? toggleMyFitnessPal : toggleLoseIt;
-
-    if (isEnabled) {
-      Alert.alert(
-        `Disable ${appName}`,
-        `You won't be prompted to log to ${appName} after scans.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Disable', style: 'destructive', onPress: toggle },
-        ]
-      );
-      return;
-    }
-
-    setCheckingApps((prev) => ({ ...prev, [app]: true }));
-    const installed = await trackerService.isAppInstalled(app);
-    setCheckingApps((prev) => ({ ...prev, [app]: false }));
-
-    if (installed) {
-      toggle();
-      Alert.alert(
-        `${appName} Enabled`,
-        `After scanning a menu, you'll have the option to open ${appName} to log your meal.`
-      );
-      return;
-    }
-
-    Alert.alert(`${appName} Not Found`, `Would you like to download ${appName}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Download', onPress: () => trackerService.openAppStore(app) },
-    ]);
-  };
-
-  const getTrackerStatus = (app: TrackerApp) => {
-    if (checkingApps[app]) return 'Checking...';
-    const isEnabled = app === 'myFitnessPal' ? myFitnessPalEnabled : loseItEnabled;
-    return isEnabled ? 'Enabled' : 'Connect';
-  };
-
-  const getTrackerStatusColor = (app: TrackerApp) => {
-    const isEnabled = app === 'myFitnessPal' ? myFitnessPalEnabled : loseItEnabled;
-    return isEnabled ? theme.colors.brand : theme.colors.subtext;
-  };
-
   const heroMessage = useMemo(() => {
     const messages: Record<Goal, string> = {
       lose: 'Every scan gets you closer to your goal! 💪',
@@ -240,6 +154,16 @@ export default function ProfileScreen() {
 
     return messages[goal || 'health'];
   }, [goal]);
+
+  const openEdit = (field: EditableField) => {
+    setEditingField(field);
+    setEditModalVisible(true);
+  };
+
+  const closeEdit = () => {
+    setEditModalVisible(false);
+    setEditingField(null);
+  };
 
   return (
     <View style={styles.container}>
@@ -270,97 +194,60 @@ export default function ProfileScreen() {
               <AppText style={[styles.sectionTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Your Preferences</AppText>
 
               <Card style={[styles.preferencesCard, { backgroundColor: theme.colors.cardSage }]}>
-                <PreferenceRow icon="bullseye" label="Goal" value={formatGoal(goal)} theme={theme} />
+                <EditableRow icon="bullseye" label="Goal" value={formatGoal(goal)} theme={theme} onPress={() => openEdit('goal')} />
                 <Divider theme={theme} />
-                <PreferenceRow icon="cutlery" label="Diet Type" value={formatDiet(dietType)} theme={theme} />
+                <EditableRow icon="cutlery" label="Diet Type" value={formatDiet(dietType)} theme={theme} onPress={() => openEdit('dietType')} />
                 <Divider theme={theme} />
-                <PreferenceRow icon="pie-chart" label="Macro Focus" value={formatMacroPriority(macroPriority)} theme={theme} />
+                <EditableRow icon="pie-chart" label="Macro Focus" value={formatMacroPriority(macroPriority)} theme={theme} onPress={() => openEdit('macroPriority')} />
+                <Divider theme={theme} />
+                <EditableRow icon="birthday-cake" label="Age" value={age ? `${age}` : 'Not set'} theme={theme} onPress={() => openEdit('age')} />
+                <Divider theme={theme} />
+                <EditableRow icon="user" label="Gender" value={formatGender(gender)} theme={theme} onPress={() => openEdit('gender')} />
+                <Divider theme={theme} />
+                <EditableRow icon="heartbeat" label="Activity Level" value={formatActivity(activityLevel)} theme={theme} onPress={() => openEdit('activityLevel')} />
+                <Divider theme={theme} />
+                <EditableRow
+                  icon="balance-scale"
+                  label="Current Weight"
+                  value={currentWeightKg ? `${currentWeightKg} kg` : 'Not set'}
+                  theme={theme}
+                  onPress={() => openEdit('currentWeightKg')}
+                />
+                <Divider theme={theme} />
+                <EditableRow
+                  icon="flag-checkered"
+                  label="Goal Weight"
+                  value={goalWeightKg ? `${goalWeightKg} kg` : 'Not set'}
+                  theme={theme}
+                  onPress={() => openEdit('goalWeightKg')}
+                />
               </Card>
 
               {(intolerances.length > 0 || dislikes.length > 0) && (
                 <Card style={[styles.restrictionsCard, { backgroundColor: theme.colors.cardCream }]}>
-                  {intolerances.length > 0 && (
-                    <RestrictionsRow
-                      icon="warning"
-                      label="Allergies/Intolerances"
-                      items={intolerances.map(formatDatabaseString)}
-                      color={theme.colors.trafficRed}
-                      theme={theme}
-                    />
-                  )}
-                  {intolerances.length > 0 && dislikes.length > 0 && <Divider theme={theme} />}
                   {dislikes.length > 0 && (
-                    <RestrictionsRow
+                    <RestrictionListRow
                       icon="ban"
-                      label="Foods to Avoid"
+                      title="Foods to Avoid"
                       items={dislikes.map(formatDatabaseString)}
                       color={theme.colors.trafficAmber}
                       theme={theme}
                     />
                   )}
-                </Card>
-              )}
-            </View>
 
-            <View style={styles.section}>
-              <AppText style={[styles.sectionTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Export to Tracker</AppText>
-              <Card style={styles.preferencesCard}>
-                {Platform.OS === 'ios' && (
-                  <>
-                    <TrackerRow
-                      icon="heart"
-                      iconColor="#FF3B30"
-                      label="Apple Health"
-                      status={appleHealthConnected ? 'Connected' : 'Connect'}
-                      statusColor={appleHealthConnected ? theme.colors.brand : theme.colors.subtext}
-                      onPress={handleAppleHealthPress}
-                      loading={isConnecting}
+                  {dislikes.length > 0 && intolerances.length > 0 && <Divider theme={theme} />}
+
+                  {intolerances.length > 0 && (
+                    <RestrictionListRow
+                      icon="warning"
+                      title="Allergies/Intolerances"
+                      items={intolerances.map(formatDatabaseString)}
+                      color={theme.colors.trafficRed}
                       theme={theme}
                     />
-                    <Divider theme={theme} />
-                  </>
-                )}
-
-                <TrackerRow
-                  icon="cutlery"
-                  iconColor="#0066CC"
-                  label="MyFitnessPal"
-                  status={getTrackerStatus('myFitnessPal')}
-                  statusColor={getTrackerStatusColor('myFitnessPal')}
-                  onPress={() => handleTrackerPress('myFitnessPal')}
-                  loading={checkingApps.myFitnessPal}
-                  theme={theme}
-                />
-                <Divider theme={theme} />
-                <TrackerRow
-                  icon="line-chart"
-                  iconColor="#FF9500"
-                  label="Lose It!"
-                  status={getTrackerStatus('loseIt')}
-                  statusColor={getTrackerStatusColor('loseIt')}
-                  onPress={() => handleTrackerPress('loseIt')}
-                  loading={checkingApps.loseIt}
-                  theme={theme}
-                />
-              </Card>
-              <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}> 
-                {Platform.OS === 'ios'
-                  ? 'Apple Health logs automatically. Other apps open after scans for easy logging.'
-                  : 'Enable trackers to quickly log scanned meals.'}
-              </AppText>
-            </View>
-
-            <View style={styles.section}>
-              <AppText style={[styles.sectionTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Actions</AppText>
-              <TouchableOpacity onPress={handleRedoOnboarding}>
-                <Card style={styles.actionCard}>
-                  <View style={styles.actionRow}>
-                    <FontAwesome name="refresh" size={18} color={theme.colors.text} />
-                    <AppText style={[styles.actionText, { color: theme.colors.text }]}>Redo Setup Questionnaire</AppText>
-                    <FontAwesome name="chevron-right" size={14} color={theme.colors.subtext} />
-                  </View>
+                  )}
                 </Card>
-              </TouchableOpacity>
+              )}
             </View>
 
             <View style={styles.section}>
@@ -382,6 +269,28 @@ export default function ProfileScreen() {
           setAvatarModalVisible(false);
         }}
       />
+
+      <EditPreferenceModal
+        visible={editModalVisible}
+        field={editingField}
+        onClose={closeEdit}
+        goal={goal}
+        dietType={dietType}
+        macroPriority={macroPriority}
+        age={age}
+        gender={gender}
+        activityLevel={activityLevel}
+        currentWeightKg={currentWeightKg}
+        goalWeightKg={goalWeightKg}
+        setGoal={setGoal}
+        setDietType={setDietType}
+        setMacroPriority={setMacroPriority}
+        setAge={setAge}
+        setGender={setGender}
+        setActivityLevel={setActivityLevel}
+        setCurrentWeight={setCurrentWeight}
+        setGoalWeight={setGoalWeight}
+      />
     </View>
   );
 }
@@ -392,59 +301,43 @@ function getMichiSource(variant: MichiVariant) {
   return MichiAvatar;
 }
 
-const PreferenceRow: React.FC<{ icon: string; label: string; value: string; theme: any }> = ({ icon, label, value, theme }) => (
-  <View style={styles.preferenceRow}>
+const EditableRow: React.FC<{ icon: string; label: string; value: string; theme: any; onPress: () => void }> = ({
+  icon,
+  label,
+  value,
+  theme,
+  onPress,
+}) => (
+  <TouchableOpacity style={styles.preferenceRow} onPress={onPress} activeOpacity={0.75}>
     <View style={styles.preferenceLeft}>
       <FontAwesome name={icon as any} size={18} color={theme.colors.brand} />
       <AppText style={[styles.preferenceLabel, { color: theme.colors.text }]}>{label}</AppText>
     </View>
-    <AppText style={[styles.preferenceValue, { color: theme.colors.text, fontFamily: theme.fonts.body.semiBold }]}>{value}</AppText>
-  </View>
+    <View style={styles.preferenceRight}>
+      <AppText style={[styles.preferenceValue, { color: theme.colors.text, fontFamily: theme.fonts.body.semiBold }]}>{value}</AppText>
+      <FontAwesome name="chevron-right" size={12} color={theme.colors.subtext} />
+    </View>
+  </TouchableOpacity>
 );
 
-const RestrictionsRow: React.FC<{
+const RestrictionListRow: React.FC<{
   icon: string;
-  label: string;
+  title: string;
   items: string[];
   color: string;
   theme: any;
-}> = ({ icon, label, items, color, theme }) => (
-  <View style={styles.restrictionsRow}>
+}> = ({ icon, title, items, color, theme }) => (
+  <View style={styles.restrictionsListRow}>
     <View style={styles.restrictionsHeader}>
       <FontAwesome name={icon as any} size={16} color={color} />
-      <AppText style={[styles.restrictionsLabel, { color: theme.colors.text }]}>{label}</AppText>
+      <AppText style={[styles.restrictionsLabel, { color: theme.colors.text }]}>{title}</AppText>
     </View>
-    <View style={styles.restrictionsItems}>
-      {items.map((item) => (
-        <View key={item} style={[styles.restrictionTag, { backgroundColor: `${color}20` }]}> 
-          <AppText style={[styles.restrictionText, { color }]}>{item}</AppText>
-        </View>
-      ))}
-    </View>
+    <AppText style={[styles.restrictionsBullets, { color }]}>{items.join(' • ')}</AppText>
   </View>
 );
 
 const Divider: React.FC<{ theme: any }> = ({ theme }) => (
   <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-);
-
-const TrackerRow: React.FC<{
-  icon: string;
-  iconColor: string;
-  label: string;
-  status: string;
-  statusColor: string;
-  onPress: () => void;
-  loading: boolean;
-  theme: any;
-}> = ({ icon, iconColor, label, status, statusColor, onPress, loading, theme }) => (
-  <TouchableOpacity style={styles.trackerRow} onPress={onPress} disabled={loading}>
-    <View style={styles.trackerLeft}>
-      <FontAwesome name={icon as any} size={18} color={iconColor} />
-      <AppText style={[styles.trackerName, { color: theme.colors.text }]}>{label}</AppText>
-    </View>
-    {loading ? <ActivityIndicator size="small" color={theme.colors.brand} /> : <AppText style={[styles.trackerStatus, { color: statusColor }]}>{status}</AppText>}
-  </TouchableOpacity>
 );
 
 const AvatarModal: React.FC<{
@@ -498,6 +391,181 @@ const AvatarModal: React.FC<{
   );
 };
 
+const EditPreferenceModal: React.FC<{
+  visible: boolean;
+  field: EditableField | null;
+  onClose: () => void;
+  goal: Goal | null;
+  dietType: DietType | null;
+  macroPriority: MacroPriority | null;
+  age: number | null;
+  gender: Gender | null;
+  activityLevel: ActivityLevel | null;
+  currentWeightKg: number | null;
+  goalWeightKg: number | null;
+  setGoal: (value: Goal) => void;
+  setDietType: (value: DietType) => void;
+  setMacroPriority: (value: MacroPriority) => void;
+  setAge: (value: number) => void;
+  setGender: (value: Gender) => void;
+  setActivityLevel: (value: ActivityLevel) => void;
+  setCurrentWeight: (value: number) => void;
+  setGoalWeight: (value: number) => void;
+}> = ({
+  visible,
+  field,
+  onClose,
+  goal,
+  dietType,
+  macroPriority,
+  age,
+  gender,
+  activityLevel,
+  currentWeightKg,
+  goalWeightKg,
+  setGoal,
+  setDietType,
+  setMacroPriority,
+  setAge,
+  setGender,
+  setActivityLevel,
+  setCurrentWeight,
+  setGoalWeight,
+}) => {
+  const theme = useAppTheme();
+
+  const [tempNumber, setTempNumber] = useState(0);
+
+  useEffect(() => {
+    if (field === 'age') setTempNumber(age ?? 30);
+    if (field === 'currentWeightKg') setTempNumber(currentWeightKg ?? 70);
+    if (field === 'goalWeightKg') setTempNumber(goalWeightKg ?? 65);
+  }, [field, age, currentWeightKg, goalWeightKg]);
+
+  const title = getEditTitle(field);
+  const numericField = field === 'age' || field === 'currentWeightKg' || field === 'goalWeightKg';
+
+  const options: Array<{ key: string; label: string; active: boolean; onPress: () => void }> =
+    field === 'goal'
+      ? [
+          { key: 'lose', label: 'Lose Weight', active: goal === 'lose', onPress: () => setGoal('lose') },
+          { key: 'maintain', label: 'Maintain Weight', active: goal === 'maintain', onPress: () => setGoal('maintain') },
+          { key: 'gain', label: 'Build Muscle', active: goal === 'gain', onPress: () => setGoal('gain') },
+          { key: 'health', label: 'Eat Healthier', active: goal === 'health', onPress: () => setGoal('health') },
+        ]
+      : field === 'dietType'
+      ? [
+          { key: 'none', label: 'No restrictions', active: dietType === 'none', onPress: () => setDietType('none') },
+          { key: 'cico', label: 'Calorie Focus', active: dietType === 'cico', onPress: () => setDietType('cico') },
+          { key: 'vegan', label: 'Vegan', active: dietType === 'vegan', onPress: () => setDietType('vegan') },
+          { key: 'keto', label: 'Keto', active: dietType === 'keto', onPress: () => setDietType('keto') },
+          { key: 'lowcarb', label: 'Low Carb', active: dietType === 'lowcarb', onPress: () => setDietType('lowcarb') },
+          { key: 'mediterranean', label: 'Mediterranean', active: dietType === 'mediterranean', onPress: () => setDietType('mediterranean') },
+        ]
+      : field === 'macroPriority'
+      ? [
+          { key: 'balanced', label: 'Balanced', active: macroPriority === 'balanced', onPress: () => setMacroPriority('balanced') },
+          { key: 'highprotein', label: 'High Protein', active: macroPriority === 'highprotein', onPress: () => setMacroPriority('highprotein') },
+          { key: 'lowcarb', label: 'Low Carb', active: macroPriority === 'lowcarb', onPress: () => setMacroPriority('lowcarb') },
+          { key: 'lowcal', label: 'Low Calorie', active: macroPriority === 'lowcal', onPress: () => setMacroPriority('lowcal') },
+        ]
+      : field === 'gender'
+      ? [
+          { key: 'male', label: 'Male', active: gender === 'male', onPress: () => setGender('male') },
+          { key: 'female', label: 'Female', active: gender === 'female', onPress: () => setGender('female') },
+          { key: 'other', label: 'Other', active: gender === 'other', onPress: () => setGender('other') },
+        ]
+      : field === 'activityLevel'
+      ? [
+          { key: 'sedentary', label: 'Sedentary', active: activityLevel === 'sedentary', onPress: () => setActivityLevel('sedentary') },
+          { key: 'light', label: 'Light', active: activityLevel === 'light', onPress: () => setActivityLevel('light') },
+          { key: 'moderate', label: 'Moderate', active: activityLevel === 'moderate', onPress: () => setActivityLevel('moderate') },
+          { key: 'active', label: 'Active', active: activityLevel === 'active', onPress: () => setActivityLevel('active') },
+          { key: 'very_active', label: 'Very Active', active: activityLevel === 'very_active', onPress: () => setActivityLevel('very_active') },
+        ]
+      : [];
+
+  const handleSelect = (onPress: () => void) => {
+    onPress();
+    onClose();
+  };
+
+  const handleSaveNumber = () => {
+    if (field === 'age') {
+      setAge(Math.max(12, Math.min(100, Math.round(tempNumber))));
+    } else if (field === 'currentWeightKg') {
+      setCurrentWeight(Math.max(30, Math.min(300, Number(tempNumber.toFixed(1)))));
+    } else if (field === 'goalWeightKg') {
+      setGoalWeight(Math.max(30, Math.min(300, Number(tempNumber.toFixed(1)))));
+    }
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.editBackdrop}>
+        <View style={[styles.editCard, { backgroundColor: theme.colors.bg }]}> 
+          <AppText style={[styles.editTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>{title}</AppText>
+
+          {numericField ? (
+            <View style={styles.numberEditor}>
+              <View style={styles.stepperRow}>
+                <TouchableOpacity style={[styles.stepperButton, { borderColor: theme.colors.border }]} onPress={() => setTempNumber((v) => v - (field === 'age' ? 1 : 0.5))}>
+                  <FontAwesome name="minus" size={14} color={theme.colors.text} />
+                </TouchableOpacity>
+                <AppText style={[styles.numberValue, { color: theme.colors.text }]}>
+                  {field === 'age' ? Math.round(tempNumber) : tempNumber.toFixed(1)}
+                  {field === 'age' ? '' : ' kg'}
+                </AppText>
+                <TouchableOpacity style={[styles.stepperButton, { borderColor: theme.colors.border }]} onPress={() => setTempNumber((v) => v + (field === 'age' ? 1 : 0.5))}>
+                  <FontAwesome name="plus" size={14} color={theme.colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.colors.brand }]} onPress={handleSaveNumber}>
+                <AppText style={styles.saveButtonText}>Save</AppText>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.optionsList}>
+              {options.map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[
+                    styles.optionRow,
+                    { borderColor: theme.colors.border },
+                    opt.active && { backgroundColor: `${theme.colors.brand}16`, borderColor: theme.colors.brand },
+                  ]}
+                  onPress={() => handleSelect(opt.onPress)}
+                >
+                  <AppText style={[styles.optionText, { color: theme.colors.text }]}>{opt.label}</AppText>
+                  {opt.active && <FontAwesome name="check" size={14} color={theme.colors.brand} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          <TouchableOpacity style={styles.cancelLink} onPress={onClose}>
+            <AppText style={[styles.cancelLinkText, { color: theme.colors.subtext }]}>Cancel</AppText>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+function getEditTitle(field: EditableField | null): string {
+  if (field === 'goal') return 'Edit Goal';
+  if (field === 'dietType') return 'Edit Diet Type';
+  if (field === 'macroPriority') return 'Edit Macro Focus';
+  if (field === 'age') return 'Edit Age';
+  if (field === 'gender') return 'Edit Gender';
+  if (field === 'activityLevel') return 'Edit Activity Level';
+  if (field === 'currentWeightKg') return 'Edit Current Weight';
+  if (field === 'goalWeightKg') return 'Edit Goal Weight';
+  return 'Edit Preference';
+}
+
 function formatGoal(goal: Goal | null): string {
   const goals: Record<Goal, string> = {
     lose: 'Lose Weight',
@@ -531,6 +599,21 @@ function formatMacroPriority(macro: MacroPriority | null): string {
   };
 
   return priorities[macro || 'balanced'];
+}
+
+function formatGender(gender: Gender | null): string {
+  if (!gender) return 'Not set';
+  if (gender === 'male') return 'Male';
+  if (gender === 'female') return 'Female';
+  return 'Other';
+}
+
+function formatActivity(level: ActivityLevel | null): string {
+  if (!level) return 'Not set';
+  return level
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 const styles = StyleSheet.create({
@@ -621,6 +704,7 @@ const styles = StyleSheet.create({
   restrictionsCard: {
     marginTop: 16,
     padding: 16,
+    gap: 14,
   },
 
   preferenceRow: {
@@ -636,80 +720,41 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 12,
   },
+  preferenceRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 8,
+    maxWidth: '52%',
+  },
   preferenceLabel: {
     fontSize: 16,
   },
   preferenceValue: {
     fontSize: 16,
     textAlign: 'right',
-    maxWidth: '50%',
   },
   divider: {
     height: 1,
     marginHorizontal: 20,
   },
 
-  restrictionsRow: {
-    gap: 12,
+  restrictionsListRow: {
+    gap: 8,
+    paddingVertical: 2,
   },
   restrictionsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 8,
   },
   restrictionsLabel: {
     fontSize: 16,
   },
-  restrictionsItems: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  restrictionTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  restrictionText: {
-    fontSize: 14,
-  },
-
-  trackerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-  },
-  trackerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  trackerName: {
-    fontSize: 16,
-  },
-  trackerStatus: {
-    fontSize: 14,
-  },
-  trackerHint: {
-    fontSize: 13,
-    marginTop: 8,
-    paddingHorizontal: 4,
-  },
-
-  actionCard: {
-    padding: 16,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  actionText: {
-    flex: 1,
-    fontSize: 16,
+  restrictionsBullets: {
+    fontSize: 15,
+    lineHeight: 22,
+    paddingLeft: 26,
   },
 
   infoCard: {
@@ -773,5 +818,72 @@ const styles = StyleSheet.create({
   michiLabel: {
     fontSize: 14,
     textAlign: 'center',
+  },
+
+  editBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  editCard: {
+    borderRadius: 18,
+    padding: 18,
+  },
+  editTitle: {
+    fontSize: 20,
+    marginBottom: 14,
+  },
+  optionsList: {
+    gap: 10,
+  },
+  optionRow: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  optionText: {
+    fontSize: 15,
+  },
+  numberEditor: {
+    gap: 14,
+  },
+  stepperRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  stepperButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  numberValue: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  saveButton: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  cancelLink: {
+    marginTop: 14,
+    alignItems: 'center',
+  },
+  cancelLinkText: {
+    fontSize: 14,
   },
 });

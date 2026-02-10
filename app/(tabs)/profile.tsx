@@ -1,33 +1,51 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, ActivityIndicator, ImageBackground } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Platform,
+  ActivityIndicator,
+  ImageBackground,
+  Image,
+  Modal,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const HomeBackground = require('@/assets/botanicals/home-background.png');
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
+
 import { AppText } from '@/src/components/ui/AppText';
 import { Card } from '@/src/components/ui/Card';
 import { useAppTheme } from '@/src/theme/theme';
-import { useOnboardingStore } from '@/src/stores/onboardingStore';
+import { useOnboardingStore, Goal, DietType, MacroPriority } from '@/src/stores/onboardingStore';
 import { useHealthStore } from '@/src/stores/healthStore';
-import { healthService } from '@/src/services/healthService';
 import { trackerService, TrackerApp } from '@/src/services/trackerService';
+
+const HomeBackground = require('@/assets/botanicals/home-background.png');
+const MichiAvatar = require('@/assets/michi-avatar.png');
+const MichiHero = require('@/assets/michi-hero.png');
+const MichiThinking = require('@/assets/michi-magnifying-glass.png');
+
+const PROFILE_PHOTO_KEY = '@profile_photo';
+const PROFILE_MICHI_KEY = '@profile_michi';
+
+type MichiVariant = 'avatar' | 'hero' | 'thinking';
 
 export default function ProfileScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { 
-    goal, 
-    dietType, 
+  const {
+    goal,
+    dietType,
     macroPriority,
     intolerances,
     dislikes,
     reset: resetOnboarding,
   } = useOnboardingStore();
-
-  // For now, derive a display name from goal or use a placeholder
-  // TODO: Add name to onboarding flow if needed
-  const name = 'User';
 
   const {
     appleHealthConnected,
@@ -42,46 +60,54 @@ export default function ProfileScreen() {
     checkAppleHealthStatus,
   } = useHealthStore();
 
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [selectedMichi, setSelectedMichi] = useState<MichiVariant>('avatar');
+  const [avatarModalVisible, setAvatarModalVisible] = useState(false);
   const [checkingApps, setCheckingApps] = useState<Record<TrackerApp, boolean>>({
     myFitnessPal: false,
     loseIt: false,
   });
 
-  // Check Apple Health status on mount
   useEffect(() => {
     checkAppleHealthStatus();
+    loadAvatarSettings();
   }, []);
 
-  const formatGoal = (g: string | null) => {
-    const goals: Record<string, string> = {
-      lose: 'Lose Weight',
-      maintain: 'Maintain Weight',
-      gain: 'Build Muscle',
-      health: 'Eat Healthier',
-    };
-    return goals[g || ''] || 'Not set';
+  const loadAvatarSettings = async () => {
+    try {
+      const [savedPhoto, savedMichi] = await Promise.all([
+        AsyncStorage.getItem(PROFILE_PHOTO_KEY),
+        AsyncStorage.getItem(PROFILE_MICHI_KEY),
+      ]);
+
+      if (savedPhoto) setProfilePhoto(savedPhoto);
+      if (savedMichi === 'avatar' || savedMichi === 'hero' || savedMichi === 'thinking') {
+        setSelectedMichi(savedMichi);
+      }
+    } catch {
+      // non-blocking
+    }
   };
 
-  const formatDiet = (d: string | null) => {
-    const diets: Record<string, string> = {
-      none: 'No restrictions',
-      vegetarian: 'Vegetarian',
-      vegan: 'Vegan',
-      keto: 'Keto',
-      paleo: 'Paleo',
-      lowcarb: 'Low Carb',
-    };
-    return diets[d || ''] || 'No restrictions';
+  const saveProfilePhoto = async (uri: string) => {
+    await AsyncStorage.setItem(PROFILE_PHOTO_KEY, uri);
+    setProfilePhoto(uri);
   };
 
-  const formatMacroPriority = (m: string | null) => {
-    const priorities: Record<string, string> = {
-      balanced: 'Balanced',
-      highprotein: 'High Protein',
-      lowcarb: 'Low Carb',
-      lowcal: 'Low Calorie',
-    };
-    return priorities[m || ''] || 'Balanced';
+  const saveMichiVariant = async (variant: MichiVariant) => {
+    await AsyncStorage.setItem(PROFILE_MICHI_KEY, variant);
+    setSelectedMichi(variant);
+    if (profilePhoto) {
+      await AsyncStorage.removeItem(PROFILE_PHOTO_KEY);
+      setProfilePhoto(null);
+    }
+  };
+
+  const formatDatabaseString = (str: string): string => {
+    return str
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
   };
 
   const handleRedoOnboarding = () => {
@@ -90,16 +116,45 @@ export default function ProfileScreen() {
       'This will reset your preferences and take you through onboarding again.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Continue', 
+        {
+          text: 'Continue',
           style: 'destructive',
           onPress: () => {
             resetOnboarding();
             router.replace('/onboarding');
-          }
+          },
         },
       ]
     );
+  };
+
+  const requestPhotoPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'We need photo access to set your profile picture.');
+      return false;
+    }
+    return true;
+  };
+
+  const handlePhotoSelect = async () => {
+    const granted = await requestPhotoPermission();
+    if (!granted) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+
+    const filename = `profile_${Date.now()}.jpg`;
+    const destination = `${FileSystem.documentDirectory}${filename}`;
+    await FileSystem.copyAsync({ from: result.assets[0].uri, to: destination });
+    await saveProfilePhoto(destination);
+    setAvatarModalVisible(false);
   };
 
   const handleAppleHealthPress = async () => {
@@ -109,27 +164,22 @@ export default function ProfileScreen() {
     }
 
     if (appleHealthConnected) {
-      // Disconnect
       Alert.alert(
         'Disconnect Apple Health',
         'Scanned meals will no longer be logged to Apple Health.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Disconnect', 
-            style: 'destructive',
-            onPress: disconnectAppleHealth,
-          },
+          { text: 'Disconnect', style: 'destructive', onPress: disconnectAppleHealth },
         ]
       );
-    } else {
-      // Connect
-      const success = await connectAppleHealth();
-      if (success) {
-        Alert.alert('Connected!', 'Scanned meals will now be logged to Apple Health.');
-      } else if (appleHealthError) {
-        Alert.alert('Connection Failed', appleHealthError);
-      }
+      return;
+    }
+
+    const success = await connectAppleHealth();
+    if (success) {
+      Alert.alert('Connected!', 'Scanned meals will now be logged to Apple Health.');
+    } else if (appleHealthError) {
+      Alert.alert('Connection Failed', appleHealthError);
     }
   };
 
@@ -139,7 +189,6 @@ export default function ProfileScreen() {
     const toggle = app === 'myFitnessPal' ? toggleMyFitnessPal : toggleLoseIt;
 
     if (isEnabled) {
-      // Disable
       Alert.alert(
         `Disable ${appName}`,
         `You won't be prompted to log to ${appName} after scans.`,
@@ -148,32 +197,26 @@ export default function ProfileScreen() {
           { text: 'Disable', style: 'destructive', onPress: toggle },
         ]
       );
-    } else {
-      // Check if app is installed and enable
-      setCheckingApps(prev => ({ ...prev, [app]: true }));
-      const installed = await trackerService.isAppInstalled(app);
-      setCheckingApps(prev => ({ ...prev, [app]: false }));
-
-      if (installed) {
-        toggle();
-        Alert.alert(
-          `${appName} Enabled`,
-          `After scanning a menu, you'll have the option to open ${appName} to log your meal.`
-        );
-      } else {
-        Alert.alert(
-          `${appName} Not Found`,
-          `Would you like to download ${appName}?`,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'Download', 
-              onPress: () => trackerService.openAppStore(app),
-            },
-          ]
-        );
-      }
+      return;
     }
+
+    setCheckingApps((prev) => ({ ...prev, [app]: true }));
+    const installed = await trackerService.isAppInstalled(app);
+    setCheckingApps((prev) => ({ ...prev, [app]: false }));
+
+    if (installed) {
+      toggle();
+      Alert.alert(
+        `${appName} Enabled`,
+        `After scanning a menu, you'll have the option to open ${appName} to log your meal.`
+      );
+      return;
+    }
+
+    Alert.alert(`${appName} Not Found`, `Would you like to download ${appName}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Download', onPress: () => trackerService.openAppStore(app) },
+    ]);
   };
 
   const getTrackerStatus = (app: TrackerApp) => {
@@ -187,272 +230,457 @@ export default function ProfileScreen() {
     return isEnabled ? theme.colors.brand : theme.colors.subtext;
   };
 
+  const heroMessage = useMemo(() => {
+    const messages: Record<Goal, string> = {
+      lose: 'Every scan gets you closer to your goal! 💪',
+      gain: 'Building those gains, one meal at a time! 🔥',
+      maintain: 'Staying consistent is the key to success! ⚖️',
+      health: 'Making healthier choices every day! 🌱',
+    };
+
+    return messages[goal || 'health'];
+  }, [goal]);
+
   return (
-    <ImageBackground source={HomeBackground} style={styles.container} resizeMode="cover">
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={[styles.avatar, { backgroundColor: theme.colors.brand }]}>
-            <AppText style={styles.avatarText}>
-              {name ? name.charAt(0).toUpperCase() : '?'}
-            </AppText>
-          </View>
-          <AppText style={[styles.name, { color: theme.colors.text }]}>
-            {name || 'User'}
-          </AppText>
-        </View>
-
-        {/* Diet Preferences */}
-        <View style={styles.section}>
-          <AppText style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Diet Preferences
-          </AppText>
-          <Card style={styles.prefsCard}>
-            <ProfileRow 
-              icon="bullseye" 
-              label="Goal" 
-              value={formatGoal(goal)} 
-              theme={theme} 
-            />
-            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            <ProfileRow 
-              icon="leaf" 
-              label="Diet Type" 
-              value={formatDiet(dietType)} 
-              theme={theme} 
-            />
-            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            <ProfileRow 
-              icon="pie-chart" 
-              label="Macro Focus" 
-              value={formatMacroPriority(macroPriority)} 
-              theme={theme} 
-            />
-          </Card>
-        </View>
-
-        {/* Restrictions */}
-        <View style={styles.section}>
-          <AppText style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Restrictions
-          </AppText>
-          <Card style={styles.prefsCard}>
-            <ProfileRow 
-              icon="ban" 
-              label="Allergies/Intolerances" 
-              value={intolerances.length > 0 ? intolerances.join(', ') : 'None'} 
-              theme={theme} 
-            />
-            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            <ProfileRow 
-              icon="thumbs-down" 
-              label="Foods to Avoid" 
-              value={dislikes.length > 0 ? dislikes.join(', ') : 'None'} 
-              theme={theme} 
-            />
-          </Card>
-        </View>
-
-        {/* Connected Trackers */}
-        <View style={styles.section}>
-          <AppText style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Export to Tracker
-          </AppText>
-          <Card style={styles.prefsCard}>
-            {/* Apple Health - iOS only */}
-            {Platform.OS === 'ios' && (
-              <>
-                <TouchableOpacity 
-                  style={styles.trackerRow} 
-                  onPress={handleAppleHealthPress}
-                  disabled={isConnecting}
-                >
-                  <View style={styles.trackerLeft}>
-                    <FontAwesome name="heart" size={18} color="#FF3B30" />
-                    <AppText style={[styles.trackerName, { color: theme.colors.text }]}>
-                      Apple Health
-                    </AppText>
-                  </View>
-                  {isConnecting ? (
-                    <ActivityIndicator size="small" color={theme.colors.brand} />
-                  ) : (
-                    <AppText style={[
-                      styles.trackerStatus, 
-                      { color: appleHealthConnected ? theme.colors.brand : theme.colors.subtext }
-                    ]}>
-                      {appleHealthConnected ? 'Connected' : 'Connect'}
-                    </AppText>
-                  )}
-                </TouchableOpacity>
-                <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-              </>
+    <View style={styles.container}>
+      <SafeAreaView style={[styles.heroSection, { borderBottomColor: theme.colors.border }]} edges={['top']}>
+        <View style={styles.heroContent}>
+          <TouchableOpacity style={styles.avatarContainer} onPress={() => setAvatarModalVisible(true)} activeOpacity={0.8}>
+            {profilePhoto ? (
+              <Image source={{ uri: profilePhoto }} style={styles.profilePhoto} />
+            ) : (
+              <View style={[styles.defaultAvatar, { backgroundColor: theme.colors.brand }]}>
+                <Image source={getMichiSource(selectedMichi)} style={styles.michiFallback} />
+              </View>
             )}
-            
-            {/* MyFitnessPal */}
-            <TouchableOpacity 
-              style={styles.trackerRow}
-              onPress={() => handleTrackerPress('myFitnessPal')}
-              disabled={checkingApps.myFitnessPal}
-            >
-              <View style={styles.trackerLeft}>
-                <FontAwesome name="cutlery" size={18} color="#0066CC" />
-                <AppText style={[styles.trackerName, { color: theme.colors.text }]}>
-                  MyFitnessPal
-                </AppText>
-              </View>
-              {checkingApps.myFitnessPal ? (
-                <ActivityIndicator size="small" color={theme.colors.brand} />
-              ) : (
-                <AppText style={[styles.trackerStatus, { color: getTrackerStatusColor('myFitnessPal') }]}>
-                  {getTrackerStatus('myFitnessPal')}
-                </AppText>
-              )}
-            </TouchableOpacity>
-            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            
-            {/* Lose It! */}
-            <TouchableOpacity 
-              style={styles.trackerRow}
-              onPress={() => handleTrackerPress('loseIt')}
-              disabled={checkingApps.loseIt}
-            >
-              <View style={styles.trackerLeft}>
-                <FontAwesome name="line-chart" size={18} color="#FF9500" />
-                <AppText style={[styles.trackerName, { color: theme.colors.text }]}>
-                  Lose It!
-                </AppText>
-              </View>
-              {checkingApps.loseIt ? (
-                <ActivityIndicator size="small" color={theme.colors.brand} />
-              ) : (
-                <AppText style={[styles.trackerStatus, { color: getTrackerStatusColor('loseIt') }]}>
-                  {getTrackerStatus('loseIt')}
-                </AppText>
-              )}
-            </TouchableOpacity>
-          </Card>
-          <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}>
-            {Platform.OS === 'ios' 
-              ? 'Apple Health logs automatically. Other apps open after scans for easy logging.'
-              : 'Enable trackers to quickly log scanned meals.'}
-          </AppText>
-        </View>
-
-        {/* Actions */}
-        <View style={styles.section}>
-          <TouchableOpacity onPress={handleRedoOnboarding}>
-            <Card style={styles.actionCard}>
-              <View style={styles.actionRow}>
-                <FontAwesome name="refresh" size={18} color={theme.colors.text} />
-                <AppText style={[styles.actionText, { color: theme.colors.text }]}>
-                  Redo Setup Questionnaire
-                </AppText>
-                <FontAwesome name="chevron-right" size={14} color={theme.colors.subtext} />
-              </View>
-            </Card>
+            <View style={[styles.editBadge, { backgroundColor: theme.colors.secondary }]}>
+              <FontAwesome name="camera" size={12} color={theme.colors.text} />
+            </View>
           </TouchableOpacity>
+
+          <AppText style={[styles.welcomeTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Your Profile</AppText>
+          <AppText style={[styles.motivationText, { color: theme.colors.subtext }]}>{heroMessage}</AppText>
         </View>
-
-        {/* Version */}
-        <AppText style={[styles.version, { color: theme.colors.subtext }]}>
-          MenuScan v1.0.0
-          </AppText>
-        </ScrollView>
       </SafeAreaView>
-    </ImageBackground>
-  );
-}
 
-function ProfileRow({ icon, label, value, theme }: { 
-  icon: string; 
-  label: string; 
-  value: string; 
-  theme: any;
-}) {
-  return (
-    <View style={styles.row}>
-      <View style={styles.rowLeft}>
-        <FontAwesome name={icon as any} size={16} color={theme.colors.brand} />
-        <AppText style={[styles.rowLabel, { color: theme.colors.subtext }]}>{label}</AppText>
-      </View>
-      <AppText style={[styles.rowValue, { color: theme.colors.text }]}>{value}</AppText>
+      <ImageBackground source={HomeBackground} style={styles.contentSection} resizeMode="cover">
+        <View style={styles.contentOverlay}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <View style={styles.section}>
+              <AppText style={[styles.sectionTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Your Preferences</AppText>
+
+              <Card style={[styles.preferencesCard, { backgroundColor: theme.colors.cardSage }]}>
+                <PreferenceRow icon="bullseye" label="Goal" value={formatGoal(goal)} theme={theme} />
+                <Divider theme={theme} />
+                <PreferenceRow icon="cutlery" label="Diet Type" value={formatDiet(dietType)} theme={theme} />
+                <Divider theme={theme} />
+                <PreferenceRow icon="pie-chart" label="Macro Focus" value={formatMacroPriority(macroPriority)} theme={theme} />
+              </Card>
+
+              {(intolerances.length > 0 || dislikes.length > 0) && (
+                <Card style={[styles.restrictionsCard, { backgroundColor: theme.colors.cardCream }]}>
+                  {intolerances.length > 0 && (
+                    <RestrictionsRow
+                      icon="warning"
+                      label="Allergies/Intolerances"
+                      items={intolerances.map(formatDatabaseString)}
+                      color={theme.colors.trafficRed}
+                      theme={theme}
+                    />
+                  )}
+                  {intolerances.length > 0 && dislikes.length > 0 && <Divider theme={theme} />}
+                  {dislikes.length > 0 && (
+                    <RestrictionsRow
+                      icon="ban"
+                      label="Foods to Avoid"
+                      items={dislikes.map(formatDatabaseString)}
+                      color={theme.colors.trafficAmber}
+                      theme={theme}
+                    />
+                  )}
+                </Card>
+              )}
+            </View>
+
+            <View style={styles.section}>
+              <AppText style={[styles.sectionTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Export to Tracker</AppText>
+              <Card style={styles.preferencesCard}>
+                {Platform.OS === 'ios' && (
+                  <>
+                    <TrackerRow
+                      icon="heart"
+                      iconColor="#FF3B30"
+                      label="Apple Health"
+                      status={appleHealthConnected ? 'Connected' : 'Connect'}
+                      statusColor={appleHealthConnected ? theme.colors.brand : theme.colors.subtext}
+                      onPress={handleAppleHealthPress}
+                      loading={isConnecting}
+                      theme={theme}
+                    />
+                    <Divider theme={theme} />
+                  </>
+                )}
+
+                <TrackerRow
+                  icon="cutlery"
+                  iconColor="#0066CC"
+                  label="MyFitnessPal"
+                  status={getTrackerStatus('myFitnessPal')}
+                  statusColor={getTrackerStatusColor('myFitnessPal')}
+                  onPress={() => handleTrackerPress('myFitnessPal')}
+                  loading={checkingApps.myFitnessPal}
+                  theme={theme}
+                />
+                <Divider theme={theme} />
+                <TrackerRow
+                  icon="line-chart"
+                  iconColor="#FF9500"
+                  label="Lose It!"
+                  status={getTrackerStatus('loseIt')}
+                  statusColor={getTrackerStatusColor('loseIt')}
+                  onPress={() => handleTrackerPress('loseIt')}
+                  loading={checkingApps.loseIt}
+                  theme={theme}
+                />
+              </Card>
+              <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}> 
+                {Platform.OS === 'ios'
+                  ? 'Apple Health logs automatically. Other apps open after scans for easy logging.'
+                  : 'Enable trackers to quickly log scanned meals.'}
+              </AppText>
+            </View>
+
+            <View style={styles.section}>
+              <AppText style={[styles.sectionTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Actions</AppText>
+              <TouchableOpacity onPress={handleRedoOnboarding}>
+                <Card style={styles.actionCard}>
+                  <View style={styles.actionRow}>
+                    <FontAwesome name="refresh" size={18} color={theme.colors.text} />
+                    <AppText style={[styles.actionText, { color: theme.colors.text }]}>Redo Setup Questionnaire</AppText>
+                    <FontAwesome name="chevron-right" size={14} color={theme.colors.subtext} />
+                  </View>
+                </Card>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.section}>
+              <Card style={[styles.infoCard, { backgroundColor: theme.colors.cardCream }]}> 
+                <AppText style={[styles.infoTitle, { color: theme.colors.text, fontFamily: theme.fonts.body.semiBold }]}>MenuScan v1.0.0</AppText>
+                <AppText style={[styles.infoSubtitle, { color: theme.colors.subtext }]}>Built to make healthier menu choices easier.</AppText>
+              </Card>
+            </View>
+          </ScrollView>
+        </View>
+      </ImageBackground>
+
+      <AvatarModal
+        visible={avatarModalVisible}
+        onClose={() => setAvatarModalVisible(false)}
+        onPickPhoto={handlePhotoSelect}
+        onPickMichi={async (variant) => {
+          await saveMichiVariant(variant);
+          setAvatarModalVisible(false);
+        }}
+      />
     </View>
   );
 }
 
+function getMichiSource(variant: MichiVariant) {
+  if (variant === 'hero') return MichiHero;
+  if (variant === 'thinking') return MichiThinking;
+  return MichiAvatar;
+}
+
+const PreferenceRow: React.FC<{ icon: string; label: string; value: string; theme: any }> = ({ icon, label, value, theme }) => (
+  <View style={styles.preferenceRow}>
+    <View style={styles.preferenceLeft}>
+      <FontAwesome name={icon as any} size={18} color={theme.colors.brand} />
+      <AppText style={[styles.preferenceLabel, { color: theme.colors.text }]}>{label}</AppText>
+    </View>
+    <AppText style={[styles.preferenceValue, { color: theme.colors.text, fontFamily: theme.fonts.body.semiBold }]}>{value}</AppText>
+  </View>
+);
+
+const RestrictionsRow: React.FC<{
+  icon: string;
+  label: string;
+  items: string[];
+  color: string;
+  theme: any;
+}> = ({ icon, label, items, color, theme }) => (
+  <View style={styles.restrictionsRow}>
+    <View style={styles.restrictionsHeader}>
+      <FontAwesome name={icon as any} size={16} color={color} />
+      <AppText style={[styles.restrictionsLabel, { color: theme.colors.text }]}>{label}</AppText>
+    </View>
+    <View style={styles.restrictionsItems}>
+      {items.map((item) => (
+        <View key={item} style={[styles.restrictionTag, { backgroundColor: `${color}20` }]}> 
+          <AppText style={[styles.restrictionText, { color }]}>{item}</AppText>
+        </View>
+      ))}
+    </View>
+  </View>
+);
+
+const Divider: React.FC<{ theme: any }> = ({ theme }) => (
+  <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+);
+
+const TrackerRow: React.FC<{
+  icon: string;
+  iconColor: string;
+  label: string;
+  status: string;
+  statusColor: string;
+  onPress: () => void;
+  loading: boolean;
+  theme: any;
+}> = ({ icon, iconColor, label, status, statusColor, onPress, loading, theme }) => (
+  <TouchableOpacity style={styles.trackerRow} onPress={onPress} disabled={loading}>
+    <View style={styles.trackerLeft}>
+      <FontAwesome name={icon as any} size={18} color={iconColor} />
+      <AppText style={[styles.trackerName, { color: theme.colors.text }]}>{label}</AppText>
+    </View>
+    {loading ? <ActivityIndicator size="small" color={theme.colors.brand} /> : <AppText style={[styles.trackerStatus, { color: statusColor }]}>{status}</AppText>}
+  </TouchableOpacity>
+);
+
+const AvatarModal: React.FC<{
+  visible: boolean;
+  onClose: () => void;
+  onPickPhoto: () => void;
+  onPickMichi: (variant: MichiVariant) => void;
+}> = ({ visible, onClose, onPickPhoto, onPickMichi }) => {
+  const theme = useAppTheme();
+
+  const options: Array<{ key: MichiVariant; source: any; label: string }> = [
+    { key: 'avatar', source: MichiAvatar, label: 'Happy Michi' },
+    { key: 'hero', source: MichiHero, label: 'Chef Michi' },
+    { key: 'thinking', source: MichiThinking, label: 'Thinking Michi' },
+  ];
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.bg }]}> 
+        <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}> 
+          <TouchableOpacity onPress={onClose}>
+            <AppText style={[styles.modalCancel, { color: theme.colors.brand }]}>Cancel</AppText>
+          </TouchableOpacity>
+          <AppText style={[styles.modalTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Choose Avatar</AppText>
+          <View style={{ width: 60 }} />
+        </View>
+
+        <ScrollView style={styles.modalContent}>
+          <TouchableOpacity style={styles.avatarOption} onPress={onPickPhoto}>
+            <Card style={styles.avatarOptionCard}>
+              <FontAwesome name="camera" size={30} color={theme.colors.brand} />
+              <AppText style={[styles.avatarOptionText, { color: theme.colors.text, fontFamily: theme.fonts.body.semiBold }]}>Choose Photo</AppText>
+            </Card>
+          </TouchableOpacity>
+
+          <AppText style={[styles.sectionSubtitle, { color: theme.colors.subtext }]}>Or pick a Michi</AppText>
+
+          <View style={styles.michiGrid}>
+            {options.map((option) => (
+              <TouchableOpacity key={option.key} style={styles.michiOption} onPress={() => onPickMichi(option.key)}>
+                <Card style={styles.michiCard}>
+                  <Image source={option.source} style={styles.michiPreview} />
+                  <AppText style={[styles.michiLabel, { color: theme.colors.text }]}>{option.label}</AppText>
+                </Card>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+};
+
+function formatGoal(goal: Goal | null): string {
+  const goals: Record<Goal, string> = {
+    lose: 'Lose Weight',
+    maintain: 'Maintain Weight',
+    gain: 'Build Muscle',
+    health: 'Eat Healthier',
+  };
+
+  return goals[goal || 'health'];
+}
+
+function formatDiet(diet: DietType | null): string {
+  const diets: Record<DietType, string> = {
+    none: 'No restrictions',
+    cico: 'Calorie Focus',
+    vegan: 'Vegan',
+    keto: 'Keto',
+    lowcarb: 'Low Carb',
+    mediterranean: 'Mediterranean',
+  };
+
+  return diets[diet || 'none'];
+}
+
+function formatMacroPriority(macro: MacroPriority | null): string {
+  const priorities: Record<MacroPriority, string> = {
+    balanced: 'Balanced',
+    highprotein: 'High Protein',
+    lowcarb: 'Low Carb',
+    lowcal: 'Low Calorie',
+  };
+
+  return priorities[macro || 'balanced'];
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+
+  heroSection: {
+    backgroundColor: '#FFF5E6',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
   },
-  safeArea: {
-    flex: 1,
+  heroContent: { alignItems: 'center' },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+    marginTop: 6,
   },
-  header: {
-    alignItems: 'center',
-    paddingTop: 24,
-    paddingBottom: 24,
+  profilePhoto: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  defaultAvatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
   },
-  avatarText: {
-    color: '#fff',
-    fontSize: 32,
-    fontWeight: '700',
+  michiFallback: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
   },
-  name: {
-    fontSize: 24,
-    fontWeight: '700',
+  editBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
+  welcomeTitle: {
+    fontSize: 28,
+    marginBottom: 6,
+  },
+  motivationText: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+
+  contentSection: { flex: 1 },
+  contentOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 245, 230, 0.93)',
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+
   section: {
     paddingHorizontal: 20,
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 22,
+    marginBottom: 16,
+  },
+  sectionSubtitle: {
+    fontSize: 16,
+    marginTop: 12,
     marginBottom: 12,
   },
-  prefsCard: {
-    padding: 4,
+
+  preferencesCard: {
+    padding: 0,
+    overflow: 'hidden',
   },
-  row: {
+  restrictionsCard: {
+    marginTop: 16,
+    padding: 16,
+  },
+
+  preferenceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
-  rowLeft: {
+  preferenceLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    flex: 1,
+    gap: 12,
   },
-  rowLabel: {
-    fontSize: 15,
+  preferenceLabel: {
+    fontSize: 16,
   },
-  rowValue: {
-    fontSize: 15,
-    fontWeight: '500',
-    maxWidth: '50%',
+  preferenceValue: {
+    fontSize: 16,
     textAlign: 'right',
+    maxWidth: '50%',
   },
   divider: {
     height: 1,
-    marginHorizontal: 12,
+    marginHorizontal: 20,
   },
+
+  restrictionsRow: {
+    gap: 12,
+  },
+  restrictionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  restrictionsLabel: {
+    fontSize: 16,
+  },
+  restrictionsItems: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  restrictionTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  restrictionText: {
+    fontSize: 14,
+  },
+
   trackerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
   trackerLeft: {
     flexDirection: 'row',
@@ -461,7 +689,6 @@ const styles = StyleSheet.create({
   },
   trackerName: {
     fontSize: 16,
-    fontWeight: '500',
   },
   trackerStatus: {
     fontSize: 14,
@@ -471,6 +698,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 4,
   },
+
   actionCard: {
     padding: 16,
   },
@@ -483,9 +711,67 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
   },
-  version: {
-    textAlign: 'center',
+
+  infoCard: {
+    padding: 16,
+  },
+  infoTitle: {
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  infoSubtitle: {
     fontSize: 13,
-    paddingBottom: 40,
+  },
+
+  modalContainer: { flex: 1 },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 20,
+  },
+  modalCancel: {
+    fontSize: 16,
+  },
+  modalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  avatarOption: {
+    marginBottom: 20,
+  },
+  avatarOptionCard: {
+    padding: 20,
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatarOptionText: {
+    fontSize: 16,
+  },
+  michiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  michiOption: {
+    width: '48%',
+  },
+  michiCard: {
+    padding: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  michiPreview: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  michiLabel: {
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

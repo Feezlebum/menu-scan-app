@@ -58,7 +58,10 @@ export const getDaySpending = (meals: LoggedMeal[]): number => {
 export const getWeekSpending = (meals: LoggedMeal[], weekOffset: number = 0): number => {
   const today = new Date();
   const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - (weekOffset * 7) - today.getDay());
+  const day = weekStart.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+
+  weekStart.setDate(weekStart.getDate() + mondayOffset - (weekOffset * 7));
   weekStart.setHours(0, 0, 0, 0);
 
   const weekEnd = new Date(weekStart);

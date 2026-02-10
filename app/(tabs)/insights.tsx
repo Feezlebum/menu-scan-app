@@ -64,7 +64,10 @@ export default function InsightsScreen() {
   const weekMeals = useMemo(() => {
     const today = new Date();
     const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay());
+    const day = weekStart.getDay();
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+
+    weekStart.setDate(weekStart.getDate() + mondayOffset);
     weekStart.setHours(0, 0, 0, 0);
 
     const weekEnd = new Date(weekStart);

@@ -11,6 +11,9 @@ import { useAppTheme } from '@/src/theme/theme';
 import { useScanStore } from '@/src/stores/scanStore';
 import { useHistoryStore } from '@/src/stores/historyStore';
 import { useTrackerExport } from '@/src/hooks/useTrackerExport';
+import { useOnboardingStore } from '@/src/stores/onboardingStore';
+import { useStreakStore } from '@/src/stores/streakStore';
+import { evaluateMealHealth } from '@/src/utils/streakLogic';
 
 export default function ItemDetailScreen() {
   const theme = useAppTheme();
@@ -18,6 +21,8 @@ export default function ItemDetailScreen() {
   const { selectedItem, setSelectedItem, currentResult } = useScanStore();
   const { saveScan, logMeal, scans } = useHistoryStore();
   const { exportToTrackers, hasEnabledTrackers } = useTrackerExport();
+  const { dailyCalorieTarget, dietType, intolerances, dislikes } = useOnboardingStore();
+  const { currentStreak, recordMealDecision } = useStreakStore();
   const [isLogging, setIsLogging] = useState(false);
 
   if (!selectedItem) {
@@ -80,29 +85,56 @@ export default function ItemDetailScreen() {
     }
   };
 
-  const handleLogMeal = async () => {
+  const handleLogMeal = async (
+    overrideHealthyChoice: boolean = false,
+    skipStreakWarning: boolean = false
+  ) => {
     if (isLogging) return;
-    
+
+    const evaluation = evaluateMealHealth(item, {
+      dailyCalorieTarget,
+      dietType,
+      intolerances,
+      dislikes,
+    });
+
+    if (!skipStreakWarning && !overrideHealthyChoice && !evaluation.isHealthy && currentStreak > 0) {
+      Alert.alert(
+        '⚠️ Streak Impact',
+        `This choice will break your ${currentStreak}-choice streak\n\n• ${evaluation.reasons.join('\n• ')}`,
+        [
+          { text: 'Pick Something Else', style: 'cancel' },
+          {
+            text: 'Confirm Anyway',
+            style: 'destructive',
+            onPress: () => handleLogMeal(false, true),
+          },
+          {
+            text: 'Mark Healthy Choice',
+            onPress: () => handleLogMeal(true),
+          },
+        ]
+      );
+      return;
+    }
+
     setIsLogging(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      // Check if we already have this scan saved, or save it now
       let scanId: string;
       const restaurantName = currentResult?.restaurantName || null;
-      
-      // Find existing scan from this session or create new one
+
       const existingScan = scans.find(
-        (s) => s.restaurantName === restaurantName && 
-               new Date(s.scannedAt).getTime() > Date.now() - 30 * 60 * 1000 // Within last 30 mins
+        (s) => s.restaurantName === restaurantName &&
+               new Date(s.scannedAt).getTime() > Date.now() - 30 * 60 * 1000
       );
-      
+
       if (existingScan) {
         scanId = existingScan.id;
       } else if (currentResult) {
         scanId = saveScan(currentResult);
       } else {
-        // Fallback: create a minimal scan entry
         scanId = saveScan({
           success: true,
           restaurantName,
@@ -113,10 +145,18 @@ export default function ItemDetailScreen() {
         });
       }
 
-      // Log the meal
-      logMeal(scanId, item, restaurantName);
+      const mealId = logMeal(scanId, item, restaurantName);
 
-      // Export to trackers (Apple Health, MFP, Lose It)
+      const finalHealthy = overrideHealthyChoice || evaluation.isHealthy;
+      const nextStreak = finalHealthy ? currentStreak + 1 : 0;
+      recordMealDecision({
+        mealId,
+        mealName: item.name,
+        loggedAt: new Date().toISOString(),
+        isHealthy: finalHealthy,
+        overrideUsed: overrideHealthyChoice,
+      });
+
       if (hasEnabledTrackers) {
         await exportToTrackers({
           foodName: item.name,
@@ -128,13 +168,14 @@ export default function ItemDetailScreen() {
       }
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
-      // Show confirmation and close
-      Alert.alert(
-        'Meal Logged! ✓',
-        `${item.name} has been saved to your history.`,
-        [{ text: 'OK', onPress: handleClose }]
-      );
+
+      const message = finalHealthy
+        ? `🔥 Streak extended to ${nextStreak}! Great choice.`
+        : currentStreak > 0
+          ? `Streak reset. You made it ${currentStreak} choices — start fresh!`
+          : `${item.name} has been saved to your history.`;
+
+      Alert.alert('Meal Logged! ✓', message, [{ text: 'OK', onPress: handleClose }]);
     } catch (error) {
       console.error('Error logging meal:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -333,7 +374,7 @@ export default function ItemDetailScreen() {
             { backgroundColor: theme.colors.brand },
             isLogging && { opacity: 0.7 }
           ]}
-          onPress={handleLogMeal}
+          onPress={() => handleLogMeal()}
           disabled={isLogging}
         >
           <FontAwesome name={isLogging ? 'spinner' : 'plus'} size={18} color="#fff" />

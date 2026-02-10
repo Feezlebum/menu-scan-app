@@ -9,6 +9,7 @@ import { TrafficLightDot } from '@/src/components/ui/TrafficLightDot';
 import { useAppTheme } from '@/src/theme/theme';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import { useHistoryStore } from '@/src/stores/historyStore';
+import { useStreakStore } from '@/src/stores/streakStore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -39,7 +40,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const { goal, macroPriority, dietType, intolerances } = useOnboardingStore();
   const { loggedMeals } = useHistoryStore();
-  
+  const { currentStreak, lastChoice } = useStreakStore();
+
   const lastMeal = loggedMeals[0];
 
   const handleScan = () => {
@@ -107,7 +109,31 @@ export default function HomeScreen() {
             />
           </View>
 
-
+          {/* Healthy Dining Streak */}
+          <TouchableOpacity
+            style={[styles.streakCard, { backgroundColor: currentStreak > 0 ? '#E8F5E2' : '#FFF0D4' }]}
+            activeOpacity={0.9}
+            onPress={handleScan}
+          >
+            <View style={styles.streakHeader}>
+              <AppText style={styles.streakEmoji}>{currentStreak > 0 ? '🔥' : '✨'}</AppText>
+              <View style={styles.streakHeaderText}>
+                <AppText style={[styles.streakTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}> 
+                  {currentStreak > 0 ? `${currentStreak} Healthy Dining Streak` : 'Start a Healthy Dining Streak'}
+                </AppText>
+                {lastChoice ? (
+                  <AppText style={[styles.streakSubtext, { color: theme.colors.subtext }]} numberOfLines={1}>
+                    Last choice: {lastChoice.mealName} ({formatTimeAgo(lastChoice.loggedAt)})
+                  </AppText>
+                ) : (
+                  <AppText style={[styles.streakSubtext, { color: theme.colors.subtext }]}>
+                    Build momentum with each healthy choice.
+                  </AppText>
+                )}
+              </View>
+            </View>
+            <AppText style={[styles.streakCta, { color: theme.colors.brand }]}>Continue the streak — scan your menu!</AppText>
+          </TouchableOpacity>
 
           {/* Scan a Menu CTA Button */}
           <TouchableOpacity 
@@ -282,6 +308,35 @@ const styles = StyleSheet.create({
   michiHeroImage: {
     width: SCREEN_WIDTH * 0.75,
     height: SCREEN_WIDTH * 0.75,
+  },
+  streakCard: {
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 14,
+    zIndex: 1,
+  },
+  streakHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  streakEmoji: {
+    fontSize: 24,
+  },
+  streakHeaderText: {
+    flex: 1,
+  },
+  streakTitle: {
+    fontSize: 16,
+    marginBottom: 2,
+  },
+  streakSubtext: {
+    fontSize: 13,
+  },
+  streakCta: {
+    marginTop: 10,
+    fontSize: 13,
+    fontWeight: '600',
   },
   // Scan Button
   scanButton: {

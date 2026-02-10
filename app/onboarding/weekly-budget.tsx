@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
 import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import { useSpendingStore } from '@/src/stores/spendingStore';
+
+const MichiSpending = require('@/assets/michi-spending.png');
 
 const PRESETS = [
   { label: 'Under $50', value: 50 },
@@ -47,6 +49,7 @@ export default function WeeklyBudgetScreen() {
       buttonText={parsed === null ? 'Skip for now' : 'Continue'}
     >
       <View style={styles.content}>
+        <Image source={MichiSpending} style={styles.heroImage} resizeMode="contain" />
         <View style={[styles.inputWrap, { borderColor: theme.colors.border, backgroundColor: '#fff' }]}>
           <AppText style={[styles.currency, { color: theme.colors.text }]}>$</AppText>
           <TextInput
@@ -87,6 +90,12 @@ const styles = StyleSheet.create({
   content: {
     paddingTop: 8,
     gap: 14,
+  },
+  heroImage: {
+    width: 140,
+    height: 140,
+    alignSelf: 'center',
+    marginBottom: 4,
   },
   inputWrap: {
     borderWidth: 1,

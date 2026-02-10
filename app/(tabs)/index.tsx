@@ -17,6 +17,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // Michi assets
 const MichiHero = require('@/assets/michi-hero.png');
 const MichiAvatar = require('@/assets/michi-avatar.png');
+const MichiSpending = require('@/assets/michi-spending.png');
 
 // Background with botanicals baked in
 const HomeBackground = require('@/assets/botanicals/home-background.png');
@@ -143,12 +144,15 @@ export default function HomeScreen() {
           {/* Weekly Spending Widget */}
           <View style={styles.spendingCard}>
             <View style={styles.spendingTopRow}>
-              <AppText style={[styles.spendingTitle, { color: theme.colors.text }]}>💰 Weekly Spending</AppText>
-              {weeklyBudget ? (
-                <AppText style={[styles.spendingAmount, { color: theme.colors.text }]}>${currentWeekSpent.toFixed(0)} / ${weeklyBudget.toFixed(0)}</AppText>
-              ) : (
-                <AppText style={[styles.spendingUnset, { color: theme.colors.subtext }]}>Set a budget in onboarding/profile</AppText>
-              )}
+              <View style={styles.spendingTitleBlock}>
+                <AppText style={[styles.spendingTitle, { color: theme.colors.text }]}>💰 Weekly Spending</AppText>
+                {weeklyBudget ? (
+                  <AppText style={[styles.spendingAmount, { color: theme.colors.text }]}>${currentWeekSpent.toFixed(0)} / ${weeklyBudget.toFixed(0)}</AppText>
+                ) : (
+                  <AppText style={[styles.spendingUnset, { color: theme.colors.subtext }]}>Set a budget in onboarding/profile</AppText>
+                )}
+              </View>
+              <Image source={MichiSpending} style={styles.spendingMichi} resizeMode="contain" />
             </View>
 
             {weeklyBudget ? (
@@ -392,6 +396,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
     gap: 10,
+  },
+  spendingTitleBlock: {
+    flex: 1,
+  },
+  spendingMichi: {
+    width: 64,
+    height: 64,
   },
   spendingTitle: {
     fontSize: 15,

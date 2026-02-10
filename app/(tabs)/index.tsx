@@ -107,22 +107,7 @@ export default function HomeScreen() {
             />
           </View>
 
-          {/* Greeting Header - below Michi, above scan button */}
-          <View style={styles.header}>
-            <AppText 
-              variant="heading"
-              style={[
-                styles.greeting, 
-                { 
-                  fontFamily: 'Baloo2-Bold',
-                  color: theme.colors.text,
-                  textAlign: 'center',
-                }
-              ]}
-            >
-              {getGreetingText()}
-            </AppText>
-          </View>
+
 
           {/* Scan a Menu CTA Button */}
           <TouchableOpacity 

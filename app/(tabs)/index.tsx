@@ -49,7 +49,7 @@ export default function HomeScreen() {
 
   const getGreetingText = () => {
     switch (goal) {
-      case 'lose': return "Let's find lighter options";
+      case 'lose': return "What are we eating?";
       case 'gain': return "Time to fuel those gains";
       case 'maintain': return "Let's keep it balanced";
       default: return "Ready to eat smart?";
@@ -98,22 +98,6 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false} 
           contentContainerStyle={styles.content}
         >
-          {/* Greeting Header */}
-          <View style={styles.header}>
-            <AppText 
-              variant="heading"
-              style={[
-                styles.greeting, 
-                { 
-                  fontFamily: 'Baloo2-Bold',
-                  color: theme.colors.text 
-                }
-              ]}
-            >
-              {getGreetingText()}
-            </AppText>
-          </View>
-
           {/* Michi Hero - NO card border, sits on background */}
           <View style={styles.michiHero}>
             <Image 
@@ -121,6 +105,23 @@ export default function HomeScreen() {
               style={styles.michiHeroImage}
               resizeMode="contain"
             />
+          </View>
+
+          {/* Greeting Header - below Michi, above scan button */}
+          <View style={styles.header}>
+            <AppText 
+              variant="heading"
+              style={[
+                styles.greeting, 
+                { 
+                  fontFamily: 'Baloo2-Bold',
+                  color: theme.colors.text,
+                  textAlign: 'center',
+                }
+              ]}
+            >
+              {getGreetingText()}
+            </AppText>
           </View>
 
           {/* Scan a Menu CTA Button */}

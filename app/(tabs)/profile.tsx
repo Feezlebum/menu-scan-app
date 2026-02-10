@@ -26,6 +26,8 @@ import {
   ActivityLevel,
   Gender,
 } from '@/src/stores/onboardingStore';
+import { useSpendingStore } from '@/src/stores/spendingStore';
+import type { CurrencyCode } from '@/src/types/spending';
 
 const HomeBackground = require('@/assets/botanicals/home-background.png');
 const MichiAvatar = require('@/assets/michi-avatar.png');
@@ -59,6 +61,7 @@ export default function ProfileScreen() {
     activityLevel,
     currentWeightKg,
     goalWeightKg,
+    weeklyDiningBudget,
     setGoal,
     setDietType,
     setMacroPriority,
@@ -67,7 +70,10 @@ export default function ProfileScreen() {
     setActivityLevel,
     setCurrentWeight,
     setGoalWeight,
+    setWeeklyDiningBudget,
   } = useOnboardingStore();
+
+  const { weeklyBudget, setWeeklyBudget, currency, setCurrency, includeTips, setIncludeTips } = useSpendingStore();
 
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [selectedMichi, setSelectedMichi] = useState<MichiVariant>('avatar');
@@ -165,6 +171,47 @@ export default function ProfileScreen() {
     setEditingField(null);
   };
 
+  const openBudgetEditor = () => {
+    if (typeof Alert.prompt === 'function') {
+      Alert.prompt(
+        'Weekly Dining Budget',
+        'Set your weekly budget',
+        [
+          { text: 'Clear', style: 'destructive', onPress: () => { setWeeklyBudget(null); setWeeklyDiningBudget(null); } },
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Save',
+            onPress: (value?: string) => {
+              const parsed = value ? Number.parseFloat(value.replace(/[^0-9.]/g, '')) : NaN;
+              if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1000) return;
+              setWeeklyBudget(parsed);
+              setWeeklyDiningBudget(parsed);
+            },
+          },
+        ],
+        'plain-text',
+        weeklyBudget ? String(weeklyBudget) : ''
+      );
+      return;
+    }
+
+    Alert.alert('Weekly Dining Budget', 'Choose a budget', [
+      { text: 'Clear', style: 'destructive', onPress: () => { setWeeklyBudget(null); setWeeklyDiningBudget(null); } },
+      { text: '$50', onPress: () => { setWeeklyBudget(50); setWeeklyDiningBudget(50); } },
+      { text: '$100', onPress: () => { setWeeklyBudget(100); setWeeklyDiningBudget(100); } },
+      { text: '$200', onPress: () => { setWeeklyBudget(200); setWeeklyDiningBudget(200); } },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const openCurrencySelector = () => {
+    const currencies: CurrencyCode[] = ['USD', 'GBP', 'EUR'];
+    Alert.alert('Currency', 'Choose your currency', [
+      ...currencies.map((c) => ({ text: c, onPress: () => setCurrency(c) })),
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   return (
     <View style={styles.container}>
       <SafeAreaView style={[styles.heroSection, { borderBottomColor: theme.colors.border }]} edges={['top']}>
@@ -248,6 +295,41 @@ export default function ProfileScreen() {
                   )}
                 </Card>
               )}
+            </View>
+
+            <View style={styles.section}>
+              <AppText style={[styles.sectionTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Spending & Budget</AppText>
+              <Card style={styles.preferencesCard}>
+                <EditableRow
+                  icon="dollar"
+                  label="Weekly Dining Budget"
+                  value={weeklyBudget ? `$${weeklyBudget.toFixed(0)}` : 'Not set'}
+                  theme={theme}
+                  onPress={openBudgetEditor}
+                />
+                <Divider theme={theme} />
+                <EditableRow
+                  icon="money"
+                  label="Currency"
+                  value={currency}
+                  theme={theme}
+                  onPress={openCurrencySelector}
+                />
+                <Divider theme={theme} />
+                <TouchableOpacity
+                  style={styles.preferenceRow}
+                  activeOpacity={0.8}
+                  onPress={() => setIncludeTips(!includeTips)}
+                >
+                  <View style={styles.preferenceLeft}>
+                    <FontAwesome name="percent" size={18} color={theme.colors.brand} />
+                    <AppText style={[styles.preferenceLabel, { color: theme.colors.text }]}>Include Tips (+20%)</AppText>
+                  </View>
+                  <View style={[styles.tipToggle, { backgroundColor: includeTips ? theme.colors.brand : '#ddd' }]}>
+                    <View style={[styles.tipToggleKnob, includeTips && styles.tipToggleKnobOn]} />
+                  </View>
+                </TouchableOpacity>
+              </Card>
             </View>
 
             <View style={styles.section}>
@@ -729,6 +811,23 @@ const styles = StyleSheet.create({
   },
   preferenceLabel: {
     fontSize: 16,
+  },
+  tipToggle: {
+    width: 46,
+    height: 28,
+    borderRadius: 14,
+    padding: 3,
+    justifyContent: 'center',
+  },
+  tipToggleKnob: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#fff',
+    alignSelf: 'flex-start',
+  },
+  tipToggleKnobOn: {
+    alignSelf: 'flex-end',
   },
   preferenceValue: {
     fontSize: 16,

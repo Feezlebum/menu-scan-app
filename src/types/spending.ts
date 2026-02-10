@@ -13,5 +13,6 @@ export interface SpendingEntry {
 export interface SpendingTracker {
   weeklyBudget: number | null;
   currency: CurrencyCode;
+  includeTips: boolean;
   spendingHistory: SpendingEntry[];
 }

@@ -15,6 +15,7 @@ interface RecordSpendingInput {
 interface SpendingState extends SpendingTracker {
   setWeeklyBudget: (budget: number | null) => void;
   setCurrency: (currency: CurrencyCode) => void;
+  setIncludeTips: (enabled: boolean) => void;
   recordSpending: (entry: RecordSpendingInput) => void;
   getCurrentWeekSpent: () => number;
 }
@@ -33,10 +34,12 @@ export const useSpendingStore = create<SpendingState>()(
     (set, get) => ({
       weeklyBudget: null,
       currency: 'USD',
+      includeTips: false,
       spendingHistory: [],
 
       setWeeklyBudget: (budget) => set({ weeklyBudget: budget }),
       setCurrency: (currency) => set({ currency }),
+      setIncludeTips: (enabled) => set({ includeTips: enabled }),
 
       recordSpending: ({ amount, restaurant, mealName, extractionMethod, currency, date }) => {
         const entry: SpendingEntry = {
@@ -61,10 +64,14 @@ export const useSpendingStore = create<SpendingState>()(
         weekEnd.setDate(weekEnd.getDate() + 6);
         weekEnd.setHours(23, 59, 59, 999);
 
+        const { includeTips } = get();
+
         return get().spendingHistory.reduce((sum, entry) => {
           const date = new Date(entry.date);
           if (date < weekStart || date > weekEnd) return sum;
-          return sum + (entry.amount || 0);
+          const base = entry.amount || 0;
+          const withTips = includeTips ? base * 1.2 : base;
+          return sum + withTips;
         }, 0);
       },
     }),

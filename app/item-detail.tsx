@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -14,7 +14,7 @@ import { useTrackerExport } from '@/src/hooks/useTrackerExport';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import { useStreakStore } from '@/src/stores/streakStore';
 import { useSpendingStore } from '@/src/stores/spendingStore';
-import { evaluateMealHealth } from '@/src/utils/streakLogic';
+import { evaluateHealthyChoice } from '@/src/utils/healthyCriteria';
 import { parsePrice } from '@/src/lib/scanService';
 
 export default function ItemDetailScreen() {
@@ -96,18 +96,17 @@ export default function ItemDetailScreen() {
   ) => {
     if (isLogging) return;
 
-    const evaluation = evaluateMealHealth(item, {
-      dailyCalorieTarget,
+    const evaluation = evaluateHealthyChoice(item, {
+      dailyCalorieGoal: dailyCalorieTarget,
       dietType,
-      intolerances,
-      dislikes,
+      restrictedFoods: [...(intolerances || []), ...(dislikes || [])],
     });
 
     const detectedPrice = manualPriceOverride ?? parsePrice(item.price);
     const currentWeekSpent = getCurrentWeekSpent();
     const projectedWeekSpent = currentWeekSpent + (detectedPrice || 0);
 
-    if (!skipBudgetWarning && weeklyBudget && detectedPrice && projectedWeekSpent >= weeklyBudget * 0.8) {
+    if (!skipBudgetWarning && weeklyBudget && detectedPrice && projectedWeekSpent >= weeklyBudget * 0.9) {
       Alert.alert(
         '⚠️ Budget Alert',
         `This order will put you at ${Math.round((projectedWeekSpent / weeklyBudget) * 100)}% of your weekly budget\n\nCurrent: $${currentWeekSpent.toFixed(0)} / $${weeklyBudget.toFixed(0)}\nAfter this meal: $${projectedWeekSpent.toFixed(0)} / $${weeklyBudget.toFixed(0)}`,
@@ -221,18 +220,56 @@ export default function ItemDetailScreen() {
 
   const handleConfirmOrder = () => {
     const detectedPrice = parsePrice(item.price);
-    const currentWeekSpent = getCurrentWeekSpent();
-    const projected = currentWeekSpent + (detectedPrice || 0);
+
+    const confirmWithPrice = (price: number | undefined) => {
+      const currentWeekSpent = getCurrentWeekSpent();
+      const projected = currentWeekSpent + (price || 0);
+
+      Alert.alert(
+        'Confirm Your Order',
+        `${item.name}\nNutrition: ${item.estimatedCalories} cal, ${item.estimatedProtein}g protein\n${price ? `Price: $${price.toFixed(2)}` : 'Price: Not detected'}${weeklyBudget && price ? `\nBudget impact: $${currentWeekSpent.toFixed(0)} → $${projected.toFixed(0)} / $${weeklyBudget.toFixed(0)}` : ''}`,
+        [
+          { text: 'Back', style: 'cancel' },
+          {
+            text: 'Confirm Order',
+            onPress: () => handleLogMeal(false, false, false, price),
+          },
+        ]
+      );
+    };
+
+    if (detectedPrice) {
+      confirmWithPrice(detectedPrice);
+      return;
+    }
+
+    if (Platform.OS === 'ios' && typeof Alert.prompt === 'function') {
+      Alert.prompt(
+        'Add Meal Price',
+        "We couldn't detect a price. Enter the amount paid:",
+        [
+          { text: 'Skip', style: 'cancel', onPress: () => confirmWithPrice(undefined) },
+          {
+            text: 'Use Price',
+            onPress: (value?: string) => {
+              const parsed = value ? Number.parseFloat(value.replace(/[^0-9.]/g, '')) : NaN;
+              confirmWithPrice(Number.isFinite(parsed) ? parsed : undefined);
+            },
+          },
+        ],
+        'plain-text'
+      );
+      return;
+    }
 
     Alert.alert(
-      'Confirm Your Order',
-      `${item.name}\nNutrition: ${item.estimatedCalories} cal, ${item.estimatedProtein}g protein\n${detectedPrice ? `Price: $${detectedPrice.toFixed(2)} (detected)` : 'Price: Not detected'}${weeklyBudget && detectedPrice ? `\nBudget impact: $${currentWeekSpent.toFixed(0)} → $${projected.toFixed(0)} / $${weeklyBudget.toFixed(0)}` : ''}`,
+      'Price Not Detected',
+      'Use a quick estimate for this meal?',
       [
-        { text: 'Back', style: 'cancel' },
-        {
-          text: 'Confirm Order',
-          onPress: () => handleLogMeal(false, false, false, detectedPrice ?? undefined),
-        },
+        { text: 'Skip', style: 'cancel', onPress: () => confirmWithPrice(undefined) },
+        { text: '$10', onPress: () => confirmWithPrice(10) },
+        { text: '$15', onPress: () => confirmWithPrice(15) },
+        { text: '$20', onPress: () => confirmWithPrice(20) },
       ]
     );
   };

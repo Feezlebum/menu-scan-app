@@ -10,23 +10,36 @@ import { Card } from '@/src/components/ui/Card';
 import { useAppTheme } from '@/src/theme/theme';
 import { useScanStore } from '@/src/stores/scanStore';
 import { useHistoryStore } from '@/src/stores/historyStore';
+import { BrandedDialog } from '@/src/components/dialogs/BrandedDialog';
 import { useTrackerExport } from '@/src/hooks/useTrackerExport';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import { useStreakStore } from '@/src/stores/streakStore';
 import { useSpendingStore } from '@/src/stores/spendingStore';
 import { evaluateHealthyChoice } from '@/src/utils/healthyCriteria';
+import { isDuplicateMealToday } from '@/src/utils/duplicateDetection';
 import { parsePrice } from '@/src/lib/scanService';
 
 export default function ItemDetailScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { selectedItem, setSelectedItem, currentResult } = useScanStore();
-  const { saveScan, logMeal, scans } = useHistoryStore();
+  const { saveScan, logMeal, scans, loggedMeals } = useHistoryStore();
   const { exportToTrackers, hasEnabledTrackers } = useTrackerExport();
   const { dailyCalorieTarget, dietType, intolerances, dislikes } = useOnboardingStore();
   const { currentStreak, recordMealDecision } = useStreakStore();
   const { weeklyBudget, getCurrentWeekSpent, recordSpending } = useSpendingStore();
   const [isLogging, setIsLogging] = useState(false);
+  const [streakDialogVisible, setStreakDialogVisible] = useState(false);
+  const [budgetDialogVisible, setBudgetDialogVisible] = useState(false);
+  const [duplicateDialogVisible, setDuplicateDialogVisible] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState('');
+  const [pendingLogArgs, setPendingLogArgs] = useState<{
+    overrideHealthyChoice?: boolean;
+    skipStreakWarning?: boolean;
+    skipBudgetWarning?: boolean;
+    manualPriceOverride?: number;
+    skipDuplicateWarning?: boolean;
+  } | null>(null);
 
   if (!selectedItem) {
     return (
@@ -42,7 +55,7 @@ export default function ItemDetailScreen() {
   }
 
   const item = selectedItem;
-  
+
   const getScoreColor = (score: number) => {
     if (score >= 70) return theme.colors.trafficGreen;
     if (score >= 40) return theme.colors.trafficAmber;
@@ -67,7 +80,7 @@ export default function ItemDetailScreen() {
       if (m.toLowerCase().includes('grilled')) return 'grilled instead of fried';
       return m.toLowerCase().replace('ask for ', '').replace('request ', '');
     }).join(', and ');
-    
+
     return `"Hi, I'd like the ${item.name}, ${modText}, please."`;
   };
 
@@ -92,7 +105,8 @@ export default function ItemDetailScreen() {
     overrideHealthyChoice: boolean = false,
     skipStreakWarning: boolean = false,
     skipBudgetWarning: boolean = false,
-    manualPriceOverride?: number
+    manualPriceOverride?: number,
+    skipDuplicateWarning: boolean = false
   ) => {
     if (isLogging) return;
 
@@ -107,38 +121,26 @@ export default function ItemDetailScreen() {
     const projectedWeekSpent = currentWeekSpent + (detectedPrice || 0);
 
     if (!skipBudgetWarning && weeklyBudget && detectedPrice && projectedWeekSpent >= weeklyBudget * 0.9) {
-      Alert.alert(
-        '⚠️ Budget Alert',
-        `This order will put you at ${Math.round((projectedWeekSpent / weeklyBudget) * 100)}% of your weekly budget\n\nCurrent: $${currentWeekSpent.toFixed(0)} / $${weeklyBudget.toFixed(0)}\nAfter this meal: $${projectedWeekSpent.toFixed(0)} / $${weeklyBudget.toFixed(0)}`,
-        [
-          { text: 'Pick Cheaper Option', style: 'cancel' },
-          {
-            text: 'Confirm Anyway',
-            style: projectedWeekSpent > weeklyBudget ? 'destructive' : 'default',
-            onPress: () => handleLogMeal(overrideHealthyChoice, skipStreakWarning, true, detectedPrice),
-          },
-        ]
+      setDialogMessage(
+        `This order will put you at ${Math.round((projectedWeekSpent / weeklyBudget) * 100)}% of your weekly budget\n\nCurrent: $${currentWeekSpent.toFixed(0)} / $${weeklyBudget.toFixed(0)}\nAfter this meal: $${projectedWeekSpent.toFixed(0)} / $${weeklyBudget.toFixed(0)}`
       );
+      setPendingLogArgs({ overrideHealthyChoice, skipStreakWarning, skipBudgetWarning: true, manualPriceOverride: detectedPrice, skipDuplicateWarning });
+      setBudgetDialogVisible(true);
       return;
     }
 
     if (!skipStreakWarning && !overrideHealthyChoice && !evaluation.isHealthy && currentStreak > 0) {
-      Alert.alert(
-        '⚠️ Streak Impact',
-        `This choice will break your ${currentStreak}-choice streak\n\n• ${evaluation.reasons.join('\n• ')}`,
-        [
-          { text: 'Pick Something Else', style: 'cancel' },
-          {
-            text: 'Confirm Anyway',
-            style: 'destructive',
-            onPress: () => handleLogMeal(false, true),
-          },
-          {
-            text: 'Mark Healthy Choice',
-            onPress: () => handleLogMeal(true),
-          },
-        ]
-      );
+      setDialogMessage(`This choice will break your ${currentStreak}-choice streak\n\n• ${evaluation.reasons.join('\n• ')}`);
+      setPendingLogArgs({ overrideHealthyChoice: false, skipStreakWarning: true, skipBudgetWarning, manualPriceOverride, skipDuplicateWarning });
+      setStreakDialogVisible(true);
+      return;
+    }
+
+    const restaurantName = currentResult?.restaurantName || null;
+    if (!skipDuplicateWarning && isDuplicateMealToday(loggedMeals, item, restaurantName)) {
+      setDialogMessage(`You've already logged a similar meal from ${restaurantName || 'this restaurant'} today.`);
+      setPendingLogArgs({ overrideHealthyChoice: false, skipStreakWarning: true, skipBudgetWarning: true, manualPriceOverride, skipDuplicateWarning: true });
+      setDuplicateDialogVisible(true);
       return;
     }
 
@@ -147,7 +149,6 @@ export default function ItemDetailScreen() {
 
     try {
       let scanId: string;
-      const restaurantName = currentResult?.restaurantName || null;
 
       const existingScan = scans.find(
         (s) => s.restaurantName === restaurantName &&
@@ -205,7 +206,7 @@ export default function ItemDetailScreen() {
       const message = finalHealthy
         ? `🔥 Streak extended to ${nextStreak}! Great choice.`
         : currentStreak > 0
-          ? `Streak reset. You made it ${currentStreak} choices — start fresh!`
+          ? `Streak reset. You made it ${currentStreak} choices - start fresh!`
           : `${item.name} has been saved to your history.`;
 
       Alert.alert('Meal Logged! ✓', message, [{ text: 'OK', onPress: handleClose }]);
@@ -232,7 +233,7 @@ export default function ItemDetailScreen() {
           { text: 'Back', style: 'cancel' },
           {
             text: 'Confirm Order',
-            onPress: () => handleLogMeal(false, false, false, price),
+            onPress: () => handleLogMeal(false, false, false, price, false),
           },
         ]
       );
@@ -342,10 +343,10 @@ export default function ItemDetailScreen() {
             </AppText>
             {item.scoreReasons.map((reason, i) => (
               <View key={i} style={styles.reasonRow}>
-                <FontAwesome 
-                  name={item.score >= 50 ? 'check-circle' : 'info-circle'} 
-                  size={16} 
-                  color={item.score >= 50 ? theme.colors.trafficGreen : theme.colors.trafficAmber} 
+                <FontAwesome
+                  name={item.score >= 50 ? 'check-circle' : 'info-circle'}
+                  size={16}
+                  color={item.score >= 50 ? theme.colors.trafficGreen : theme.colors.trafficAmber}
                 />
                 <AppText style={[styles.reasonText, { color: theme.colors.text }]}>
                   {reason}
@@ -361,30 +362,30 @@ export default function ItemDetailScreen() {
             Estimated Nutrition
           </AppText>
           <View style={styles.nutritionGrid}>
-            <NutritionBox 
-              label="Calories" 
-              value={item.estimatedCalories} 
-              unit="" 
-              theme={theme} 
-              highlight 
+            <NutritionBox
+              label="Calories"
+              value={item.estimatedCalories}
+              unit=""
+              theme={theme}
+              highlight
             />
-            <NutritionBox 
-              label="Protein" 
-              value={item.estimatedProtein} 
-              unit="g" 
-              theme={theme} 
+            <NutritionBox
+              label="Protein"
+              value={item.estimatedProtein}
+              unit="g"
+              theme={theme}
             />
-            <NutritionBox 
-              label="Carbs" 
-              value={item.estimatedCarbs} 
-              unit="g" 
-              theme={theme} 
+            <NutritionBox
+              label="Carbs"
+              value={item.estimatedCarbs}
+              unit="g"
+              theme={theme}
             />
-            <NutritionBox 
-              label="Fat" 
-              value={item.estimatedFat} 
-              unit="g" 
-              theme={theme} 
+            <NutritionBox
+              label="Fat"
+              value={item.estimatedFat}
+              unit="g"
+              theme={theme}
             />
           </View>
           <AppText style={[styles.disclaimer, { color: theme.colors.subtext }]}>
@@ -457,9 +458,9 @@ export default function ItemDetailScreen() {
         )}
 
         {/* Log Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.logButton, 
+            styles.logButton,
             { backgroundColor: theme.colors.brand },
             isLogging && { opacity: 0.7 }
           ]}
@@ -473,11 +474,94 @@ export default function ItemDetailScreen() {
         </TouchableOpacity>
 
         {hasEnabledTrackers && (
-          <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}>
+          <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}> 
             Will also log to your connected trackers
           </AppText>
         )}
       </ScrollView>
+
+      <BrandedDialog
+        visible={streakDialogVisible}
+        title="⚠️ Streak Impact"
+        message={dialogMessage}
+        michiState="worried"
+        onClose={() => setStreakDialogVisible(false)}
+        actions={[
+          { text: 'Pick Something Else', variant: 'secondary', onPress: () => setStreakDialogVisible(false) },
+          {
+            text: 'Mark Healthy Choice',
+            variant: 'primary',
+            onPress: () => {
+              setStreakDialogVisible(false);
+              handleLogMeal(
+                true,
+                true,
+                pendingLogArgs?.skipBudgetWarning,
+                pendingLogArgs?.manualPriceOverride,
+                pendingLogArgs?.skipDuplicateWarning
+              );
+            },
+          },
+          {
+            text: 'Confirm Anyway',
+            variant: 'danger',
+            onPress: () => {
+              setStreakDialogVisible(false);
+              handleLogMeal(
+                false,
+                true,
+                pendingLogArgs?.skipBudgetWarning,
+                pendingLogArgs?.manualPriceOverride,
+                pendingLogArgs?.skipDuplicateWarning
+              );
+            },
+          },
+        ]}
+      />
+
+      <BrandedDialog
+        visible={budgetDialogVisible}
+        title="💰 Budget Alert"
+        message={dialogMessage}
+        michiState="thinking"
+        onClose={() => setBudgetDialogVisible(false)}
+        actions={[
+          { text: 'Pick Cheaper Option', variant: 'secondary', onPress: () => setBudgetDialogVisible(false) },
+          {
+            text: 'Confirm Anyway',
+            variant: 'primary',
+            onPress: () => {
+              setBudgetDialogVisible(false);
+              handleLogMeal(
+                pendingLogArgs?.overrideHealthyChoice,
+                pendingLogArgs?.skipStreakWarning,
+                true,
+                pendingLogArgs?.manualPriceOverride,
+                pendingLogArgs?.skipDuplicateWarning
+              );
+            },
+          },
+        ]}
+      />
+
+      <BrandedDialog
+        visible={duplicateDialogVisible}
+        title="Already Logged Today"
+        message={dialogMessage}
+        michiState="thinking"
+        onClose={() => setDuplicateDialogVisible(false)}
+        actions={[
+          { text: 'Cancel', variant: 'secondary', onPress: () => setDuplicateDialogVisible(false) },
+          {
+            text: 'Log Anyway',
+            variant: 'primary',
+            onPress: () => {
+              setDuplicateDialogVisible(false);
+              handleLogMeal(false, true, true, pendingLogArgs?.manualPriceOverride, true);
+            },
+          },
+        ]}
+      />
     </SafeAreaView>
   );
 }

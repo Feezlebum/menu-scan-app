@@ -20,6 +20,7 @@ import { Card } from '@/src/components/ui/Card';
 import { TrafficLightDot } from '@/src/components/ui/TrafficLightDot';
 import { useAppTheme } from '@/src/theme/theme';
 import { useHistoryStore, LoggedMeal, getMealPrice } from '@/src/stores/historyStore';
+import { BrandedDialog } from '@/src/components/dialogs/BrandedDialog';
 import { useScanStore } from '@/src/stores/scanStore';
 
 const HomeBackground = require('@/assets/botanicals/home-background.png');
@@ -41,12 +42,13 @@ interface DayHeaderProps {
 interface MealCardProps {
   meal: LoggedMeal;
   onPress: () => void;
+  onDelete: () => void;
 }
 
 export default function HistoryScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { loggedMeals } = useHistoryStore();
+  const { loggedMeals, deleteMeal } = useHistoryStore();
   const { setSelectedItem } = useScanStore();
 
   const [timeRange, setTimeRange] = useState<TimeRange>('week');
@@ -55,6 +57,8 @@ export default function HistoryScreen() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [mealToDelete, setMealToDelete] = useState<LoggedMeal | null>(null);
 
   const totalMeals = loggedMeals.length;
   const totalDays = new Set(loggedMeals.map((meal) => meal.loggedAt.split('T')[0])).size;
@@ -254,7 +258,16 @@ export default function HistoryScreen() {
             <SectionList
               sections={sections}
               keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <MealCard meal={item} onPress={() => handleMealPress(item)} />}
+              renderItem={({ item }) => (
+                <MealCard
+                  meal={item}
+                  onPress={() => handleMealPress(item)}
+                  onDelete={() => {
+                    setMealToDelete(item);
+                    setDeleteDialogVisible(true);
+                  }}
+                />
+              )}
               renderSectionHeader={({ section }) => <DayHeader section={section} />}
               ListFooterComponent={showLoadMore ? <LoadMoreButton onPress={() => setCurrentPage((p) => p + 1)} /> : null}
               showsVerticalScrollIndicator={false}
@@ -270,6 +283,26 @@ export default function HistoryScreen() {
           )}
         </View>
       </ImageBackground>
+
+      <BrandedDialog
+        visible={deleteDialogVisible}
+        title="Delete Meal?"
+        message={mealToDelete ? `Remove ${mealToDelete.item.name} from your history?` : 'Remove this meal from history?'}
+        michiState="sad"
+        onClose={() => setDeleteDialogVisible(false)}
+        actions={[
+          { text: 'Cancel', variant: 'secondary', onPress: () => setDeleteDialogVisible(false) },
+          {
+            text: 'Delete',
+            variant: 'danger',
+            onPress: () => {
+              if (mealToDelete) deleteMeal(mealToDelete.id);
+              setDeleteDialogVisible(false);
+              setMealToDelete(null);
+            },
+          },
+        ]}
+      />
 
       <Modal visible={calendarVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.calendarContainer}>
@@ -358,7 +391,7 @@ const DayHeader: React.FC<DayHeaderProps> = ({ section }) => {
   );
 };
 
-const MealCard: React.FC<MealCardProps> = ({ meal, onPress }) => {
+const MealCard: React.FC<MealCardProps> = ({ meal, onPress, onDelete }) => {
   const theme = useAppTheme();
   const price = getMealPrice(meal);
 
@@ -396,7 +429,12 @@ const MealCard: React.FC<MealCardProps> = ({ meal, onPress }) => {
             <AppText style={[styles.restaurantName, { color: theme.colors.subtext }]} numberOfLines={1}>
               {meal.restaurantName || 'Unknown Restaurant'}
             </AppText>
-            <AppText style={[styles.timestamp, { color: theme.colors.caption }]}>{formatTime(meal.loggedAt)}</AppText>
+            <View style={styles.mealActionsRow}>
+              <AppText style={[styles.timestamp, { color: theme.colors.caption }]}>{formatTime(meal.loggedAt)}</AppText>
+              <TouchableOpacity onPress={onDelete} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <FontAwesome name="trash" size={14} color={theme.colors.trafficRed} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -735,6 +773,11 @@ const styles = StyleSheet.create({
   timestamp: {
     fontSize: 13,
     marginLeft: 8,
+  },
+  mealActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
 
   macroRow: {

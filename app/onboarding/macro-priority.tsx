@@ -17,7 +17,7 @@ export default function MacroPriorityScreen() {
   const { macroPriority, setMacroPriority } = useOnboardingStore();
 
   const handleContinue = () => {
-    router.push('/onboarding/intolerances');
+    router.push('/onboarding/weekly-budget');
   };
 
   return (

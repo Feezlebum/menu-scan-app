@@ -13,7 +13,9 @@ import { useHistoryStore } from '@/src/stores/historyStore';
 import { useTrackerExport } from '@/src/hooks/useTrackerExport';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import { useStreakStore } from '@/src/stores/streakStore';
+import { useSpendingStore } from '@/src/stores/spendingStore';
 import { evaluateMealHealth } from '@/src/utils/streakLogic';
+import { parsePrice } from '@/src/lib/scanService';
 
 export default function ItemDetailScreen() {
   const theme = useAppTheme();
@@ -23,6 +25,7 @@ export default function ItemDetailScreen() {
   const { exportToTrackers, hasEnabledTrackers } = useTrackerExport();
   const { dailyCalorieTarget, dietType, intolerances, dislikes } = useOnboardingStore();
   const { currentStreak, recordMealDecision } = useStreakStore();
+  const { weeklyBudget, getCurrentWeekSpent, recordSpending } = useSpendingStore();
   const [isLogging, setIsLogging] = useState(false);
 
   if (!selectedItem) {
@@ -87,7 +90,9 @@ export default function ItemDetailScreen() {
 
   const handleLogMeal = async (
     overrideHealthyChoice: boolean = false,
-    skipStreakWarning: boolean = false
+    skipStreakWarning: boolean = false,
+    skipBudgetWarning: boolean = false,
+    manualPriceOverride?: number
   ) => {
     if (isLogging) return;
 
@@ -97,6 +102,26 @@ export default function ItemDetailScreen() {
       intolerances,
       dislikes,
     });
+
+    const detectedPrice = manualPriceOverride ?? parsePrice(item.price);
+    const currentWeekSpent = getCurrentWeekSpent();
+    const projectedWeekSpent = currentWeekSpent + (detectedPrice || 0);
+
+    if (!skipBudgetWarning && weeklyBudget && detectedPrice && projectedWeekSpent >= weeklyBudget * 0.8) {
+      Alert.alert(
+        '⚠️ Budget Alert',
+        `This order will put you at ${Math.round((projectedWeekSpent / weeklyBudget) * 100)}% of your weekly budget\n\nCurrent: $${currentWeekSpent.toFixed(0)} / $${weeklyBudget.toFixed(0)}\nAfter this meal: $${projectedWeekSpent.toFixed(0)} / $${weeklyBudget.toFixed(0)}`,
+        [
+          { text: 'Pick Cheaper Option', style: 'cancel' },
+          {
+            text: 'Confirm Anyway',
+            style: projectedWeekSpent > weeklyBudget ? 'destructive' : 'default',
+            onPress: () => handleLogMeal(overrideHealthyChoice, skipStreakWarning, true, detectedPrice),
+          },
+        ]
+      );
+      return;
+    }
 
     if (!skipStreakWarning && !overrideHealthyChoice && !evaluation.isHealthy && currentStreak > 0) {
       Alert.alert(
@@ -147,6 +172,15 @@ export default function ItemDetailScreen() {
 
       const mealId = logMeal(scanId, item, restaurantName);
 
+      if (detectedPrice && detectedPrice > 0) {
+        recordSpending({
+          amount: detectedPrice,
+          restaurant: restaurantName || 'Restaurant',
+          mealName: item.name,
+          extractionMethod: manualPriceOverride !== undefined ? 'manual' : 'ocr',
+        });
+      }
+
       const finalHealthy = overrideHealthyChoice || evaluation.isHealthy;
       const nextStreak = finalHealthy ? currentStreak + 1 : 0;
       recordMealDecision({
@@ -183,6 +217,24 @@ export default function ItemDetailScreen() {
     } finally {
       setIsLogging(false);
     }
+  };
+
+  const handleConfirmOrder = () => {
+    const detectedPrice = parsePrice(item.price);
+    const currentWeekSpent = getCurrentWeekSpent();
+    const projected = currentWeekSpent + (detectedPrice || 0);
+
+    Alert.alert(
+      'Confirm Your Order',
+      `${item.name}\nNutrition: ${item.estimatedCalories} cal, ${item.estimatedProtein}g protein\n${detectedPrice ? `Price: $${detectedPrice.toFixed(2)} (detected)` : 'Price: Not detected'}${weeklyBudget && detectedPrice ? `\nBudget impact: $${currentWeekSpent.toFixed(0)} → $${projected.toFixed(0)} / $${weeklyBudget.toFixed(0)}` : ''}`,
+      [
+        { text: 'Back', style: 'cancel' },
+        {
+          text: 'Confirm Order',
+          onPress: () => handleLogMeal(false, false, false, detectedPrice ?? undefined),
+        },
+      ]
+    );
   };
 
   return (
@@ -374,7 +426,7 @@ export default function ItemDetailScreen() {
             { backgroundColor: theme.colors.brand },
             isLogging && { opacity: 0.7 }
           ]}
-          onPress={() => handleLogMeal()}
+          onPress={handleConfirmOrder}
           disabled={isLogging}
         >
           <FontAwesome name={isLogging ? 'spinner' : 'plus'} size={18} color="#fff" />

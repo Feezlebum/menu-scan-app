@@ -23,6 +23,7 @@ export interface OnboardingData {
   activityLevel: ActivityLevel | null;
   dietType: DietType | null;
   macroPriority: MacroPriority | null;
+  weeklyDiningBudget: number | null;
   intolerances: string[];
   dislikes: string[];
   favoriteCuisines: string[];
@@ -45,6 +46,7 @@ interface OnboardingStore extends OnboardingData {
   setActivityLevel: (level: ActivityLevel) => void;
   setDietType: (diet: DietType) => void;
   setMacroPriority: (priority: MacroPriority) => void;
+  setWeeklyDiningBudget: (budget: number | null) => void;
   toggleIntolerance: (item: string) => void;
   toggleDislike: (item: string) => void;
   toggleCuisine: (cuisine: string) => void;
@@ -67,6 +69,7 @@ const initialState: OnboardingData = {
   activityLevel: null,
   dietType: null,
   macroPriority: null,
+  weeklyDiningBudget: null,
   intolerances: [],
   dislikes: [],
   favoriteCuisines: [],
@@ -140,6 +143,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
       setActivityLevel: (level) => set({ activityLevel: level }),
       setDietType: (diet) => set({ dietType: diet }),
       setMacroPriority: (priority) => set({ macroPriority: priority }),
+      setWeeklyDiningBudget: (budget) => set({ weeklyDiningBudget: budget }),
       
       toggleIntolerance: (item) => set((s) => ({
         intolerances: s.intolerances.includes(item)
@@ -212,4 +216,4 @@ export const useOnboardingStore = create<OnboardingStore>()(
 );
 
 // Total steps for progress calculation
-export const TOTAL_ONBOARDING_STEPS = 20;
+export const TOTAL_ONBOARDING_STEPS = 21;

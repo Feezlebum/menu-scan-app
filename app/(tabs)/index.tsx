@@ -10,6 +10,7 @@ import { useAppTheme } from '@/src/theme/theme';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import { useHistoryStore } from '@/src/stores/historyStore';
 import { useStreakStore } from '@/src/stores/streakStore';
+import { useSpendingStore } from '@/src/stores/spendingStore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -41,6 +42,10 @@ export default function HomeScreen() {
   const { goal, macroPriority, dietType, intolerances } = useOnboardingStore();
   const { loggedMeals } = useHistoryStore();
   const { currentStreak, lastChoice } = useStreakStore();
+  const { weeklyBudget, getCurrentWeekSpent } = useSpendingStore();
+
+  const currentWeekSpent = getCurrentWeekSpent();
+  const budgetPercent = weeklyBudget && weeklyBudget > 0 ? (currentWeekSpent / weeklyBudget) * 100 : 0;
 
   const lastMeal = loggedMeals[0];
 
@@ -134,6 +139,42 @@ export default function HomeScreen() {
             </View>
             <AppText style={[styles.streakCta, { color: theme.colors.brand }]}>Continue the streak — scan your menu!</AppText>
           </TouchableOpacity>
+
+          {/* Weekly Spending Widget */}
+          <View style={styles.spendingCard}>
+            <View style={styles.spendingTopRow}>
+              <AppText style={[styles.spendingTitle, { color: theme.colors.text }]}>💰 Weekly Spending</AppText>
+              {weeklyBudget ? (
+                <AppText style={[styles.spendingAmount, { color: theme.colors.text }]}>${currentWeekSpent.toFixed(0)} / ${weeklyBudget.toFixed(0)}</AppText>
+              ) : (
+                <AppText style={[styles.spendingUnset, { color: theme.colors.subtext }]}>Set a budget in onboarding/profile</AppText>
+              )}
+            </View>
+
+            {weeklyBudget ? (
+              <>
+                <View style={[styles.progressTrack, { backgroundColor: '#F0E6D6' }]}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${Math.min(100, budgetPercent)}%`,
+                        backgroundColor:
+                          budgetPercent >= 100 ? '#E86B50' : budgetPercent >= 80 ? '#F4A261' : '#6BAF7A',
+                      },
+                    ]}
+                  />
+                </View>
+                <AppText style={[styles.spendingSubtext, { color: theme.colors.subtext }]}> 
+                  {budgetPercent >= 100
+                    ? 'Over budget this week'
+                    : budgetPercent >= 80
+                      ? 'Approaching budget'
+                      : 'On track this week'}
+                </AppText>
+              </>
+            ) : null}
+          </View>
 
           {/* Scan a Menu CTA Button */}
           <TouchableOpacity 
@@ -337,6 +378,44 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 13,
     fontWeight: '600',
+  },
+  spendingCard: {
+    borderRadius: 16,
+    padding: 12,
+    backgroundColor: '#fff',
+    marginBottom: 14,
+    zIndex: 1,
+  },
+  spendingTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 10,
+  },
+  spendingTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  spendingAmount: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  spendingUnset: {
+    fontSize: 12,
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  spendingSubtext: {
+    fontSize: 12,
+    marginTop: 8,
   },
   // Scan Button
   scanButton: {

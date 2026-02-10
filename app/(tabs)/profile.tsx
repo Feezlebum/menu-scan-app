@@ -332,7 +332,7 @@ const RestrictionListRow: React.FC<{
       <FontAwesome name={icon as any} size={16} color={color} />
       <AppText style={[styles.restrictionsLabel, { color: theme.colors.text }]}>{title}</AppText>
     </View>
-    <AppText style={[styles.restrictionsBullets, { color }]}>{items.join(' • ')}</AppText>
+    <AppText style={[styles.restrictionsBullets, { color }]}>{items.join(', ')}</AppText>
   </View>
 );
 

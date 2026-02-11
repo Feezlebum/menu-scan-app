@@ -321,16 +321,22 @@ export default function ItemDetailScreen() {
 
         {/* Allergen Warning */}
         {item.allergenWarning && (
-          <Card style={[styles.allergenCard, { backgroundColor: theme.colors.trafficRed + '15', borderColor: theme.colors.trafficRed }]}>
+          <Card style={[styles.allergenCard, { 
+            backgroundColor: `${theme.colors.trafficRed}15`, 
+            borderColor: theme.colors.trafficRed 
+          }]}>
             <View style={styles.allergenRow}>
               <FontAwesome name="exclamation-triangle" size={18} color={theme.colors.trafficRed} />
               <AppText style={[styles.allergenText, { color: theme.colors.trafficRed }]}>
                 {item.allergenWarning}
               </AppText>
             </View>
-            <AppText style={[styles.allergenDisclaimer, { color: theme.colors.trafficRed }]}>
-              ⚠️ Always confirm allergens with restaurant staff
-            </AppText>
+            <View style={[styles.allergenRow, { marginBottom: 0 }]}>
+              <FontAwesome name="exclamation-triangle" size={14} color={theme.colors.trafficRed} />
+              <AppText style={[styles.allergenDisclaimer, { color: theme.colors.trafficRed }]}>
+                Always confirm allergens with restaurant staff
+              </AppText>
+            </View>
           </Card>
         )}
 
@@ -573,24 +579,28 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   allergenCard: {
-    padding: 14,
+    padding: 16,
     marginBottom: 16,
-    borderWidth: 1,
+    borderWidth: 1.5,
+    borderRadius: 12,
   },
   allergenRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 8,
   },
   allergenText: {
     fontSize: 15,
     fontWeight: '600',
     flex: 1,
+    lineHeight: 20,
   },
   allergenDisclaimer: {
-    fontSize: 12,
-    marginTop: 8,
-    fontStyle: 'italic',
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
+    lineHeight: 18,
   },
   reasonsCard: {
     padding: 16,

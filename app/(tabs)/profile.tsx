@@ -29,6 +29,7 @@ import {
 import { useSpendingStore } from '@/src/stores/spendingStore';
 import type { CurrencyCode } from '@/src/types/spending';
 import { getProfileMichi, type MichiVariant } from '@/src/utils/michiAssets';
+import { BudgetPickerModal } from '@/src/components/profile/BudgetPickerModal';
 
 const HomeBackground = require('@/assets/botanicals/home-background.png');
 const PROFILE_PHOTO_KEY = '@profile_photo';
@@ -75,6 +76,7 @@ export default function ProfileScreen() {
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingField, setEditingField] = useState<EditableField | null>(null);
+  const [budgetModalVisible, setBudgetModalVisible] = useState(false);
 
   useEffect(() => {
     loadAvatarSettings();
@@ -166,50 +168,13 @@ export default function ProfileScreen() {
     setEditingField(null);
   };
 
+  const saveBudget = (amount: number | null) => {
+    setWeeklyBudget(amount);
+    setWeeklyDiningBudget(amount);
+  };
+
   const openBudgetEditor = () => {
-    const setBudget = (amount: number | null) => {
-      setWeeklyBudget(amount);
-      setWeeklyDiningBudget(amount);
-    };
-
-    const openCustomPrompt = () => {
-      if (typeof Alert.prompt === 'function') {
-        Alert.prompt(
-          'Custom Weekly Budget',
-          'Enter your weekly dining budget',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Save',
-              onPress: (value?: string) => {
-                const parsed = value ? Number.parseFloat(value.replace(/[^0-9.]/g, '')) : NaN;
-                if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1000) {
-                  Alert.alert('Invalid amount', 'Please enter a value between 0 and 1000.');
-                  return;
-                }
-                setBudget(parsed);
-              },
-            },
-          ],
-          'plain-text',
-          weeklyBudget ? String(weeklyBudget) : ''
-        );
-        return;
-      }
-
-      Alert.alert('Custom amount', 'Custom budget entry is available on iOS prompt in this build.');
-    };
-
-    Alert.alert('Weekly Dining Budget', 'Choose your weekly budget', [
-      { text: '$50', onPress: () => setBudget(50) },
-      { text: '$100', onPress: () => setBudget(100) },
-      { text: '$150', onPress: () => setBudget(150) },
-      { text: '$200', onPress: () => setBudget(200) },
-      { text: '$250', onPress: () => setBudget(250) },
-      { text: 'Custom', onPress: openCustomPrompt },
-      { text: 'Clear', style: 'destructive', onPress: () => setBudget(null) },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    setBudgetModalVisible(true);
   };
 
   const openCurrencySelector = () => {
@@ -357,6 +322,17 @@ export default function ProfileScreen() {
         onPickMichi={async (variant) => {
           await saveMichiVariant(variant);
           setAvatarModalVisible(false);
+        }}
+      />
+
+      <BudgetPickerModal
+        visible={budgetModalVisible}
+        currentBudget={weeklyBudget}
+        onClose={() => setBudgetModalVisible(false)}
+        onSave={(amount) => saveBudget(amount)}
+        onClear={() => {
+          saveBudget(null);
+          setBudgetModalVisible(false);
         }}
       />
 

@@ -1,32 +1,50 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Alert, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Alert, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import * as Clipboard from 'expo-clipboard';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { AppText } from '@/src/components/ui/AppText';
 import { Card } from '@/src/components/ui/Card';
 import { useAppTheme } from '@/src/theme/theme';
 import { useScanStore } from '@/src/stores/scanStore';
 import { useHistoryStore } from '@/src/stores/historyStore';
+import { BrandedDialog } from '@/src/components/dialogs/BrandedDialog';
 import { useTrackerExport } from '@/src/hooks/useTrackerExport';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import { useStreakStore } from '@/src/stores/streakStore';
 import { useSpendingStore } from '@/src/stores/spendingStore';
 import { evaluateHealthyChoice } from '@/src/utils/healthyCriteria';
+import { isDuplicateMealToday } from '@/src/utils/duplicateDetection';
 import { parsePrice } from '@/src/lib/scanService';
 
 export default function ItemDetailScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { selectedItem, setSelectedItem, currentResult } = useScanStore();
-  const { saveScan, logMeal, scans } = useHistoryStore();
+  const { saveScan, logMeal, scans, loggedMeals } = useHistoryStore();
   const { exportToTrackers, hasEnabledTrackers } = useTrackerExport();
   const { dailyCalorieTarget, dietType, intolerances, dislikes } = useOnboardingStore();
   const { currentStreak, recordMealDecision } = useStreakStore();
   const { weeklyBudget, getCurrentWeekSpent, recordSpending } = useSpendingStore();
   const [isLogging, setIsLogging] = useState(false);
+  const [streakDialogVisible, setStreakDialogVisible] = useState(false);
+  const [budgetDialogVisible, setBudgetDialogVisible] = useState(false);
+  const [duplicateDialogVisible, setDuplicateDialogVisible] = useState(false);
+  const [confirmDialogVisible, setConfirmDialogVisible] = useState(false);
+  const [confirmDialogMessage, setConfirmDialogMessage] = useState('');
+  const [confirmDialogPrice, setConfirmDialogPrice] = useState<number | undefined>(undefined);
+  const [priceEstimateDialogVisible, setPriceEstimateDialogVisible] = useState(false);
+  const [customPriceDialogVisible, setCustomPriceDialogVisible] = useState(false);
+  const [customPriceInput, setCustomPriceInput] = useState('');
+  const [dialogMessage, setDialogMessage] = useState('');
+  const [pendingLogArgs, setPendingLogArgs] = useState<{
+    overrideHealthyChoice?: boolean;
+    skipStreakWarning?: boolean;
+    skipBudgetWarning?: boolean;
+    manualPriceOverride?: number;
+    skipDuplicateWarning?: boolean;
+  } | null>(null);
 
   if (!selectedItem) {
     return (
@@ -42,7 +60,7 @@ export default function ItemDetailScreen() {
   }
 
   const item = selectedItem;
-  
+
   const getScoreColor = (score: number) => {
     if (score >= 70) return theme.colors.trafficGreen;
     if (score >= 40) return theme.colors.trafficAmber;
@@ -67,16 +85,12 @@ export default function ItemDetailScreen() {
       if (m.toLowerCase().includes('grilled')) return 'grilled instead of fried';
       return m.toLowerCase().replace('ask for ', '').replace('request ', '');
     }).join(', and ');
-    
+
     return `"Hi, I'd like the ${item.name}, ${modText}, please."`;
   };
 
   const orderScript = generateOrderScript();
 
-  const copyScript = async () => {
-    await Clipboard.setStringAsync(orderScript.replace(/"/g, ''));
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
 
   const shareItem = async () => {
     try {
@@ -92,7 +106,8 @@ export default function ItemDetailScreen() {
     overrideHealthyChoice: boolean = false,
     skipStreakWarning: boolean = false,
     skipBudgetWarning: boolean = false,
-    manualPriceOverride?: number
+    manualPriceOverride?: number,
+    skipDuplicateWarning: boolean = false
   ) => {
     if (isLogging) return;
 
@@ -107,38 +122,26 @@ export default function ItemDetailScreen() {
     const projectedWeekSpent = currentWeekSpent + (detectedPrice || 0);
 
     if (!skipBudgetWarning && weeklyBudget && detectedPrice && projectedWeekSpent >= weeklyBudget * 0.9) {
-      Alert.alert(
-        '⚠️ Budget Alert',
-        `This order will put you at ${Math.round((projectedWeekSpent / weeklyBudget) * 100)}% of your weekly budget\n\nCurrent: $${currentWeekSpent.toFixed(0)} / $${weeklyBudget.toFixed(0)}\nAfter this meal: $${projectedWeekSpent.toFixed(0)} / $${weeklyBudget.toFixed(0)}`,
-        [
-          { text: 'Pick Cheaper Option', style: 'cancel' },
-          {
-            text: 'Confirm Anyway',
-            style: projectedWeekSpent > weeklyBudget ? 'destructive' : 'default',
-            onPress: () => handleLogMeal(overrideHealthyChoice, skipStreakWarning, true, detectedPrice),
-          },
-        ]
+      setDialogMessage(
+        `This order will put you at ${Math.round((projectedWeekSpent / weeklyBudget) * 100)}% of your weekly budget\n\nCurrent: $${currentWeekSpent.toFixed(0)} / $${weeklyBudget.toFixed(0)}\nAfter this meal: $${projectedWeekSpent.toFixed(0)} / $${weeklyBudget.toFixed(0)}`
       );
+      setPendingLogArgs({ overrideHealthyChoice, skipStreakWarning, skipBudgetWarning: true, manualPriceOverride: detectedPrice, skipDuplicateWarning });
+      setBudgetDialogVisible(true);
       return;
     }
 
     if (!skipStreakWarning && !overrideHealthyChoice && !evaluation.isHealthy && currentStreak > 0) {
-      Alert.alert(
-        '⚠️ Streak Impact',
-        `This choice will break your ${currentStreak}-choice streak\n\n• ${evaluation.reasons.join('\n• ')}`,
-        [
-          { text: 'Pick Something Else', style: 'cancel' },
-          {
-            text: 'Confirm Anyway',
-            style: 'destructive',
-            onPress: () => handleLogMeal(false, true),
-          },
-          {
-            text: 'Mark Healthy Choice',
-            onPress: () => handleLogMeal(true),
-          },
-        ]
-      );
+      setDialogMessage(`This choice will break your ${currentStreak}-choice streak\n\n• ${evaluation.reasons.join('\n• ')}`);
+      setPendingLogArgs({ overrideHealthyChoice: false, skipStreakWarning: true, skipBudgetWarning, manualPriceOverride, skipDuplicateWarning });
+      setStreakDialogVisible(true);
+      return;
+    }
+
+    const restaurantName = currentResult?.restaurantName || null;
+    if (!skipDuplicateWarning && isDuplicateMealToday(loggedMeals, item, restaurantName)) {
+      setDialogMessage(`You've already logged a similar meal from ${restaurantName || 'this restaurant'} today.`);
+      setPendingLogArgs({ overrideHealthyChoice: false, skipStreakWarning: true, skipBudgetWarning: true, manualPriceOverride, skipDuplicateWarning: true });
+      setDuplicateDialogVisible(true);
       return;
     }
 
@@ -147,7 +150,6 @@ export default function ItemDetailScreen() {
 
     try {
       let scanId: string;
-      const restaurantName = currentResult?.restaurantName || null;
 
       const existingScan = scans.find(
         (s) => s.restaurantName === restaurantName &&
@@ -205,7 +207,7 @@ export default function ItemDetailScreen() {
       const message = finalHealthy
         ? `🔥 Streak extended to ${nextStreak}! Great choice.`
         : currentStreak > 0
-          ? `Streak reset. You made it ${currentStreak} choices — start fresh!`
+          ? `Streak reset. You made it ${currentStreak} choices - start fresh!`
           : `${item.name} has been saved to your history.`;
 
       Alert.alert('Meal Logged! ✓', message, [{ text: 'OK', onPress: handleClose }]);
@@ -218,60 +220,38 @@ export default function ItemDetailScreen() {
     }
   };
 
+  const openConfirmDialogWithPrice = (price: number | undefined) => {
+    const currentWeekSpent = getCurrentWeekSpent();
+    const projected = currentWeekSpent + (price || 0);
+
+    const message = `${item.name}\nNutrition: ${item.estimatedCalories} cal, ${item.estimatedProtein}g protein\n${price ? `Price: $${price.toFixed(2)}` : 'Price: Not detected'}${weeklyBudget && price ? `\nBudget impact: $${currentWeekSpent.toFixed(0)} → $${projected.toFixed(0)} / $${weeklyBudget.toFixed(0)}` : ''}`;
+
+    setConfirmDialogPrice(price);
+    setConfirmDialogMessage(message);
+    setConfirmDialogVisible(true);
+  };
+
   const handleConfirmOrder = () => {
     const detectedPrice = parsePrice(item.price);
 
-    const confirmWithPrice = (price: number | undefined) => {
-      const currentWeekSpent = getCurrentWeekSpent();
-      const projected = currentWeekSpent + (price || 0);
-
-      Alert.alert(
-        'Confirm Your Order',
-        `${item.name}\nNutrition: ${item.estimatedCalories} cal, ${item.estimatedProtein}g protein\n${price ? `Price: $${price.toFixed(2)}` : 'Price: Not detected'}${weeklyBudget && price ? `\nBudget impact: $${currentWeekSpent.toFixed(0)} → $${projected.toFixed(0)} / $${weeklyBudget.toFixed(0)}` : ''}`,
-        [
-          { text: 'Back', style: 'cancel' },
-          {
-            text: 'Confirm Order',
-            onPress: () => handleLogMeal(false, false, false, price),
-          },
-        ]
-      );
-    };
-
     if (detectedPrice) {
-      confirmWithPrice(detectedPrice);
+      openConfirmDialogWithPrice(detectedPrice);
       return;
     }
 
-    if (Platform.OS === 'ios' && typeof Alert.prompt === 'function') {
-      Alert.prompt(
-        'Add Meal Price',
-        "We couldn't detect a price. Enter the amount paid:",
-        [
-          { text: 'Skip', style: 'cancel', onPress: () => confirmWithPrice(undefined) },
-          {
-            text: 'Use Price',
-            onPress: (value?: string) => {
-              const parsed = value ? Number.parseFloat(value.replace(/[^0-9.]/g, '')) : NaN;
-              confirmWithPrice(Number.isFinite(parsed) ? parsed : undefined);
-            },
-          },
-        ],
-        'plain-text'
-      );
+    setCustomPriceInput('');
+    setPriceEstimateDialogVisible(true);
+  };
+
+  const handleCustomPriceSubmit = () => {
+    const parsed = Number.parseFloat(customPriceInput.replace(/[^0-9.]/g, ''));
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1000) {
+      Alert.alert('Invalid amount', 'Please enter a value between 0 and 1000.');
       return;
     }
 
-    Alert.alert(
-      'Price Not Detected',
-      'Use a quick estimate for this meal?',
-      [
-        { text: 'Skip', style: 'cancel', onPress: () => confirmWithPrice(undefined) },
-        { text: '$10', onPress: () => confirmWithPrice(10) },
-        { text: '$15', onPress: () => confirmWithPrice(15) },
-        { text: '$20', onPress: () => confirmWithPrice(20) },
-      ]
-    );
+    setCustomPriceDialogVisible(false);
+    openConfirmDialogWithPrice(parsed);
   };
 
   return (
@@ -348,10 +328,10 @@ export default function ItemDetailScreen() {
             </AppText>
             {item.scoreReasons.map((reason, i) => (
               <View key={i} style={styles.reasonRow}>
-                <FontAwesome 
-                  name={item.score >= 50 ? 'check-circle' : 'info-circle'} 
-                  size={16} 
-                  color={item.score >= 50 ? theme.colors.trafficGreen : theme.colors.trafficAmber} 
+                <FontAwesome
+                  name={item.score >= 50 ? 'check-circle' : 'info-circle'}
+                  size={16}
+                  color={item.score >= 50 ? theme.colors.trafficGreen : theme.colors.trafficAmber}
                 />
                 <AppText style={[styles.reasonText, { color: theme.colors.text }]}>
                   {reason}
@@ -367,30 +347,30 @@ export default function ItemDetailScreen() {
             Estimated Nutrition
           </AppText>
           <View style={styles.nutritionGrid}>
-            <NutritionBox 
-              label="Calories" 
-              value={item.estimatedCalories} 
-              unit="" 
-              theme={theme} 
-              highlight 
+            <NutritionBox
+              label="Calories"
+              value={item.estimatedCalories}
+              unit=""
+              theme={theme}
+              highlight
             />
-            <NutritionBox 
-              label="Protein" 
-              value={item.estimatedProtein} 
-              unit="g" 
-              theme={theme} 
+            <NutritionBox
+              label="Protein"
+              value={item.estimatedProtein}
+              unit="g"
+              theme={theme}
             />
-            <NutritionBox 
-              label="Carbs" 
-              value={item.estimatedCarbs} 
-              unit="g" 
-              theme={theme} 
+            <NutritionBox
+              label="Carbs"
+              value={item.estimatedCarbs}
+              unit="g"
+              theme={theme}
             />
-            <NutritionBox 
-              label="Fat" 
-              value={item.estimatedFat} 
-              unit="g" 
-              theme={theme} 
+            <NutritionBox
+              label="Fat"
+              value={item.estimatedFat}
+              unit="g"
+              theme={theme}
             />
           </View>
           <AppText style={[styles.disclaimer, { color: theme.colors.subtext }]}>
@@ -440,10 +420,6 @@ export default function ItemDetailScreen() {
             <AppText style={[styles.cardTitle, { color: theme.colors.text }]}>
               🗣️ What to Say
             </AppText>
-            <TouchableOpacity onPress={copyScript} style={styles.copyButton}>
-              <FontAwesome name="copy" size={16} color={theme.colors.brand} />
-              <AppText style={[styles.copyText, { color: theme.colors.brand }]}>Copy</AppText>
-            </TouchableOpacity>
           </View>
           <AppText style={[styles.scriptText, { color: theme.colors.text }]}>
             {orderScript}
@@ -463,9 +439,9 @@ export default function ItemDetailScreen() {
         )}
 
         {/* Log Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.logButton, 
+            styles.logButton,
             { backgroundColor: theme.colors.brand },
             isLogging && { opacity: 0.7 }
           ]}
@@ -479,11 +455,197 @@ export default function ItemDetailScreen() {
         </TouchableOpacity>
 
         {hasEnabledTrackers && (
-          <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}>
+          <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}> 
             Will also log to your connected trackers
           </AppText>
         )}
       </ScrollView>
+
+      <BrandedDialog
+        visible={streakDialogVisible}
+        title="⚠️ Streak Impact"
+        message={dialogMessage}
+        michiState="worried"
+        onClose={() => setStreakDialogVisible(false)}
+        actions={[
+          { text: 'Pick Something Else', variant: 'secondary', onPress: () => setStreakDialogVisible(false) },
+          {
+            text: 'Mark Healthy Choice',
+            variant: 'primary',
+            onPress: () => {
+              setStreakDialogVisible(false);
+              handleLogMeal(
+                true,
+                true,
+                pendingLogArgs?.skipBudgetWarning,
+                pendingLogArgs?.manualPriceOverride,
+                pendingLogArgs?.skipDuplicateWarning
+              );
+            },
+          },
+          {
+            text: 'Confirm Anyway',
+            variant: 'danger',
+            onPress: () => {
+              setStreakDialogVisible(false);
+              handleLogMeal(
+                false,
+                true,
+                pendingLogArgs?.skipBudgetWarning,
+                pendingLogArgs?.manualPriceOverride,
+                pendingLogArgs?.skipDuplicateWarning
+              );
+            },
+          },
+        ]}
+      />
+
+      <BrandedDialog
+        visible={budgetDialogVisible}
+        title="💰 Budget Alert"
+        message={dialogMessage}
+        michiState="thinking"
+        onClose={() => setBudgetDialogVisible(false)}
+        actions={[
+          { text: 'Pick Cheaper Option', variant: 'secondary', onPress: () => setBudgetDialogVisible(false) },
+          {
+            text: 'Confirm Anyway',
+            variant: 'primary',
+            onPress: () => {
+              setBudgetDialogVisible(false);
+              handleLogMeal(
+                pendingLogArgs?.overrideHealthyChoice,
+                pendingLogArgs?.skipStreakWarning,
+                true,
+                pendingLogArgs?.manualPriceOverride,
+                pendingLogArgs?.skipDuplicateWarning
+              );
+            },
+          },
+        ]}
+      />
+
+      <BrandedDialog
+        visible={duplicateDialogVisible}
+        title="Already Logged Today"
+        message={dialogMessage}
+        michiState="thinking"
+        onClose={() => setDuplicateDialogVisible(false)}
+        actions={[
+          { text: 'Cancel', variant: 'secondary', onPress: () => setDuplicateDialogVisible(false) },
+          {
+            text: 'Log Anyway',
+            variant: 'primary',
+            onPress: () => {
+              setDuplicateDialogVisible(false);
+              handleLogMeal(false, true, true, pendingLogArgs?.manualPriceOverride, true);
+            },
+          },
+        ]}
+      />
+
+      <BrandedDialog
+        visible={priceEstimateDialogVisible}
+        title="Price Not Detected"
+        message="Pick a quick estimate or add a custom amount."
+        michiState="thinking"
+        onClose={() => setPriceEstimateDialogVisible(false)}
+        actions={[
+          {
+            text: 'Skip',
+            variant: 'secondary',
+            onPress: () => {
+              setPriceEstimateDialogVisible(false);
+              openConfirmDialogWithPrice(undefined);
+            },
+          },
+          {
+            text: '$10',
+            variant: 'secondary',
+            onPress: () => {
+              setPriceEstimateDialogVisible(false);
+              openConfirmDialogWithPrice(10);
+            },
+          },
+          {
+            text: '$15',
+            variant: 'secondary',
+            onPress: () => {
+              setPriceEstimateDialogVisible(false);
+              openConfirmDialogWithPrice(15);
+            },
+          },
+          {
+            text: '$20',
+            variant: 'secondary',
+            onPress: () => {
+              setPriceEstimateDialogVisible(false);
+              openConfirmDialogWithPrice(20);
+            },
+          },
+          {
+            text: 'Custom Price',
+            variant: 'primary',
+            onPress: () => {
+              setPriceEstimateDialogVisible(false);
+              setCustomPriceDialogVisible(true);
+            },
+          },
+        ]}
+      />
+
+      <Modal visible={customPriceDialogVisible} transparent animationType="fade" onRequestClose={() => setCustomPriceDialogVisible(false)}>
+        <View style={styles.customPriceBackdrop}>
+          <View style={[styles.customPriceCard, { backgroundColor: theme.colors.bg }]}> 
+            <AppText style={[styles.customPriceTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Add Meal Price</AppText>
+            <AppText style={[styles.customPriceSubtitle, { color: theme.colors.subtext }]}>Enter the amount paid</AppText>
+            <View style={[styles.customPriceInputWrap, { borderColor: theme.colors.border }]}> 
+              <AppText style={[styles.customPriceDollar, { color: theme.colors.subtext }]}>$</AppText>
+              <TextInput
+                value={customPriceInput}
+                onChangeText={(value) => setCustomPriceInput(value.replace(/[^0-9.]/g, ''))}
+                keyboardType="decimal-pad"
+                placeholder="0.00"
+                placeholderTextColor={theme.colors.subtext}
+                style={[styles.customPriceInput, { color: theme.colors.text }]}
+              />
+            </View>
+            <View style={styles.customPriceActions}>
+              <TouchableOpacity
+                style={[styles.customPriceButton, styles.customPriceButtonSecondary, { borderColor: theme.colors.border }]}
+                onPress={() => setCustomPriceDialogVisible(false)}
+              >
+                <AppText style={[styles.customPriceButtonText, { color: theme.colors.text }]}>Cancel</AppText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.customPriceButton, styles.customPriceButtonPrimary, { backgroundColor: theme.colors.brand }]}
+                onPress={handleCustomPriceSubmit}
+              >
+                <AppText style={styles.customPriceButtonPrimaryText}>Use Price</AppText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <BrandedDialog
+        visible={confirmDialogVisible}
+        title="Confirm Your Order"
+        message={confirmDialogMessage}
+        michiState="excited"
+        onClose={() => setConfirmDialogVisible(false)}
+        actions={[
+          { text: 'Back', variant: 'secondary', onPress: () => setConfirmDialogVisible(false) },
+          {
+            text: 'Confirm Order',
+            variant: 'primary',
+            onPress: () => {
+              setConfirmDialogVisible(false);
+              handleLogMeal(false, false, false, confirmDialogPrice, false);
+            },
+          },
+        ]}
+      />
     </SafeAreaView>
   );
 }
@@ -697,15 +859,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  copyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  copyText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
   scriptText: {
     fontSize: 16,
     fontStyle: 'italic',
@@ -740,5 +893,63 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 8,
+  },
+  customPriceBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  customPriceCard: {
+    borderRadius: 18,
+    padding: 18,
+  },
+  customPriceTitle: {
+    fontSize: 20,
+    marginBottom: 8,
+  },
+  customPriceSubtitle: {
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  customPriceInputWrap: {
+    borderWidth: 1,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    marginBottom: 14,
+  },
+  customPriceDollar: {
+    fontSize: 18,
+    marginRight: 6,
+  },
+  customPriceInput: {
+    flex: 1,
+    height: 46,
+    fontSize: 17,
+  },
+  customPriceActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  customPriceButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  customPriceButtonSecondary: {
+    borderWidth: 1,
+  },
+  customPriceButtonPrimary: {},
+  customPriceButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  customPriceButtonPrimaryText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

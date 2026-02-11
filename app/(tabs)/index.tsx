@@ -18,6 +18,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MichiHero = require('@/assets/michi-hero.png');
 const MichiAvatar = require('@/assets/michi-avatar.png');
 const MichiSpending = require('@/assets/michi-spending.png');
+const MichiConfused = require('@/assets/michi-confused.png');
 
 // Background with botanicals baked in
 const HomeBackground = require('@/assets/botanicals/home-background.png');
@@ -152,7 +153,7 @@ export default function HomeScreen() {
                   <AppText style={[styles.spendingUnset, { color: theme.colors.subtext }]}>Set a budget in onboarding/profile</AppText>
                 )}
               </View>
-              <Image source={MichiSpending} style={styles.spendingMichi} resizeMode="contain" />
+              <Image source={weeklyBudget && budgetPercent >= 100 ? MichiConfused : MichiSpending} style={styles.spendingMichi} resizeMode="contain" />
             </View>
 
             {weeklyBudget ? (

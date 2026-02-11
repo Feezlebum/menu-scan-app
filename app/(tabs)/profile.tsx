@@ -28,14 +28,12 @@ import {
 } from '@/src/stores/onboardingStore';
 import { useSpendingStore } from '@/src/stores/spendingStore';
 import type { CurrencyCode } from '@/src/types/spending';
+import { getProfileMichi, type MichiVariant } from '@/src/utils/michiAssets';
+import { BudgetPickerModal } from '@/src/components/profile/BudgetPickerModal';
 
 const HomeBackground = require('@/assets/botanicals/home-background.png');
-import { getProfileMichi } from '@/src/utils/michiAssets';
-
 const PROFILE_PHOTO_KEY = '@profile_photo';
 const PROFILE_MICHI_KEY = '@profile_michi';
-
-type MichiVariant = 'avatar' | 'hero' | 'thinking';
 type EditableField =
   | 'goal'
   | 'dietType'
@@ -78,6 +76,7 @@ export default function ProfileScreen() {
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingField, setEditingField] = useState<EditableField | null>(null);
+  const [budgetModalVisible, setBudgetModalVisible] = useState(false);
 
   useEffect(() => {
     loadAvatarSettings();
@@ -91,8 +90,8 @@ export default function ProfileScreen() {
       ]);
 
       if (savedPhoto) setProfilePhoto(savedPhoto);
-      if (savedMichi === 'avatar' || savedMichi === 'hero' || savedMichi === 'thinking') {
-        setSelectedMichi(savedMichi);
+      if (savedMichi) {
+        setSelectedMichi(savedMichi as MichiVariant);
       }
     } catch {
       // non-blocking
@@ -169,37 +168,13 @@ export default function ProfileScreen() {
     setEditingField(null);
   };
 
-  const openBudgetEditor = () => {
-    if (typeof Alert.prompt === 'function') {
-      Alert.prompt(
-        'Weekly Dining Budget',
-        'Set your weekly budget',
-        [
-          { text: 'Clear', style: 'destructive', onPress: () => { setWeeklyBudget(null); setWeeklyDiningBudget(null); } },
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Save',
-            onPress: (value?: string) => {
-              const parsed = value ? Number.parseFloat(value.replace(/[^0-9.]/g, '')) : NaN;
-              if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1000) return;
-              setWeeklyBudget(parsed);
-              setWeeklyDiningBudget(parsed);
-            },
-          },
-        ],
-        'plain-text',
-        weeklyBudget ? String(weeklyBudget) : ''
-      );
-      return;
-    }
+  const saveBudget = (amount: number | null) => {
+    setWeeklyBudget(amount);
+    setWeeklyDiningBudget(amount);
+  };
 
-    Alert.alert('Weekly Dining Budget', 'Choose a budget', [
-      { text: 'Clear', style: 'destructive', onPress: () => { setWeeklyBudget(null); setWeeklyDiningBudget(null); } },
-      { text: '$50', onPress: () => { setWeeklyBudget(50); setWeeklyDiningBudget(50); } },
-      { text: '$100', onPress: () => { setWeeklyBudget(100); setWeeklyDiningBudget(100); } },
-      { text: '$200', onPress: () => { setWeeklyBudget(200); setWeeklyDiningBudget(200); } },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+  const openBudgetEditor = () => {
+    setBudgetModalVisible(true);
   };
 
   const openCurrencySelector = () => {
@@ -219,7 +194,7 @@ export default function ProfileScreen() {
               <Image source={{ uri: profilePhoto }} style={styles.profilePhoto} />
             ) : (
               <View style={[styles.defaultAvatar, { backgroundColor: theme.colors.brand }]}>
-                <Image source={getMichiSource(selectedMichi)} style={styles.michiFallback} />
+                <Image source={getProfileMichi(selectedMichi)} style={styles.michiFallback} />
               </View>
             )}
             <View style={[styles.editBadge, { backgroundColor: theme.colors.secondary }]}>
@@ -350,6 +325,17 @@ export default function ProfileScreen() {
         }}
       />
 
+      <BudgetPickerModal
+        visible={budgetModalVisible}
+        currentBudget={weeklyBudget}
+        onClose={() => setBudgetModalVisible(false)}
+        onSave={(amount) => saveBudget(amount)}
+        onClear={() => {
+          saveBudget(null);
+          setBudgetModalVisible(false);
+        }}
+      />
+
       <EditPreferenceModal
         visible={editModalVisible}
         field={editingField}
@@ -373,10 +359,6 @@ export default function ProfileScreen() {
       />
     </View>
   );
-}
-
-function getMichiSource(variant: MichiVariant) {
-  return getProfileMichi(variant);
 }
 
 const EditableRow: React.FC<{ icon: string; label: string; value: string; theme: any; onPress: () => void }> = ({
@@ -430,6 +412,10 @@ const AvatarModal: React.FC<{
     { key: 'avatar', source: getProfileMichi('avatar'), label: 'Happy Michi' },
     { key: 'hero', source: getProfileMichi('hero'), label: 'Chef Michi' },
     { key: 'thinking', source: getProfileMichi('thinking'), label: 'Thinking Michi' },
+    { key: 'excited', source: getProfileMichi('excited'), label: 'Excited Michi' },
+    { key: 'sad', source: getProfileMichi('sad'), label: 'Gentle Michi' },
+    { key: 'worried', source: getProfileMichi('worried'), label: 'Concerned Michi' },
+    { key: 'confused', source: getProfileMichi('confused'), label: 'Puzzled Michi' },
   ];
 
   return (

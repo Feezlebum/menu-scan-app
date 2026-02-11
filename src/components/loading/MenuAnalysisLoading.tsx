@@ -188,7 +188,7 @@ export default function MenuAnalysisLoading({
           {/* Animated Michi */}
           <Animated.View style={[styles.michiContainer, michiStyle]}>
             <Image
-              source={require('@/assets/michi-magnifying-glass.png')}
+              source={require('@/assets/michi-animation.gif')}
               style={styles.michiImage}
               resizeMode="contain"
             />

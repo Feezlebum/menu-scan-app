@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Alert, Modal, TextInput } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -37,6 +37,10 @@ export default function ItemDetailScreen() {
   const [priceEstimateDialogVisible, setPriceEstimateDialogVisible] = useState(false);
   const [customPriceDialogVisible, setCustomPriceDialogVisible] = useState(false);
   const [customPriceInput, setCustomPriceInput] = useState('');
+  const [customPriceError, setCustomPriceError] = useState('');
+  const [statusDialogVisible, setStatusDialogVisible] = useState(false);
+  const [statusDialogTitle, setStatusDialogTitle] = useState('');
+  const [statusDialogMessage, setStatusDialogMessage] = useState('');
   const [dialogMessage, setDialogMessage] = useState('');
   const [pendingLogArgs, setPendingLogArgs] = useState<{
     overrideHealthyChoice?: boolean;
@@ -210,11 +214,15 @@ export default function ItemDetailScreen() {
           ? `Streak reset. You made it ${currentStreak} choices - start fresh!`
           : `${item.name} has been saved to your history.`;
 
-      Alert.alert('Meal Logged! ✓', message, [{ text: 'OK', onPress: handleClose }]);
+      setStatusDialogTitle('Meal Logged! ✓');
+      setStatusDialogMessage(message);
+      setStatusDialogVisible(true);
     } catch (error) {
       console.error('Error logging meal:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', 'Failed to log meal. Please try again.');
+      setStatusDialogTitle('Error');
+      setStatusDialogMessage('Failed to log meal. Please try again.');
+      setStatusDialogVisible(true);
     } finally {
       setIsLogging(false);
     }
@@ -246,10 +254,11 @@ export default function ItemDetailScreen() {
   const handleCustomPriceSubmit = () => {
     const parsed = Number.parseFloat(customPriceInput.replace(/[^0-9.]/g, ''));
     if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1000) {
-      Alert.alert('Invalid amount', 'Please enter a value between 0 and 1000.');
+      setCustomPriceError('Please enter a value between 0 and 1000.');
       return;
     }
 
+    setCustomPriceError('');
     setCustomPriceDialogVisible(false);
     openConfirmDialogWithPrice(parsed);
   };
@@ -301,23 +310,17 @@ export default function ItemDetailScreen() {
 
         {/* Allergen Warning */}
         {item.allergenWarning && (
-          <Card style={[styles.allergenCard, { 
-            backgroundColor: `${theme.colors.trafficRed}15`, 
-            borderColor: theme.colors.trafficRed 
-          }]}>
+          <View style={[styles.allergenCard, { backgroundColor: theme.colors.trafficRed + '15', borderColor: theme.colors.trafficRed }]}> 
             <View style={styles.allergenRow}>
               <FontAwesome name="exclamation-triangle" size={18} color={theme.colors.trafficRed} />
-              <AppText style={[styles.allergenText, { color: theme.colors.trafficRed }]}>
+              <AppText style={[styles.allergenText, { color: theme.colors.trafficRed }]}> 
                 {item.allergenWarning}
               </AppText>
             </View>
-            <View style={[styles.allergenRow, { marginBottom: 0 }]}>
-              <FontAwesome name="exclamation-triangle" size={14} color={theme.colors.trafficRed} />
-              <AppText style={[styles.allergenDisclaimer, { color: theme.colors.trafficRed }]}>
-                Always confirm allergens with restaurant staff
-              </AppText>
-            </View>
-          </Card>
+            <AppText style={[styles.allergenDisclaimer, { color: theme.colors.trafficRed }]}> 
+              ⚠️ Always confirm allergens with restaurant staff
+            </AppText>
+          </View>
         )}
 
         {/* Score Reasons */}
@@ -455,7 +458,7 @@ export default function ItemDetailScreen() {
         </TouchableOpacity>
 
         {hasEnabledTrackers && (
-          <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}> 
+          <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}>
             Will also log to your connected trackers
           </AppText>
         )}
@@ -588,6 +591,7 @@ export default function ItemDetailScreen() {
             variant: 'primary',
             onPress: () => {
               setPriceEstimateDialogVisible(false);
+              setCustomPriceError('');
               setCustomPriceDialogVisible(true);
             },
           },
@@ -596,20 +600,26 @@ export default function ItemDetailScreen() {
 
       <Modal visible={customPriceDialogVisible} transparent animationType="fade" onRequestClose={() => setCustomPriceDialogVisible(false)}>
         <View style={styles.customPriceBackdrop}>
-          <View style={[styles.customPriceCard, { backgroundColor: theme.colors.bg }]}> 
+          <View style={[styles.customPriceCard, { backgroundColor: theme.colors.bg }]}>
             <AppText style={[styles.customPriceTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Add Meal Price</AppText>
             <AppText style={[styles.customPriceSubtitle, { color: theme.colors.subtext }]}>Enter the amount paid</AppText>
-            <View style={[styles.customPriceInputWrap, { borderColor: theme.colors.border }]}> 
+            <View style={[styles.customPriceInputWrap, { borderColor: theme.colors.border }]}>
               <AppText style={[styles.customPriceDollar, { color: theme.colors.subtext }]}>$</AppText>
               <TextInput
                 value={customPriceInput}
-                onChangeText={(value) => setCustomPriceInput(value.replace(/[^0-9.]/g, ''))}
+                onChangeText={(value) => {
+                  setCustomPriceInput(value.replace(/[^0-9.]/g, ''));
+                  if (customPriceError) setCustomPriceError('');
+                }}
                 keyboardType="decimal-pad"
                 placeholder="0.00"
                 placeholderTextColor={theme.colors.subtext}
                 style={[styles.customPriceInput, { color: theme.colors.text }]}
               />
             </View>
+            {customPriceError ? (
+              <AppText style={[styles.customPriceError, { color: theme.colors.trafficRed }]}>{customPriceError}</AppText>
+            ) : null}
             <View style={styles.customPriceActions}>
               <TouchableOpacity
                 style={[styles.customPriceButton, styles.customPriceButtonSecondary, { borderColor: theme.colors.border }]}
@@ -642,6 +652,27 @@ export default function ItemDetailScreen() {
             onPress: () => {
               setConfirmDialogVisible(false);
               handleLogMeal(false, false, false, confirmDialogPrice, false);
+            },
+          },
+        ]}
+      />
+
+      <BrandedDialog
+        visible={statusDialogVisible}
+        title={statusDialogTitle}
+        message={statusDialogMessage}
+        michiState={statusDialogTitle === 'Error' ? 'worried' : 'excited'}
+        onClose={() => {
+          setStatusDialogVisible(false);
+          if (statusDialogTitle !== 'Error') handleClose();
+        }}
+        actions={[
+          {
+            text: 'OK',
+            variant: 'primary',
+            onPress: () => {
+              setStatusDialogVisible(false);
+              if (statusDialogTitle !== 'Error') handleClose();
             },
           },
         ]}
@@ -928,6 +959,10 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 46,
     fontSize: 17,
+  },
+  customPriceError: {
+    fontSize: 13,
+    marginBottom: 10,
   },
   customPriceActions: {
     flexDirection: 'row',

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Video from 'react-native-video';
 import Animated, { 
   useAnimatedStyle, 
   useSharedValue, 
@@ -187,10 +188,13 @@ export default function MenuAnalysisLoading({
           
           {/* Animated Michi */}
           <Animated.View style={[styles.michiContainer, michiStyle]}>
-            <Image
-              source={require('@/assets/michi-magnifying-glass.png')}
-              style={styles.michiImage}
+            <Video
+              source={require('@/assets/michi-analysis-animation.mp4')}
+              style={styles.michiVideo}
               resizeMode="contain"
+              repeat={true}
+              muted={true}
+              paused={false}
             />
           </Animated.View>
 
@@ -253,7 +257,7 @@ const styles = StyleSheet.create({
   michiContainer: {
     marginBottom: 60,
   },
-  michiImage: {
+  michiVideo: {
     width: 160,
     height: 160,
   },

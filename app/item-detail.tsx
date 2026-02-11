@@ -31,6 +31,9 @@ export default function ItemDetailScreen() {
   const [streakDialogVisible, setStreakDialogVisible] = useState(false);
   const [budgetDialogVisible, setBudgetDialogVisible] = useState(false);
   const [duplicateDialogVisible, setDuplicateDialogVisible] = useState(false);
+  const [confirmDialogVisible, setConfirmDialogVisible] = useState(false);
+  const [confirmDialogMessage, setConfirmDialogMessage] = useState('');
+  const [confirmDialogPrice, setConfirmDialogPrice] = useState<number | undefined>(undefined);
   const [dialogMessage, setDialogMessage] = useState('');
   const [pendingLogArgs, setPendingLogArgs] = useState<{
     overrideHealthyChoice?: boolean;
@@ -221,17 +224,11 @@ export default function ItemDetailScreen() {
       const currentWeekSpent = getCurrentWeekSpent();
       const projected = currentWeekSpent + (price || 0);
 
-      Alert.alert(
-        'Confirm Your Order',
-        `${item.name}\nNutrition: ${item.estimatedCalories} cal, ${item.estimatedProtein}g protein\n${price ? `Price: $${price.toFixed(2)}` : 'Price: Not detected'}${weeklyBudget && price ? `\nBudget impact: $${currentWeekSpent.toFixed(0)} → $${projected.toFixed(0)} / $${weeklyBudget.toFixed(0)}` : ''}`,
-        [
-          { text: 'Back', style: 'cancel' },
-          {
-            text: 'Confirm Order',
-            onPress: () => handleLogMeal(false, false, false, price, false),
-          },
-        ]
-      );
+      const message = `${item.name}\nNutrition: ${item.estimatedCalories} cal, ${item.estimatedProtein}g protein\n${price ? `Price: $${price.toFixed(2)}` : 'Price: Not detected'}${weeklyBudget && price ? `\nBudget impact: $${currentWeekSpent.toFixed(0)} → $${projected.toFixed(0)} / $${weeklyBudget.toFixed(0)}` : ''}`;
+
+      setConfirmDialogPrice(price);
+      setConfirmDialogMessage(message);
+      setConfirmDialogVisible(true);
     };
 
     if (detectedPrice) {
@@ -549,6 +546,25 @@ export default function ItemDetailScreen() {
             onPress: () => {
               setDuplicateDialogVisible(false);
               handleLogMeal(false, true, true, pendingLogArgs?.manualPriceOverride, true);
+            },
+          },
+        ]}
+      />
+
+      <BrandedDialog
+        visible={confirmDialogVisible}
+        title="Confirm Your Order"
+        message={confirmDialogMessage}
+        michiState="excited"
+        onClose={() => setConfirmDialogVisible(false)}
+        actions={[
+          { text: 'Back', variant: 'secondary', onPress: () => setConfirmDialogVisible(false) },
+          {
+            text: 'Confirm Order',
+            variant: 'primary',
+            onPress: () => {
+              setConfirmDialogVisible(false);
+              handleLogMeal(false, false, false, confirmDialogPrice, false);
             },
           },
         ]}

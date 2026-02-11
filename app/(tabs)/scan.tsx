@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, SafeAreaView, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, StyleSheet, SafeAreaView, TouchableOpacity, Alert, Platform, Image } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -10,6 +10,7 @@ import { CaptureButton } from '@/src/components/scan/CaptureButton';
 import { compressImage } from '@/src/utils/imageUtils';
 import { scanMenu } from '@/src/lib/scanService';
 import { useScanStore } from '@/src/stores/scanStore';
+import { getScanMichi } from '@/src/utils/michiAssets';
 
 type ScanState = 'ready' | 'capturing' | 'processing' | 'error';
 
@@ -119,13 +120,18 @@ export default function ScanScreen() {
       >
         {/* Header */}
         <SafeAreaView style={styles.header}>
-          <AppText style={styles.headerTitle}>Scan Menu</AppText>
-          <AppText style={styles.headerSubtitle}>
-            {scanState === 'ready' && 'Position the menu within the frame'}
-            {scanState === 'capturing' && 'Capturing...'}
-            {scanState === 'processing' && 'Analyzing menu...'}
-            {scanState === 'error' && 'Something went wrong'}
-          </AppText>
+          <View style={styles.headerContent}>
+            <View style={styles.headerText}>
+              <AppText style={styles.headerTitle}>Scan Menu</AppText>
+              <AppText style={styles.headerSubtitle}>
+                {scanState === 'ready' && 'Position the menu within the frame'}
+                {scanState === 'capturing' && 'Capturing...'}
+                {scanState === 'processing' && 'Analyzing menu...'}
+                {scanState === 'error' && 'Something went wrong'}
+              </AppText>
+            </View>
+            <Image source={getScanMichi(scanState)} style={styles.michiIndicator} />
+          </View>
         </SafeAreaView>
 
         {/* Scan frame overlay */}
@@ -187,6 +193,17 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? 40 : 0,
     paddingBottom: 20,
   },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  headerText: {
+    flex: 1,
+    alignItems: 'center',
+  },
   headerTitle: {
     color: '#fff',
     fontSize: 20,
@@ -196,6 +213,11 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     color: 'rgba(255,255,255,0.7)',
     fontSize: 14,
+  },
+  michiIndicator: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   frameContainer: {
     flex: 1,

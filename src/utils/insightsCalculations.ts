@@ -1,6 +1,7 @@
 import { getMealPrice } from '@/src/stores/historyStore';
 import type { LoggedMeal, ScanHistoryEntry } from '@/src/stores/historyStore';
 import type { Goal } from '@/src/stores/onboardingStore';
+import { MichiAssets } from '@/src/utils/michiAssets';
 
 // ==========================================
 // Date Helpers
@@ -371,6 +372,7 @@ export interface MichiRecap {
   message: string;
   emoji: string;
   mood: 'celebrating' | 'encouraging' | 'concerned' | 'thinking';
+  michiImage: any; // Require asset for the mood
 }
 
 /**
@@ -398,6 +400,7 @@ export function getMichiRecapMessage(
       message: "Scan some menus and I'll start tracking your patterns!",
       emoji: '🔍',
       mood: 'thinking',
+      michiImage: MichiAssets.thinking,
     };
   }
 
@@ -407,6 +410,7 @@ export function getMichiRecapMessage(
       message: "I miss you! Let's scan more this week 🥺",
       emoji: '🥺',
       mood: 'concerned',
+      michiImage: MichiAssets.concerned,
     };
   }
 
@@ -417,6 +421,7 @@ export function getMichiRecapMessage(
       message: "You're eating lighter this week — keep it up! 🔥",
       emoji: '🔥',
       mood: 'celebrating',
+      michiImage: MichiAssets.celebrating,
     };
   }
 
@@ -426,6 +431,7 @@ export function getMichiRecapMessage(
       message: "More protein this week — Michi approves 💪",
       emoji: '💪',
       mood: 'celebrating',
+      michiImage: MichiAssets.celebrating,
     };
   }
 
@@ -435,6 +441,7 @@ export function getMichiRecapMessage(
       message: "You're staying on track! Consistency wins 🏆",
       emoji: '🏆',
       mood: 'celebrating',
+      michiImage: MichiAssets.celebrating,
     };
   }
 
@@ -443,6 +450,7 @@ export function getMichiRecapMessage(
     message: "Keep scanning and I'll find more patterns for you!",
     emoji: '✨',
     mood: 'encouraging',
+    michiImage: MichiAssets.encouraging,
   };
 }
 

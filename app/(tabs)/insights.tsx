@@ -177,8 +177,8 @@ function MichiRecapCard({ theme, recap }: CardProps & { recap: ReturnType<typeof
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.cardPeach }]}>
       <View style={styles.michiHeader}>
-        {/* TODO: Replace with Rive animation — state: encouraging/celebrating/concerned based on message */}
-        <Image source={MichiAvatar} style={styles.michiAvatar} />
+        {/* Dynamic Michi state based on mood */}
+        <Image source={recap.michiImage} style={styles.michiAvatar} />
         <AppText style={[styles.michiLabel, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>
           Michi says:
         </AppText>

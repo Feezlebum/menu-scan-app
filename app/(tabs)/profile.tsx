@@ -30,9 +30,7 @@ import { useSpendingStore } from '@/src/stores/spendingStore';
 import type { CurrencyCode } from '@/src/types/spending';
 
 const HomeBackground = require('@/assets/botanicals/home-background.png');
-const MichiAvatar = require('@/assets/michi-avatar.png');
-const MichiHero = require('@/assets/michi-hero.png');
-const MichiThinking = require('@/assets/michi-magnifying-glass.png');
+import { getProfileMichi } from '@/src/utils/michiAssets';
 
 const PROFILE_PHOTO_KEY = '@profile_photo';
 const PROFILE_MICHI_KEY = '@profile_michi';
@@ -378,9 +376,7 @@ export default function ProfileScreen() {
 }
 
 function getMichiSource(variant: MichiVariant) {
-  if (variant === 'hero') return MichiHero;
-  if (variant === 'thinking') return MichiThinking;
-  return MichiAvatar;
+  return getProfileMichi(variant);
 }
 
 const EditableRow: React.FC<{ icon: string; label: string; value: string; theme: any; onPress: () => void }> = ({
@@ -431,9 +427,9 @@ const AvatarModal: React.FC<{
   const theme = useAppTheme();
 
   const options: Array<{ key: MichiVariant; source: any; label: string }> = [
-    { key: 'avatar', source: MichiAvatar, label: 'Happy Michi' },
-    { key: 'hero', source: MichiHero, label: 'Chef Michi' },
-    { key: 'thinking', source: MichiThinking, label: 'Thinking Michi' },
+    { key: 'avatar', source: getProfileMichi('avatar'), label: 'Happy Michi' },
+    { key: 'hero', source: getProfileMichi('hero'), label: 'Chef Michi' },
+    { key: 'thinking', source: getProfileMichi('thinking'), label: 'Thinking Michi' },
   ];
 
   return (

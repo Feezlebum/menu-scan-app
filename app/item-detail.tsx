@@ -17,6 +17,7 @@ import { useSpendingStore } from '@/src/stores/spendingStore';
 import { evaluateHealthyChoice } from '@/src/utils/healthyCriteria';
 import { isDuplicateMealToday } from '@/src/utils/duplicateDetection';
 import { parsePrice } from '@/src/lib/scanService';
+import { PriceEditModal } from '@/src/components/modals/PriceEditModal';
 
 export default function ItemDetailScreen() {
   const theme = useAppTheme();
@@ -38,6 +39,9 @@ export default function ItemDetailScreen() {
   const [customPriceDialogVisible, setCustomPriceDialogVisible] = useState(false);
   const [customPriceInput, setCustomPriceInput] = useState('');
   const [customPriceError, setCustomPriceError] = useState('');
+  const [priceEditModalVisible, setPriceEditModalVisible] = useState(false);
+  const [userPrice, setUserPrice] = useState<number | null>(null);
+  const [healthyOverride, setHealthyOverride] = useState<'ai' | 'healthy' | 'unhealthy'>('ai');
   const [statusDialogVisible, setStatusDialogVisible] = useState(false);
   const [statusDialogTitle, setStatusDialogTitle] = useState('');
   const [statusDialogMessage, setStatusDialogMessage] = useState('');
@@ -121,7 +125,7 @@ export default function ItemDetailScreen() {
       restrictedFoods: [...(intolerances || []), ...(dislikes || [])],
     });
 
-    const detectedPrice = manualPriceOverride ?? parsePrice(item.price);
+    const detectedPrice = manualPriceOverride ?? userPrice ?? parsePrice(item.price);
     const currentWeekSpent = getCurrentWeekSpent();
     const projectedWeekSpent = currentWeekSpent + (detectedPrice || 0);
 
@@ -175,7 +179,10 @@ export default function ItemDetailScreen() {
         });
       }
 
-      const mealId = logMeal(scanId, item, restaurantName);
+      const mealId = logMeal(scanId, item, restaurantName, {
+        userPrice: typeof userPrice === 'number' ? userPrice : undefined,
+        healthyOverride: healthyOverride === 'ai' ? null : healthyOverride,
+      });
 
       if (detectedPrice && detectedPrice > 0) {
         recordSpending({
@@ -186,14 +193,20 @@ export default function ItemDetailScreen() {
         });
       }
 
-      const finalHealthy = overrideHealthyChoice || evaluation.isHealthy;
+      const finalHealthy =
+        healthyOverride === 'healthy'
+          ? true
+          : healthyOverride === 'unhealthy'
+            ? false
+            : overrideHealthyChoice || evaluation.isHealthy;
       const nextStreak = finalHealthy ? currentStreak + 1 : 0;
       recordMealDecision({
         mealId,
         mealName: item.name,
         loggedAt: new Date().toISOString(),
         isHealthy: finalHealthy,
-        overrideUsed: overrideHealthyChoice,
+        healthyOverride: healthyOverride === 'ai' ? null : healthyOverride,
+        overrideUsed: overrideHealthyChoice || healthyOverride !== 'ai',
       });
 
       if (hasEnabledTrackers) {
@@ -240,7 +253,7 @@ export default function ItemDetailScreen() {
   };
 
   const handleConfirmOrder = () => {
-    const detectedPrice = parsePrice(item.price);
+    const detectedPrice = userPrice ?? parsePrice(item.price);
 
     if (detectedPrice) {
       openConfirmDialogWithPrice(detectedPrice);
@@ -291,16 +304,43 @@ export default function ItemDetailScreen() {
           </AppText>
         </View>
 
+        <Card style={styles.overrideCard}>
+          <AppText style={[styles.cardTitle, { color: theme.colors.text }]}>🥗 Healthy Choice Setting</AppText>
+          <OverrideOption
+            label={`Use AI assessment (${item.matchLabel || 'Match'})`}
+            selected={healthyOverride === 'ai'}
+            onPress={() => setHealthyOverride('ai')}
+          />
+          <OverrideOption
+            label="Override: Count as healthy choice"
+            selected={healthyOverride === 'healthy'}
+            onPress={() => setHealthyOverride('healthy')}
+          />
+          <OverrideOption
+            label="Override: Don't count for streak"
+            selected={healthyOverride === 'unhealthy'}
+            onPress={() => setHealthyOverride('unhealthy')}
+          />
+        </Card>
+
         {/* Item Name & Description */}
         <View style={styles.titleSection}>
           <AppText style={[styles.itemName, { color: theme.colors.text }]}>
             {item.name}
           </AppText>
-          {item.price && (
+          <View style={styles.priceRow}>
             <AppText style={[styles.price, { color: theme.colors.brand }]}>
-              {item.price}
+              ${Number((userPrice ?? parsePrice(item.price) ?? 0).toFixed(2)).toFixed(2)}
             </AppText>
-          )}
+            <TouchableOpacity onPress={() => setPriceEditModalVisible(true)} style={styles.priceEditButton}>
+              <FontAwesome name="pencil" size={14} color={theme.colors.brand} />
+            </TouchableOpacity>
+            {typeof userPrice === 'number' && (
+              <View style={[styles.editedBadge, { backgroundColor: theme.colors.cardCream }]}>
+                <AppText style={[styles.editedBadgeText, { color: theme.colors.subtext }]}>edited</AppText>
+              </View>
+            )}
+          </View>
           {item.description && (
             <AppText style={[styles.description, { color: theme.colors.subtext }]}>
               {item.description}
@@ -310,14 +350,14 @@ export default function ItemDetailScreen() {
 
         {/* Allergen Warning */}
         {item.allergenWarning && (
-          <View style={[styles.allergenCard, { backgroundColor: theme.colors.trafficRed + '15', borderColor: theme.colors.trafficRed }]}> 
+          <View style={[styles.allergenCard, { backgroundColor: theme.colors.trafficRed + '15', borderColor: theme.colors.trafficRed }]}>
             <View style={styles.allergenRow}>
               <FontAwesome name="exclamation-triangle" size={18} color={theme.colors.trafficRed} />
-              <AppText style={[styles.allergenText, { color: theme.colors.trafficRed }]}> 
+              <AppText style={[styles.allergenText, { color: theme.colors.trafficRed }]}>
                 {item.allergenWarning}
               </AppText>
             </View>
-            <AppText style={[styles.allergenDisclaimer, { color: theme.colors.trafficRed }]}> 
+            <AppText style={[styles.allergenDisclaimer, { color: theme.colors.trafficRed }]}>
               ⚠️ Always confirm allergens with restaurant staff
             </AppText>
           </View>
@@ -677,6 +717,13 @@ export default function ItemDetailScreen() {
           },
         ]}
       />
+
+      <PriceEditModal
+        visible={priceEditModalVisible}
+        initialPrice={userPrice ?? parsePrice(item.price) ?? 0}
+        onClose={() => setPriceEditModalVisible(false)}
+        onSave={(price) => setUserPrice(price)}
+      />
     </SafeAreaView>
   );
 }
@@ -689,14 +736,24 @@ function NutritionBox({ label, value, unit, theme, highlight = false }: {
   highlight?: boolean;
 }) {
   return (
-    <View style={[styles.nutritionBox, highlight && { backgroundColor: theme.colors.secondary }]}>
-      <AppText style={[styles.nutritionValue, { color: theme.colors.text }]}>
+    <View style={[styles.nutritionBox, highlight && { backgroundColor: theme.colors.secondary }]}> 
+      <AppText style={[styles.nutritionValue, { color: theme.colors.text }]}> 
         {value}{unit}
       </AppText>
-      <AppText style={[styles.nutritionLabel, { color: theme.colors.subtext }]}>
+      <AppText style={[styles.nutritionLabel, { color: theme.colors.subtext }]}> 
         {label}
       </AppText>
     </View>
+  );
+}
+
+function OverrideOption({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  const theme = useAppTheme();
+  return (
+    <TouchableOpacity style={styles.overrideRow} onPress={onPress} activeOpacity={0.8}>
+      <View style={[styles.overrideDot, { borderColor: theme.colors.brand }, selected && { backgroundColor: theme.colors.brand }]} />
+      <AppText style={[styles.overrideText, { color: theme.colors.text }]}>{label}</AppText>
+    </TouchableOpacity>
   );
 }
 
@@ -760,10 +817,27 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 8,
+  },
   price: {
     fontSize: 18,
     fontWeight: '600',
-    marginTop: 4,
+  },
+  priceEditButton: {
+    padding: 4,
+  },
+  editedBadge: {
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  editedBadgeText: {
+    fontSize: 11,
+    fontStyle: 'italic',
   },
   description: {
     fontSize: 15,
@@ -794,6 +868,26 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
     lineHeight: 18,
+  },
+  overrideCard: {
+    padding: 16,
+    marginBottom: 16,
+  },
+  overrideRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 10,
+  },
+  overrideDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+  },
+  overrideText: {
+    fontSize: 14,
+    flex: 1,
   },
   reasonsCard: {
     padding: 16,

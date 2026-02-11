@@ -414,6 +414,17 @@ const MealCard: React.FC<MealCardProps> = ({ meal, onPress, onDelete }) => {
                   <AppText style={[styles.badgeText, { color: theme.colors.text, fontFamily: theme.fonts.body.semiBold }]}> 
                     ${price.toFixed(2)}
                   </AppText>
+                  {typeof meal.userPrice === 'number' && (
+                    <AppText style={[styles.priceEditedText, { color: theme.colors.subtext }]}>edited</AppText>
+                  )}
+                </View>
+              )}
+
+              {meal.healthyOverride && (
+                <View style={[styles.overrideBadge, { backgroundColor: theme.colors.cardCream }]}> 
+                  <AppText style={[styles.overrideBadgeText, { color: theme.colors.subtext }]}> 
+                    {meal.healthyOverride === 'healthy' ? 'manual healthy' : 'no streak'}
+                  </AppText>
                 </View>
               )}
 
@@ -746,6 +757,21 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 12,
     marginRight: 8,
+  },
+  priceEditedText: {
+    fontSize: 10,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  overrideBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  overrideBadgeText: {
+    fontSize: 11,
+    fontStyle: 'italic',
   },
   scoreBadge: {
     paddingHorizontal: 10,

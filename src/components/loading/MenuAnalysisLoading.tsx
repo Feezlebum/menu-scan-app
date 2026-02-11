@@ -18,7 +18,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const processingVideo = Platform.select({
   ios: require('@/assets/animations/michi-processing.mp4'),
-  android: require('@/assets/animations/michi-processing.mp4'), // swap to .webm when provided
+  android: require('@/assets/animations/michi-processing.webm'),
   default: require('@/assets/animations/michi-processing.mp4'),
 });
 

@@ -49,25 +49,33 @@ export default function ScanScreen() {
         throw new Error('Failed to capture photo');
       }
 
-      setScanState('processing');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      // Compress image
-      const compressedUri = await compressImage(photo.uri);
-      console.log('Captured and compressed:', compressedUri);
-      
-      // Upload to Supabase Storage and call Edge Function
-      const result = await scanMenu(compressedUri);
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to parse menu');
-      }
-      
-      // Store results and navigate
-      setScanResult(result);
       setScanState('ready');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.push('/results');
+
+      // Navigate to loading screen immediately
+      router.push('/menu-analysis-loading');
+
+      // Process in background
+      try {
+        // Compress image
+        const compressedUri = await compressImage(photo.uri);
+        console.log('Captured and compressed:', compressedUri);
+        
+        // Upload to Supabase Storage and call Edge Function
+        const result = await scanMenu(compressedUri);
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to parse menu');
+        }
+        
+        // Store results for the loading screen to pick up
+        setScanResult(result);
+        
+      } catch (backgroundError) {
+        console.error('Background processing error:', backgroundError);
+        setScanError(backgroundError instanceof Error ? backgroundError.message : 'Unknown error');
+        // Loading screen will handle showing the error
+      }
 
     } catch (error) {
       console.error('Capture error:', error);

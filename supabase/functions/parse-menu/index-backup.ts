@@ -217,12 +217,20 @@ serve(async (req) => {
     const openaiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiKey) throw new Error('OPENAI_API_KEY not configured');
 
-    // Build concise user context
-    const goal = userProfile?.goal || 'general health';
-    const dietType = userProfile?.dietType || 'none';
-    const macroPriority = userProfile?.macroPriority || 'balanced';
-    const intolerances = userProfile?.intolerances || [];
-    const dislikes = userProfile?.dislikes || [];
+    const userContext = userProfile ? `
+USER PROFILE (personalize your analysis for this person):
+- Goal: ${userProfile.goal || 'general health'}
+- Diet type: ${userProfile.dietType || 'no specific diet'}
+- Macro priority: ${userProfile.macroPriority || 'balanced'} ${userProfile.macroPriority === 'highprotein' ? '(wants high protein options)' : userProfile.macroPriority === 'lowcarb' ? '(avoiding carbs)' : userProfile.macroPriority === 'lowcal' ? '(wants lowest calorie options)' : ''}
+- Food allergies/intolerances: ${userProfile.intolerances?.length > 0 ? userProfile.intolerances.join(', ') : 'none'}
+- Foods they dislike: ${userProfile.dislikes?.length > 0 ? userProfile.dislikes.join(', ') : 'none'}
+
+PERSONALIZATION RULES:
+- Flag any items containing their allergens/intolerances
+- Tailor modification tips to their specific goals
+- If they're low-carb/keto, suggest carb swaps
+- For weight loss goals, prioritize lower calorie density options
+` : '';
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -231,51 +239,75 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',  // 🚀 SPEED OPTIMIZATION: Switch to faster model
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
-            content: `Extract orderable dishes from menu for user: Goal=${goal}, Diet=${dietType}, Priority=${macroPriority}, Avoid=${intolerances.join(',')}.
+            content: `You are an expert nutritionist and menu analyzer helping someone make healthy choices when eating out.
+${userContext}
+Extract ALL orderable dishes from the restaurant menu photo.
 
-Rules:
-- Combine styles+proteins: "Garlic Chicken" not "Garlic"
-- Include default sides in nutrition (rice adds ~200cal, 45g carbs)
-- Prices: numeric only ("12.95"), null if missing/MP
-- Personalize tips for ${goal} goal${dietType !== 'none' ? ` and ${dietType} diet` : ''}
+CRITICAL PARSING RULES:
+1. **"Choose Your Protein" menus**: Many Asian restaurants list dish STYLES (e.g., "Garlic", "Ginger", "Cashew Nut") separately from PROTEIN choices (Chicken, Beef, Shrimp, etc.). 
+   - These are NOT standalone dishes - they are preparation styles
+   - Create COMPLETE dish names by combining: "[Style] [Protein]" (e.g., "Garlic Chicken", "Ginger Beef", "Cashew Nut Shrimp")
+   - Use the CHICKEN version as the default representative dish for each style (most commonly ordered)
+   - Include the price for chicken in the price field
+   - Mention in description that other proteins are available
 
-JSON format:
+2. **Include default sides**: If the menu says "served with rice" or similar, INCLUDE the rice/side in your nutrition estimates
+
+3. **Don't list sauce names or ingredients as dishes**: "Garlic", "Ginger", "Basil" alone are NOT dishes - they describe a preparation style
+
+4. **Soups with protein choices**: Same rule - create representative dishes like "Tom Yum Soup with Chicken"
+
+5. **Price extraction rules**:
+   - Extract a price for each dish when visible
+   - Return `price` as a numeric string only (e.g., "12.95", never "$12.95")
+   - If a dish has multiple prices/sizes, use the smallest/first listed price
+   - If price is listed as "Market Price", "MP", or not shown, set `price` to null
+   - For text like "Starting at $15", return "15.00"
+
+Return JSON with this exact structure:
 {
-  "restaurantName": string|null,
-  "restaurantType": "chain"|"independent",
-  "items": [{
-    "name": string,
-    "description": string|null,
-    "price": string|null,
-    "section": string|null,
-    "estimatedCalories": number,
-    "estimatedProtein": number,
-    "estimatedCarbs": number,
-    "estimatedFat": number,
-    "ingredients": string[],
-    "isVegetarian": boolean,
-    "isVegan": boolean,
-    "isGlutenFree": boolean,
-    "allergenWarning": string|null,
-    "modificationTips": string[]
-  }]
+  "restaurantName": string | null,
+  "restaurantType": "chain" | "independent",
+  "items": [
+    {
+      "name": string (FULL dish name a customer would order, e.g., "Garlic Chicken" not just "Garlic"),
+      "description": string | null (include "Other proteins available: Beef, Shrimp, etc." if applicable),
+      "price": string | null (use chicken/default price if multiple options),
+      "section": string | null (e.g., "Entrees", "Soups", "Salads"),
+      "estimatedCalories": number (INCLUDE any default sides like rice),
+      "estimatedProtein": number (grams),
+      "estimatedCarbs": number (grams - INCLUDE rice if served with),
+      "estimatedFat": number (grams),
+      "ingredients": string[] (main ingredients),
+      "isVegetarian": boolean,
+      "isVegan": boolean,
+      "isGlutenFree": boolean,
+      "allergenWarning": string | null,
+      "modificationTips": string[] (2-3 personalized tips)
+    }
+  ]
 }
 
-Return valid JSON only.`
+IMPORTANT:
+- Estimate nutrition for TYPICAL RESTAURANT PORTIONS (larger than home cooking)
+- Be conservative — restaurants use more oil, butter, and larger portions
+- If dish is served with rice, add ~200 cal and ~45g carbs for the rice
+- If you recognize a chain restaurant, use your knowledge of their actual nutrition data
+- Only return valid JSON, no markdown or extra text.`
           },
           {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: imageUrl } },
-              { type: 'text', text: 'Parse this menu. Create complete dish names (style+protein). Include sides in nutrition estimates.' }
+              { type: 'text', text: 'Parse this menu and extract all ORDERABLE dishes with complete names. Remember: if there are "choose your protein" sections, combine the style + protein into proper dish names.' }
             ]
           }
         ],
-        max_tokens: 2048,  // 🚀 SPEED OPTIMIZATION: Reduce token limit 
+        max_tokens: 4096,
         temperature: 0.3,
       }),
     });

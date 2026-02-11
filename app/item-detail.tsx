@@ -18,6 +18,7 @@ import { evaluateHealthyChoice } from '@/src/utils/healthyCriteria';
 import { isDuplicateMealToday } from '@/src/utils/duplicateDetection';
 import { parsePrice } from '@/src/lib/scanService';
 import { PriceEditModal } from '@/src/components/modals/PriceEditModal';
+import { HealthEditModal } from '@/src/components/modals/HealthEditModal';
 
 export default function ItemDetailScreen() {
   const theme = useAppTheme();
@@ -40,6 +41,7 @@ export default function ItemDetailScreen() {
   const [customPriceInput, setCustomPriceInput] = useState('');
   const [customPriceError, setCustomPriceError] = useState('');
   const [priceEditModalVisible, setPriceEditModalVisible] = useState(false);
+  const [healthEditModalVisible, setHealthEditModalVisible] = useState(false);
   const [userPrice, setUserPrice] = useState<number | null>(null);
   const [healthyOverride, setHealthyOverride] = useState<'ai' | 'healthy' | 'unhealthy'>('ai');
   const [statusDialogVisible, setStatusDialogVisible] = useState(false);
@@ -299,29 +301,20 @@ export default function ItemDetailScreen() {
               /100
             </AppText>
           </View>
-          <AppText style={[styles.matchLabel, { color: getScoreColor(item.score) }]}>
-            {item.matchLabel || 'Match'}
-          </AppText>
+          <View style={styles.matchLabelRow}>
+            <AppText style={[styles.matchLabel, { color: getScoreColor(item.score) }]}> 
+              {item.matchLabel || 'Match'}
+            </AppText>
+            <TouchableOpacity onPress={() => setHealthEditModalVisible(true)} style={styles.healthEditButton}>
+              <FontAwesome name="pencil" size={14} color={theme.colors.brand} />
+            </TouchableOpacity>
+            {healthyOverride !== 'ai' && (
+              <View style={[styles.editedBadge, { backgroundColor: theme.colors.cardCream }]}> 
+                <AppText style={[styles.editedBadgeText, { color: theme.colors.subtext }]}>edited</AppText>
+              </View>
+            )}
+          </View>
         </View>
-
-        <Card style={styles.overrideCard}>
-          <AppText style={[styles.cardTitle, { color: theme.colors.text }]}>🥗 Healthy Choice Setting</AppText>
-          <OverrideOption
-            label={`Use AI assessment (${item.matchLabel || 'Match'})`}
-            selected={healthyOverride === 'ai'}
-            onPress={() => setHealthyOverride('ai')}
-          />
-          <OverrideOption
-            label="Override: Count as healthy choice"
-            selected={healthyOverride === 'healthy'}
-            onPress={() => setHealthyOverride('healthy')}
-          />
-          <OverrideOption
-            label="Override: Don't count for streak"
-            selected={healthyOverride === 'unhealthy'}
-            onPress={() => setHealthyOverride('unhealthy')}
-          />
-        </Card>
 
         {/* Item Name & Description */}
         <View style={styles.titleSection}>
@@ -724,6 +717,13 @@ export default function ItemDetailScreen() {
         onClose={() => setPriceEditModalVisible(false)}
         onSave={(price) => setUserPrice(price)}
       />
+
+      <HealthEditModal
+        visible={healthEditModalVisible}
+        initialValue={healthyOverride}
+        onClose={() => setHealthEditModalVisible(false)}
+        onSave={(value) => setHealthyOverride(value)}
+      />
     </SafeAreaView>
   );
 }
@@ -736,24 +736,14 @@ function NutritionBox({ label, value, unit, theme, highlight = false }: {
   highlight?: boolean;
 }) {
   return (
-    <View style={[styles.nutritionBox, highlight && { backgroundColor: theme.colors.secondary }]}> 
-      <AppText style={[styles.nutritionValue, { color: theme.colors.text }]}> 
+    <View style={[styles.nutritionBox, highlight && { backgroundColor: theme.colors.secondary }]}>
+      <AppText style={[styles.nutritionValue, { color: theme.colors.text }]}>
         {value}{unit}
       </AppText>
-      <AppText style={[styles.nutritionLabel, { color: theme.colors.subtext }]}> 
+      <AppText style={[styles.nutritionLabel, { color: theme.colors.subtext }]}>
         {label}
       </AppText>
     </View>
-  );
-}
-
-function OverrideOption({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  const theme = useAppTheme();
-  return (
-    <TouchableOpacity style={styles.overrideRow} onPress={onPress} activeOpacity={0.8}>
-      <View style={[styles.overrideDot, { borderColor: theme.colors.brand }, selected && { backgroundColor: theme.colors.brand }]} />
-      <AppText style={[styles.overrideText, { color: theme.colors.text }]}>{label}</AppText>
-    </TouchableOpacity>
   );
 }
 
@@ -803,10 +793,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginTop: -4,
   },
+  matchLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 8,
+  },
   matchLabel: {
     fontSize: 20,
     fontWeight: '600',
-    marginTop: 12,
+  },
+  healthEditButton: {
+    padding: 4,
   },
   titleSection: {
     alignItems: 'center',
@@ -868,26 +866,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
     lineHeight: 18,
-  },
-  overrideCard: {
-    padding: 16,
-    marginBottom: 16,
-  },
-  overrideRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-    gap: 10,
-  },
-  overrideDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-  },
-  overrideText: {
-    fontSize: 14,
-    flex: 1,
   },
   reasonsCard: {
     padding: 16,

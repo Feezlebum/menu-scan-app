@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Alert, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Alert, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -34,6 +34,9 @@ export default function ItemDetailScreen() {
   const [confirmDialogVisible, setConfirmDialogVisible] = useState(false);
   const [confirmDialogMessage, setConfirmDialogMessage] = useState('');
   const [confirmDialogPrice, setConfirmDialogPrice] = useState<number | undefined>(undefined);
+  const [priceEstimateDialogVisible, setPriceEstimateDialogVisible] = useState(false);
+  const [customPriceDialogVisible, setCustomPriceDialogVisible] = useState(false);
+  const [customPriceInput, setCustomPriceInput] = useState('');
   const [dialogMessage, setDialogMessage] = useState('');
   const [pendingLogArgs, setPendingLogArgs] = useState<{
     overrideHealthyChoice?: boolean;
@@ -217,54 +220,38 @@ export default function ItemDetailScreen() {
     }
   };
 
+  const openConfirmDialogWithPrice = (price: number | undefined) => {
+    const currentWeekSpent = getCurrentWeekSpent();
+    const projected = currentWeekSpent + (price || 0);
+
+    const message = `${item.name}\nNutrition: ${item.estimatedCalories} cal, ${item.estimatedProtein}g protein\n${price ? `Price: $${price.toFixed(2)}` : 'Price: Not detected'}${weeklyBudget && price ? `\nBudget impact: $${currentWeekSpent.toFixed(0)} → $${projected.toFixed(0)} / $${weeklyBudget.toFixed(0)}` : ''}`;
+
+    setConfirmDialogPrice(price);
+    setConfirmDialogMessage(message);
+    setConfirmDialogVisible(true);
+  };
+
   const handleConfirmOrder = () => {
     const detectedPrice = parsePrice(item.price);
 
-    const confirmWithPrice = (price: number | undefined) => {
-      const currentWeekSpent = getCurrentWeekSpent();
-      const projected = currentWeekSpent + (price || 0);
-
-      const message = `${item.name}\nNutrition: ${item.estimatedCalories} cal, ${item.estimatedProtein}g protein\n${price ? `Price: $${price.toFixed(2)}` : 'Price: Not detected'}${weeklyBudget && price ? `\nBudget impact: $${currentWeekSpent.toFixed(0)} → $${projected.toFixed(0)} / $${weeklyBudget.toFixed(0)}` : ''}`;
-
-      setConfirmDialogPrice(price);
-      setConfirmDialogMessage(message);
-      setConfirmDialogVisible(true);
-    };
-
     if (detectedPrice) {
-      confirmWithPrice(detectedPrice);
+      openConfirmDialogWithPrice(detectedPrice);
       return;
     }
 
-    if (Platform.OS === 'ios' && typeof Alert.prompt === 'function') {
-      Alert.prompt(
-        'Add Meal Price',
-        "We couldn't detect a price. Enter the amount paid:",
-        [
-          { text: 'Skip', style: 'cancel', onPress: () => confirmWithPrice(undefined) },
-          {
-            text: 'Use Price',
-            onPress: (value?: string) => {
-              const parsed = value ? Number.parseFloat(value.replace(/[^0-9.]/g, '')) : NaN;
-              confirmWithPrice(Number.isFinite(parsed) ? parsed : undefined);
-            },
-          },
-        ],
-        'plain-text'
-      );
+    setCustomPriceInput('');
+    setPriceEstimateDialogVisible(true);
+  };
+
+  const handleCustomPriceSubmit = () => {
+    const parsed = Number.parseFloat(customPriceInput.replace(/[^0-9.]/g, ''));
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1000) {
+      Alert.alert('Invalid amount', 'Please enter a value between 0 and 1000.');
       return;
     }
 
-    Alert.alert(
-      'Price Not Detected',
-      'Use a quick estimate for this meal?',
-      [
-        { text: 'Skip', style: 'cancel', onPress: () => confirmWithPrice(undefined) },
-        { text: '$10', onPress: () => confirmWithPrice(10) },
-        { text: '$15', onPress: () => confirmWithPrice(15) },
-        { text: '$20', onPress: () => confirmWithPrice(20) },
-      ]
-    );
+    setCustomPriceDialogVisible(false);
+    openConfirmDialogWithPrice(parsed);
   };
 
   return (
@@ -552,6 +539,90 @@ export default function ItemDetailScreen() {
       />
 
       <BrandedDialog
+        visible={priceEstimateDialogVisible}
+        title="Price Not Detected"
+        message="Pick a quick estimate or add a custom amount."
+        michiState="thinking"
+        onClose={() => setPriceEstimateDialogVisible(false)}
+        actions={[
+          {
+            text: 'Skip',
+            variant: 'secondary',
+            onPress: () => {
+              setPriceEstimateDialogVisible(false);
+              openConfirmDialogWithPrice(undefined);
+            },
+          },
+          {
+            text: '$10',
+            variant: 'secondary',
+            onPress: () => {
+              setPriceEstimateDialogVisible(false);
+              openConfirmDialogWithPrice(10);
+            },
+          },
+          {
+            text: '$15',
+            variant: 'secondary',
+            onPress: () => {
+              setPriceEstimateDialogVisible(false);
+              openConfirmDialogWithPrice(15);
+            },
+          },
+          {
+            text: '$20',
+            variant: 'secondary',
+            onPress: () => {
+              setPriceEstimateDialogVisible(false);
+              openConfirmDialogWithPrice(20);
+            },
+          },
+          {
+            text: 'Custom Price',
+            variant: 'primary',
+            onPress: () => {
+              setPriceEstimateDialogVisible(false);
+              setCustomPriceDialogVisible(true);
+            },
+          },
+        ]}
+      />
+
+      <Modal visible={customPriceDialogVisible} transparent animationType="fade" onRequestClose={() => setCustomPriceDialogVisible(false)}>
+        <View style={styles.customPriceBackdrop}>
+          <View style={[styles.customPriceCard, { backgroundColor: theme.colors.bg }]}> 
+            <AppText style={[styles.customPriceTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Add Meal Price</AppText>
+            <AppText style={[styles.customPriceSubtitle, { color: theme.colors.subtext }]}>Enter the amount paid</AppText>
+            <View style={[styles.customPriceInputWrap, { borderColor: theme.colors.border }]}> 
+              <AppText style={[styles.customPriceDollar, { color: theme.colors.subtext }]}>$</AppText>
+              <TextInput
+                value={customPriceInput}
+                onChangeText={(value) => setCustomPriceInput(value.replace(/[^0-9.]/g, ''))}
+                keyboardType="decimal-pad"
+                placeholder="0.00"
+                placeholderTextColor={theme.colors.subtext}
+                style={[styles.customPriceInput, { color: theme.colors.text }]}
+              />
+            </View>
+            <View style={styles.customPriceActions}>
+              <TouchableOpacity
+                style={[styles.customPriceButton, styles.customPriceButtonSecondary, { borderColor: theme.colors.border }]}
+                onPress={() => setCustomPriceDialogVisible(false)}
+              >
+                <AppText style={[styles.customPriceButtonText, { color: theme.colors.text }]}>Cancel</AppText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.customPriceButton, styles.customPriceButtonPrimary, { backgroundColor: theme.colors.brand }]}
+                onPress={handleCustomPriceSubmit}
+              >
+                <AppText style={styles.customPriceButtonPrimaryText}>Use Price</AppText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <BrandedDialog
         visible={confirmDialogVisible}
         title="Confirm Your Order"
         message={confirmDialogMessage}
@@ -812,5 +883,63 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 8,
+  },
+  customPriceBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  customPriceCard: {
+    borderRadius: 18,
+    padding: 18,
+  },
+  customPriceTitle: {
+    fontSize: 20,
+    marginBottom: 8,
+  },
+  customPriceSubtitle: {
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  customPriceInputWrap: {
+    borderWidth: 1,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    marginBottom: 14,
+  },
+  customPriceDollar: {
+    fontSize: 18,
+    marginRight: 6,
+  },
+  customPriceInput: {
+    flex: 1,
+    height: 46,
+    fontSize: 17,
+  },
+  customPriceActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  customPriceButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  customPriceButtonSecondary: {
+    borderWidth: 1,
+  },
+  customPriceButtonPrimary: {},
+  customPriceButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  customPriceButtonPrimaryText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

@@ -13,7 +13,7 @@ export default function WelcomeScreen() {
 
   const handleContinue = () => {
     setStep(0);
-    router.push('/onboarding/goal');
+    router.push('/onboarding/profile-setup');
   };
 
   return (

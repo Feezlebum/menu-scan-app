@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { MichiVariant } from '@/src/utils/michiAssets';
 
 // Types
 export type Goal = 'lose' | 'maintain' | 'gain' | 'health';
@@ -31,6 +32,7 @@ export interface OnboardingData {
   diningChallenge: DiningChallenge | null;
   dailyCalorieTarget: number | null;
   goalDate: string | null;
+  profileMichi: MichiVariant;
 }
 
 interface OnboardingStore extends OnboardingData {
@@ -52,6 +54,7 @@ interface OnboardingStore extends OnboardingData {
   toggleCuisine: (cuisine: string) => void;
   setEatingFrequency: (freq: EatingFrequency) => void;
   setDiningChallenge: (challenge: DiningChallenge) => void;
+  setProfileMichi: (variant: MichiVariant) => void;
   calculatePlan: () => void;
   completeOnboarding: () => void;
   reset: () => void;
@@ -77,6 +80,7 @@ const initialState: OnboardingData = {
   diningChallenge: null,
   dailyCalorieTarget: null,
   goalDate: null,
+  profileMichi: 'avatar',
 };
 
 // Mifflin-St Jeor TDEE Calculator
@@ -165,6 +169,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
       
       setEatingFrequency: (freq) => set({ eatingFrequency: freq }),
       setDiningChallenge: (challenge) => set({ diningChallenge: challenge }),
+      setProfileMichi: (variant) => set({ profileMichi: variant }),
 
       calculatePlan: () => {
         const state = get();
@@ -216,4 +221,4 @@ export const useOnboardingStore = create<OnboardingStore>()(
 );
 
 // Total steps for progress calculation
-export const TOTAL_ONBOARDING_STEPS = 21;
+export const TOTAL_ONBOARDING_STEPS = 22;

@@ -3,7 +3,6 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Alert, Platform 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import * as Clipboard from 'expo-clipboard';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { AppText } from '@/src/components/ui/AppText';
 import { Card } from '@/src/components/ui/Card';
@@ -86,10 +85,6 @@ export default function ItemDetailScreen() {
 
   const orderScript = generateOrderScript();
 
-  const copyScript = async () => {
-    await Clipboard.setStringAsync(orderScript.replace(/"/g, ''));
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
 
   const shareItem = async () => {
     try {
@@ -435,10 +430,6 @@ export default function ItemDetailScreen() {
             <AppText style={[styles.cardTitle, { color: theme.colors.text }]}>
               🗣️ What to Say
             </AppText>
-            <TouchableOpacity onPress={copyScript} style={styles.copyButton}>
-              <FontAwesome name="copy" size={16} color={theme.colors.brand} />
-              <AppText style={[styles.copyText, { color: theme.colors.brand }]}>Copy</AppText>
-            </TouchableOpacity>
           </View>
           <AppText style={[styles.scriptText, { color: theme.colors.text }]}>
             {orderScript}
@@ -770,15 +761,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
-  },
-  copyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  copyText: {
-    fontSize: 14,
-    fontWeight: '500',
   },
   scriptText: {
     fontSize: 16,

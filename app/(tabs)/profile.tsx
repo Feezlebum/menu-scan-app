@@ -28,14 +28,11 @@ import {
 } from '@/src/stores/onboardingStore';
 import { useSpendingStore } from '@/src/stores/spendingStore';
 import type { CurrencyCode } from '@/src/types/spending';
+import { getProfileMichi, type MichiVariant } from '@/src/utils/michiAssets';
 
 const HomeBackground = require('@/assets/botanicals/home-background.png');
-import { getProfileMichi } from '@/src/utils/michiAssets';
-
 const PROFILE_PHOTO_KEY = '@profile_photo';
 const PROFILE_MICHI_KEY = '@profile_michi';
-
-type MichiVariant = 'avatar' | 'hero' | 'thinking';
 type EditableField =
   | 'goal'
   | 'dietType'
@@ -91,8 +88,8 @@ export default function ProfileScreen() {
       ]);
 
       if (savedPhoto) setProfilePhoto(savedPhoto);
-      if (savedMichi === 'avatar' || savedMichi === 'hero' || savedMichi === 'thinking') {
-        setSelectedMichi(savedMichi);
+      if (savedMichi) {
+        setSelectedMichi(savedMichi as MichiVariant);
       }
     } catch {
       // non-blocking
@@ -170,34 +167,47 @@ export default function ProfileScreen() {
   };
 
   const openBudgetEditor = () => {
-    if (typeof Alert.prompt === 'function') {
-      Alert.prompt(
-        'Weekly Dining Budget',
-        'Set your weekly budget',
-        [
-          { text: 'Clear', style: 'destructive', onPress: () => { setWeeklyBudget(null); setWeeklyDiningBudget(null); } },
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Save',
-            onPress: (value?: string) => {
-              const parsed = value ? Number.parseFloat(value.replace(/[^0-9.]/g, '')) : NaN;
-              if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1000) return;
-              setWeeklyBudget(parsed);
-              setWeeklyDiningBudget(parsed);
-            },
-          },
-        ],
-        'plain-text',
-        weeklyBudget ? String(weeklyBudget) : ''
-      );
-      return;
-    }
+    const setBudget = (amount: number | null) => {
+      setWeeklyBudget(amount);
+      setWeeklyDiningBudget(amount);
+    };
 
-    Alert.alert('Weekly Dining Budget', 'Choose a budget', [
-      { text: 'Clear', style: 'destructive', onPress: () => { setWeeklyBudget(null); setWeeklyDiningBudget(null); } },
-      { text: '$50', onPress: () => { setWeeklyBudget(50); setWeeklyDiningBudget(50); } },
-      { text: '$100', onPress: () => { setWeeklyBudget(100); setWeeklyDiningBudget(100); } },
-      { text: '$200', onPress: () => { setWeeklyBudget(200); setWeeklyDiningBudget(200); } },
+    const openCustomPrompt = () => {
+      if (typeof Alert.prompt === 'function') {
+        Alert.prompt(
+          'Custom Weekly Budget',
+          'Enter your weekly dining budget',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Save',
+              onPress: (value?: string) => {
+                const parsed = value ? Number.parseFloat(value.replace(/[^0-9.]/g, '')) : NaN;
+                if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1000) {
+                  Alert.alert('Invalid amount', 'Please enter a value between 0 and 1000.');
+                  return;
+                }
+                setBudget(parsed);
+              },
+            },
+          ],
+          'plain-text',
+          weeklyBudget ? String(weeklyBudget) : ''
+        );
+        return;
+      }
+
+      Alert.alert('Custom amount', 'Custom budget entry is available on iOS prompt in this build.');
+    };
+
+    Alert.alert('Weekly Dining Budget', 'Choose your weekly budget', [
+      { text: '$50', onPress: () => setBudget(50) },
+      { text: '$100', onPress: () => setBudget(100) },
+      { text: '$150', onPress: () => setBudget(150) },
+      { text: '$200', onPress: () => setBudget(200) },
+      { text: '$250', onPress: () => setBudget(250) },
+      { text: 'Custom', onPress: openCustomPrompt },
+      { text: 'Clear', style: 'destructive', onPress: () => setBudget(null) },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -219,7 +229,7 @@ export default function ProfileScreen() {
               <Image source={{ uri: profilePhoto }} style={styles.profilePhoto} />
             ) : (
               <View style={[styles.defaultAvatar, { backgroundColor: theme.colors.brand }]}>
-                <Image source={getMichiSource(selectedMichi)} style={styles.michiFallback} />
+                <Image source={getProfileMichi(selectedMichi)} style={styles.michiFallback} />
               </View>
             )}
             <View style={[styles.editBadge, { backgroundColor: theme.colors.secondary }]}>
@@ -375,10 +385,6 @@ export default function ProfileScreen() {
   );
 }
 
-function getMichiSource(variant: MichiVariant) {
-  return getProfileMichi(variant);
-}
-
 const EditableRow: React.FC<{ icon: string; label: string; value: string; theme: any; onPress: () => void }> = ({
   icon,
   label,
@@ -430,6 +436,10 @@ const AvatarModal: React.FC<{
     { key: 'avatar', source: getProfileMichi('avatar'), label: 'Happy Michi' },
     { key: 'hero', source: getProfileMichi('hero'), label: 'Chef Michi' },
     { key: 'thinking', source: getProfileMichi('thinking'), label: 'Thinking Michi' },
+    { key: 'excited', source: getProfileMichi('excited'), label: 'Excited Michi' },
+    { key: 'sad', source: getProfileMichi('sad'), label: 'Gentle Michi' },
+    { key: 'worried', source: getProfileMichi('worried'), label: 'Concerned Michi' },
+    { key: 'confused', source: getProfileMichi('confused'), label: 'Puzzled Michi' },
   ];
 
   return (

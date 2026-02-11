@@ -7,7 +7,7 @@ export const MichiAssets = {
   encouraging: require('@/assets/michi-avatar.png'), // Default happy
   concerned: require('@/assets/michi-sad.png'),
   thinking: require('@/assets/michi-magnifying-glass.png'),
-  
+
   // Additional states for UX flows
   confused: require('@/assets/michi-confused.png'),
   worried: require('@/assets/michi-worried.png'),
@@ -16,6 +16,14 @@ export const MichiAssets = {
 } as const;
 
 export type MichiMood = keyof typeof MichiAssets;
+export type MichiVariant =
+  | 'avatar'
+  | 'hero'
+  | 'thinking'
+  | 'excited'
+  | 'sad'
+  | 'worried'
+  | 'confused';
 
 /**
  * Get Michi asset for scan states
@@ -38,12 +46,20 @@ export function getScanMichi(scanState: 'ready' | 'capturing' | 'processing' | '
 /**
  * Get appropriate Michi for profile states
  */
-export function getProfileMichi(variant: 'avatar' | 'hero' | 'thinking') {
+export function getProfileMichi(variant: MichiVariant) {
   switch (variant) {
     case 'hero':
       return MichiAssets.hero;
     case 'thinking':
       return MichiAssets.thinking;
+    case 'excited':
+      return MichiAssets.celebrating;
+    case 'sad':
+      return MichiAssets.concerned;
+    case 'worried':
+      return MichiAssets.worried;
+    case 'confused':
+      return MichiAssets.confused;
     case 'avatar':
     default:
       return MichiAssets.encouraging;

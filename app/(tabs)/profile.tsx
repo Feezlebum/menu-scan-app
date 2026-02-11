@@ -77,6 +77,7 @@ export default function ProfileScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingField, setEditingField] = useState<EditableField | null>(null);
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
+  const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
 
   useEffect(() => {
     loadAvatarSettings();
@@ -178,11 +179,7 @@ export default function ProfileScreen() {
   };
 
   const openCurrencySelector = () => {
-    const currencies: CurrencyCode[] = ['USD', 'GBP', 'EUR'];
-    Alert.alert('Currency', 'Choose your currency', [
-      ...currencies.map((c) => ({ text: c, onPress: () => setCurrency(c) })),
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    setCurrencyModalVisible(true);
   };
 
   return (
@@ -335,6 +332,34 @@ export default function ProfileScreen() {
           setBudgetModalVisible(false);
         }}
       />
+
+      <Modal visible={currencyModalVisible} transparent animationType="fade" onRequestClose={() => setCurrencyModalVisible(false)}>
+        <View style={styles.editBackdrop}>
+          <View style={[styles.editCard, { backgroundColor: theme.colors.bg }]}> 
+            <AppText style={[styles.editTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Choose Currency</AppText>
+            {(['USD', 'GBP', 'EUR'] as CurrencyCode[]).map((code) => (
+              <TouchableOpacity
+                key={code}
+                style={[
+                  styles.optionRow,
+                  { borderColor: theme.colors.border },
+                  currency === code && { backgroundColor: `${theme.colors.brand}16`, borderColor: theme.colors.brand },
+                ]}
+                onPress={() => {
+                  setCurrency(code);
+                  setCurrencyModalVisible(false);
+                }}
+              >
+                <AppText style={[styles.optionText, { color: theme.colors.text }]}>{code}</AppText>
+                {currency === code && <FontAwesome name="check" size={14} color={theme.colors.brand} />}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={styles.cancelLink} onPress={() => setCurrencyModalVisible(false)}>
+              <AppText style={[styles.cancelLinkText, { color: theme.colors.subtext }]}>Cancel</AppText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <EditPreferenceModal
         visible={editModalVisible}

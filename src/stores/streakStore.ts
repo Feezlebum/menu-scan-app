@@ -8,6 +8,7 @@ interface RecordMealDecisionInput {
   mealName: string;
   loggedAt: string;
   isHealthy: boolean;
+  healthyOverride?: 'healthy' | 'unhealthy' | null;
   overrideUsed?: boolean;
 }
 
@@ -31,8 +32,15 @@ export const useStreakStore = create<StreakState>()(
     (set) => ({
       ...initialState,
 
-      recordMealDecision: ({ mealId, mealName, loggedAt, isHealthy, overrideUsed }) => {
+      recordMealDecision: ({ mealId, mealName, loggedAt, isHealthy, healthyOverride, overrideUsed }) => {
         set((state) => {
+          const effectiveHealthy =
+            healthyOverride === 'healthy'
+              ? true
+              : healthyOverride === 'unhealthy'
+                ? false
+                : isHealthy;
+
           let nextCurrentStreak = state.currentStreak;
           let nextLongestStreak = state.longestStreak;
           let nextLastStreakDate = state.lastStreakDate;
@@ -40,7 +48,7 @@ export const useStreakStore = create<StreakState>()(
           let nextTotalGoodChoices = state.totalGoodChoices;
           let nextHistory: StreakEntry[] = [...state.streakHistory];
 
-          if (isHealthy) {
+          if (effectiveHealthy) {
             nextCurrentStreak = state.currentStreak + 1;
             nextLongestStreak = Math.max(state.longestStreak, nextCurrentStreak);
             nextLastStreakDate = loggedAt;
@@ -80,7 +88,7 @@ export const useStreakStore = create<StreakState>()(
             lastChoice: {
               mealName,
               loggedAt,
-              wasHealthy: isHealthy,
+              wasHealthy: effectiveHealthy,
               overrideUsed,
             },
           };

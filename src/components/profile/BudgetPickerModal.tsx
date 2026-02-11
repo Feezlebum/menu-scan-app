@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, View, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { Modal, View, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
 
@@ -16,19 +16,22 @@ const PRESETS = [50, 100, 150, 200, 250];
 export function BudgetPickerModal({ visible, currentBudget, onClose, onSave, onClear }: BudgetPickerModalProps) {
   const theme = useAppTheme();
   const [customBudgetInput, setCustomBudgetInput] = useState('');
+  const [customBudgetError, setCustomBudgetError] = useState('');
 
   useEffect(() => {
     if (visible) {
       setCustomBudgetInput(currentBudget ? String(currentBudget) : '');
+      setCustomBudgetError('');
     }
   }, [visible, currentBudget]);
 
   const saveCustom = () => {
     const parsed = Number.parseFloat(customBudgetInput.replace(/[^0-9.]/g, ''));
     if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1000) {
-      Alert.alert('Invalid amount', 'Please enter a value between 0 and 1000.');
+      setCustomBudgetError('Please enter a value between 0 and 1000.');
       return;
     }
+    setCustomBudgetError('');
     onSave(parsed);
     onClose();
   };
@@ -63,13 +66,20 @@ export function BudgetPickerModal({ visible, currentBudget, onClose, onSave, onC
             <AppText style={[styles.dollar, { color: theme.colors.subtext }]}>$</AppText>
             <TextInput
               value={customBudgetInput}
-              onChangeText={(value) => setCustomBudgetInput(value.replace(/[^0-9.]/g, ''))}
+              onChangeText={(value) => {
+                setCustomBudgetInput(value.replace(/[^0-9.]/g, ''));
+                if (customBudgetError) setCustomBudgetError('');
+              }}
               keyboardType="decimal-pad"
               placeholder="Enter budget"
               placeholderTextColor={theme.colors.subtext}
               style={[styles.input, { color: theme.colors.text }]}
             />
           </View>
+
+          {customBudgetError ? (
+            <AppText style={[styles.errorText, { color: theme.colors.trafficRed }]}>{customBudgetError}</AppText>
+          ) : null}
 
           <TouchableOpacity style={[styles.primaryButton, { backgroundColor: theme.colors.brand }]} onPress={saveCustom}>
             <AppText style={styles.primaryButtonText}>Save Custom Amount</AppText>
@@ -144,6 +154,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 13,
+    marginBottom: 10,
   },
   primaryButtonText: {
     color: '#fff',

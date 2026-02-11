@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Alert, Modal, TextInput } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -17,6 +17,8 @@ import { useSpendingStore } from '@/src/stores/spendingStore';
 import { evaluateHealthyChoice } from '@/src/utils/healthyCriteria';
 import { isDuplicateMealToday } from '@/src/utils/duplicateDetection';
 import { parsePrice } from '@/src/lib/scanService';
+import { PriceEditModal } from '@/src/components/modals/PriceEditModal';
+import { HealthEditModal } from '@/src/components/modals/HealthEditModal';
 
 export default function ItemDetailScreen() {
   const theme = useAppTheme();
@@ -37,6 +39,14 @@ export default function ItemDetailScreen() {
   const [priceEstimateDialogVisible, setPriceEstimateDialogVisible] = useState(false);
   const [customPriceDialogVisible, setCustomPriceDialogVisible] = useState(false);
   const [customPriceInput, setCustomPriceInput] = useState('');
+  const [customPriceError, setCustomPriceError] = useState('');
+  const [priceEditModalVisible, setPriceEditModalVisible] = useState(false);
+  const [healthEditModalVisible, setHealthEditModalVisible] = useState(false);
+  const [userPrice, setUserPrice] = useState<number | null>(null);
+  const [healthyOverride, setHealthyOverride] = useState<'ai' | 'healthy' | 'unhealthy'>('ai');
+  const [statusDialogVisible, setStatusDialogVisible] = useState(false);
+  const [statusDialogTitle, setStatusDialogTitle] = useState('');
+  const [statusDialogMessage, setStatusDialogMessage] = useState('');
   const [dialogMessage, setDialogMessage] = useState('');
   const [pendingLogArgs, setPendingLogArgs] = useState<{
     overrideHealthyChoice?: boolean;
@@ -117,7 +127,7 @@ export default function ItemDetailScreen() {
       restrictedFoods: [...(intolerances || []), ...(dislikes || [])],
     });
 
-    const detectedPrice = manualPriceOverride ?? parsePrice(item.price);
+    const detectedPrice = manualPriceOverride ?? userPrice ?? parsePrice(item.price);
     const currentWeekSpent = getCurrentWeekSpent();
     const projectedWeekSpent = currentWeekSpent + (detectedPrice || 0);
 
@@ -171,7 +181,10 @@ export default function ItemDetailScreen() {
         });
       }
 
-      const mealId = logMeal(scanId, item, restaurantName);
+      const mealId = logMeal(scanId, item, restaurantName, {
+        userPrice: typeof userPrice === 'number' ? userPrice : undefined,
+        healthyOverride: healthyOverride === 'ai' ? null : healthyOverride,
+      });
 
       if (detectedPrice && detectedPrice > 0) {
         recordSpending({
@@ -182,14 +195,20 @@ export default function ItemDetailScreen() {
         });
       }
 
-      const finalHealthy = overrideHealthyChoice || evaluation.isHealthy;
+      const finalHealthy =
+        healthyOverride === 'healthy'
+          ? true
+          : healthyOverride === 'unhealthy'
+            ? false
+            : overrideHealthyChoice || evaluation.isHealthy;
       const nextStreak = finalHealthy ? currentStreak + 1 : 0;
       recordMealDecision({
         mealId,
         mealName: item.name,
         loggedAt: new Date().toISOString(),
         isHealthy: finalHealthy,
-        overrideUsed: overrideHealthyChoice,
+        healthyOverride: healthyOverride === 'ai' ? null : healthyOverride,
+        overrideUsed: overrideHealthyChoice || healthyOverride !== 'ai',
       });
 
       if (hasEnabledTrackers) {
@@ -210,11 +229,15 @@ export default function ItemDetailScreen() {
           ? `Streak reset. You made it ${currentStreak} choices - start fresh!`
           : `${item.name} has been saved to your history.`;
 
-      Alert.alert('Meal Logged! ✓', message, [{ text: 'OK', onPress: handleClose }]);
+      setStatusDialogTitle('Meal Logged! ✓');
+      setStatusDialogMessage(message);
+      setStatusDialogVisible(true);
     } catch (error) {
       console.error('Error logging meal:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', 'Failed to log meal. Please try again.');
+      setStatusDialogTitle('Error');
+      setStatusDialogMessage('Failed to log meal. Please try again.');
+      setStatusDialogVisible(true);
     } finally {
       setIsLogging(false);
     }
@@ -232,7 +255,7 @@ export default function ItemDetailScreen() {
   };
 
   const handleConfirmOrder = () => {
-    const detectedPrice = parsePrice(item.price);
+    const detectedPrice = userPrice ?? parsePrice(item.price);
 
     if (detectedPrice) {
       openConfirmDialogWithPrice(detectedPrice);
@@ -246,10 +269,11 @@ export default function ItemDetailScreen() {
   const handleCustomPriceSubmit = () => {
     const parsed = Number.parseFloat(customPriceInput.replace(/[^0-9.]/g, ''));
     if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1000) {
-      Alert.alert('Invalid amount', 'Please enter a value between 0 and 1000.');
+      setCustomPriceError('Please enter a value between 0 and 1000.');
       return;
     }
 
+    setCustomPriceError('');
     setCustomPriceDialogVisible(false);
     openConfirmDialogWithPrice(parsed);
   };
@@ -277,9 +301,19 @@ export default function ItemDetailScreen() {
               /100
             </AppText>
           </View>
-          <AppText style={[styles.matchLabel, { color: getScoreColor(item.score) }]}>
-            {item.matchLabel || 'Match'}
-          </AppText>
+          <View style={styles.matchLabelRow}>
+            <AppText style={[styles.matchLabel, { color: getScoreColor(item.score) }]}> 
+              {item.matchLabel || 'Match'}
+            </AppText>
+            <TouchableOpacity onPress={() => setHealthEditModalVisible(true)} style={styles.healthEditButton}>
+              <FontAwesome name="pencil" size={14} color={theme.colors.brand} />
+            </TouchableOpacity>
+            {healthyOverride !== 'ai' && (
+              <View style={[styles.editedBadge, { backgroundColor: theme.colors.cardCream }]}> 
+                <AppText style={[styles.editedBadgeText, { color: theme.colors.subtext }]}>edited</AppText>
+              </View>
+            )}
+          </View>
         </View>
 
         {/* Item Name & Description */}
@@ -287,11 +321,19 @@ export default function ItemDetailScreen() {
           <AppText style={[styles.itemName, { color: theme.colors.text }]}>
             {item.name}
           </AppText>
-          {item.price && (
+          <View style={styles.priceRow}>
             <AppText style={[styles.price, { color: theme.colors.brand }]}>
-              {item.price}
+              ${Number((userPrice ?? parsePrice(item.price) ?? 0).toFixed(2)).toFixed(2)}
             </AppText>
-          )}
+            <TouchableOpacity onPress={() => setPriceEditModalVisible(true)} style={styles.priceEditButton}>
+              <FontAwesome name="pencil" size={14} color={theme.colors.brand} />
+            </TouchableOpacity>
+            {typeof userPrice === 'number' && (
+              <View style={[styles.editedBadge, { backgroundColor: theme.colors.cardCream }]}>
+                <AppText style={[styles.editedBadgeText, { color: theme.colors.subtext }]}>edited</AppText>
+              </View>
+            )}
+          </View>
           {item.description && (
             <AppText style={[styles.description, { color: theme.colors.subtext }]}>
               {item.description}
@@ -301,23 +343,17 @@ export default function ItemDetailScreen() {
 
         {/* Allergen Warning */}
         {item.allergenWarning && (
-          <Card style={[styles.allergenCard, { 
-            backgroundColor: `${theme.colors.trafficRed}15`, 
-            borderColor: theme.colors.trafficRed 
-          }]}>
+          <View style={[styles.allergenCard, { backgroundColor: theme.colors.trafficRed + '15', borderColor: theme.colors.trafficRed }]}>
             <View style={styles.allergenRow}>
               <FontAwesome name="exclamation-triangle" size={18} color={theme.colors.trafficRed} />
               <AppText style={[styles.allergenText, { color: theme.colors.trafficRed }]}>
                 {item.allergenWarning}
               </AppText>
             </View>
-            <View style={[styles.allergenRow, { marginBottom: 0 }]}>
-              <FontAwesome name="exclamation-triangle" size={14} color={theme.colors.trafficRed} />
-              <AppText style={[styles.allergenDisclaimer, { color: theme.colors.trafficRed }]}>
-                Always confirm allergens with restaurant staff
-              </AppText>
-            </View>
-          </Card>
+            <AppText style={[styles.allergenDisclaimer, { color: theme.colors.trafficRed }]}>
+              ⚠️ Always confirm allergens with restaurant staff
+            </AppText>
+          </View>
         )}
 
         {/* Score Reasons */}
@@ -455,7 +491,7 @@ export default function ItemDetailScreen() {
         </TouchableOpacity>
 
         {hasEnabledTrackers && (
-          <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}> 
+          <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}>
             Will also log to your connected trackers
           </AppText>
         )}
@@ -588,6 +624,7 @@ export default function ItemDetailScreen() {
             variant: 'primary',
             onPress: () => {
               setPriceEstimateDialogVisible(false);
+              setCustomPriceError('');
               setCustomPriceDialogVisible(true);
             },
           },
@@ -596,20 +633,26 @@ export default function ItemDetailScreen() {
 
       <Modal visible={customPriceDialogVisible} transparent animationType="fade" onRequestClose={() => setCustomPriceDialogVisible(false)}>
         <View style={styles.customPriceBackdrop}>
-          <View style={[styles.customPriceCard, { backgroundColor: theme.colors.bg }]}> 
+          <View style={[styles.customPriceCard, { backgroundColor: theme.colors.bg }]}>
             <AppText style={[styles.customPriceTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Add Meal Price</AppText>
             <AppText style={[styles.customPriceSubtitle, { color: theme.colors.subtext }]}>Enter the amount paid</AppText>
-            <View style={[styles.customPriceInputWrap, { borderColor: theme.colors.border }]}> 
+            <View style={[styles.customPriceInputWrap, { borderColor: theme.colors.border }]}>
               <AppText style={[styles.customPriceDollar, { color: theme.colors.subtext }]}>$</AppText>
               <TextInput
                 value={customPriceInput}
-                onChangeText={(value) => setCustomPriceInput(value.replace(/[^0-9.]/g, ''))}
+                onChangeText={(value) => {
+                  setCustomPriceInput(value.replace(/[^0-9.]/g, ''));
+                  if (customPriceError) setCustomPriceError('');
+                }}
                 keyboardType="decimal-pad"
                 placeholder="0.00"
                 placeholderTextColor={theme.colors.subtext}
                 style={[styles.customPriceInput, { color: theme.colors.text }]}
               />
             </View>
+            {customPriceError ? (
+              <AppText style={[styles.customPriceError, { color: theme.colors.trafficRed }]}>{customPriceError}</AppText>
+            ) : null}
             <View style={styles.customPriceActions}>
               <TouchableOpacity
                 style={[styles.customPriceButton, styles.customPriceButtonSecondary, { borderColor: theme.colors.border }]}
@@ -645,6 +688,41 @@ export default function ItemDetailScreen() {
             },
           },
         ]}
+      />
+
+      <BrandedDialog
+        visible={statusDialogVisible}
+        title={statusDialogTitle}
+        message={statusDialogMessage}
+        michiState={statusDialogTitle === 'Error' ? 'worried' : 'excited'}
+        onClose={() => {
+          setStatusDialogVisible(false);
+          if (statusDialogTitle !== 'Error') handleClose();
+        }}
+        actions={[
+          {
+            text: 'OK',
+            variant: 'primary',
+            onPress: () => {
+              setStatusDialogVisible(false);
+              if (statusDialogTitle !== 'Error') handleClose();
+            },
+          },
+        ]}
+      />
+
+      <PriceEditModal
+        visible={priceEditModalVisible}
+        initialPrice={userPrice ?? parsePrice(item.price) ?? 0}
+        onClose={() => setPriceEditModalVisible(false)}
+        onSave={(price) => setUserPrice(price)}
+      />
+
+      <HealthEditModal
+        visible={healthEditModalVisible}
+        initialValue={healthyOverride}
+        onClose={() => setHealthEditModalVisible(false)}
+        onSave={(value) => setHealthyOverride(value)}
       />
     </SafeAreaView>
   );
@@ -715,10 +793,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginTop: -4,
   },
+  matchLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 8,
+  },
   matchLabel: {
     fontSize: 20,
     fontWeight: '600',
-    marginTop: 12,
+  },
+  healthEditButton: {
+    padding: 4,
   },
   titleSection: {
     alignItems: 'center',
@@ -729,10 +815,27 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 8,
+  },
   price: {
     fontSize: 18,
     fontWeight: '600',
-    marginTop: 4,
+  },
+  priceEditButton: {
+    padding: 4,
+  },
+  editedBadge: {
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  editedBadgeText: {
+    fontSize: 11,
+    fontStyle: 'italic',
   },
   description: {
     fontSize: 15,
@@ -928,6 +1031,10 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 46,
     fontSize: 17,
+  },
+  customPriceError: {
+    fontSize: 13,
+    marginBottom: 10,
   },
   customPriceActions: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, SafeAreaView, TouchableOpacity, Alert, Platform, Image } from 'react-native';
+import { View, StyleSheet, SafeAreaView, TouchableOpacity, Platform, Image } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -11,6 +11,7 @@ import { compressImage } from '@/src/utils/imageUtils';
 import { scanMenu } from '@/src/lib/scanService';
 import { useScanStore } from '@/src/stores/scanStore';
 import { getScanMichi } from '@/src/utils/michiAssets';
+import { BrandedDialog } from '@/src/components/dialogs/BrandedDialog';
 
 type ScanState = 'ready' | 'capturing' | 'processing' | 'error';
 
@@ -20,6 +21,8 @@ export default function ScanScreen() {
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanState, setScanState] = useState<ScanState>('ready');
+  const [errorDialogVisible, setErrorDialogVisible] = useState(false);
+  const [errorDialogMessage, setErrorDialogMessage] = useState('');
   const { setScanResult, setScanError } = useScanStore();
 
   // Request permission on mount if not determined
@@ -71,9 +74,8 @@ export default function ScanScreen() {
       setScanState('error');
       setScanError(error instanceof Error ? error.message : 'Unknown error');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to capture photo. Please try again.', [
-        { text: 'OK', onPress: () => setScanState('ready') }
-      ]);
+      setErrorDialogMessage(error instanceof Error ? error.message : 'Failed to capture photo. Please try again.');
+      setErrorDialogVisible(true);
     }
   };
 
@@ -148,6 +150,27 @@ export default function ScanScreen() {
           />
         </SafeAreaView>
       </CameraView>
+
+      <BrandedDialog
+        visible={errorDialogVisible}
+        title="Scan Error"
+        message={errorDialogMessage}
+        michiState="worried"
+        onClose={() => {
+          setErrorDialogVisible(false);
+          setScanState('ready');
+        }}
+        actions={[
+          {
+            text: 'OK',
+            variant: 'primary',
+            onPress: () => {
+              setErrorDialogVisible(false);
+              setScanState('ready');
+            },
+          },
+        ]}
+      />
     </View>
   );
 }

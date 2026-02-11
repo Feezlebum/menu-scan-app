@@ -10,6 +10,8 @@ export interface LoggedMeal {
   loggedAt: string; // ISO date
   scanId: string;
   restaurantName: string | null;
+  userPrice?: number;
+  healthyOverride?: 'healthy' | 'unhealthy' | null;
 }
 
 export interface ScanHistoryEntry {
@@ -32,7 +34,12 @@ interface HistoryState {
   
   // Actions
   saveScan: (result: ScanResult) => string; // Returns scan ID
-  logMeal: (scanId: string, item: MenuItem, restaurantName: string | null) => string; // Returns meal ID
+  logMeal: (
+    scanId: string,
+    item: MenuItem,
+    restaurantName: string | null,
+    options?: { userPrice?: number; healthyOverride?: 'healthy' | 'unhealthy' | null }
+  ) => string; // Returns meal ID
   getScanById: (id: string) => ScanHistoryEntry | undefined;
   getMealById: (id: string) => LoggedMeal | undefined;
   getMealsForDate: (date: Date) => LoggedMeal[];
@@ -45,6 +52,7 @@ interface HistoryState {
 const generateId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
 export const getMealPrice = (meal: LoggedMeal): number | null => {
+  if (typeof meal.userPrice === 'number') return meal.userPrice;
   return parsePrice(meal.item.price);
 };
 
@@ -102,7 +110,7 @@ export const useHistoryStore = create<HistoryState>()(
         return id;
       },
 
-      logMeal: (scanId, item, restaurantName) => {
+      logMeal: (scanId, item, restaurantName, options) => {
         const id = generateId();
         const meal: LoggedMeal = {
           id,
@@ -110,6 +118,8 @@ export const useHistoryStore = create<HistoryState>()(
           loggedAt: new Date().toISOString(),
           scanId,
           restaurantName,
+          userPrice: options?.userPrice,
+          healthyOverride: options?.healthyOverride ?? null,
         };
         
         set((state) => ({

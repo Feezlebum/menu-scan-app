@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { Stack, Redirect, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -19,6 +19,8 @@ import {
 } from '@expo-google-fonts/nunito';
 import 'react-native-reanimated';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
+import { isAuthenticated } from '@/src/lib/auth';
+import { supabase } from '@/src/lib/supabase';
 
 // Keep splash screen visible until ready
 SplashScreen.preventAutoHideAsync();
@@ -26,6 +28,8 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const segments = useSegments();
   const { completed } = useOnboardingStore();
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const [fontsLoaded, fontError] = useFonts({
     // Baloo 2 (headings)
@@ -52,18 +56,37 @@ export default function RootLayout() {
     onLayoutRootView();
   }, [onLayoutRootView]);
 
-  // Wait for fonts to load
-  if (!fontsLoaded && !fontError) {
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      const authenticated = await isAuthenticated();
+      setIsLoggedIn(authenticated);
+      setIsAuthChecked(true);
+    };
+
+    checkAuthStatus();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session?.user);
+      setIsAuthChecked(true);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Wait for fonts/auth check to load
+  if ((!fontsLoaded && !fontError) || !isAuthChecked) {
     return null;
   }
 
   const inOnboarding = segments[0] === 'onboarding';
 
-  if (!completed && !inOnboarding) {
+  if (!isLoggedIn && !inOnboarding) {
     return <Redirect href="/onboarding" />;
   }
 
-  if (completed && inOnboarding) {
+  if (isLoggedIn && completed && inOnboarding) {
     return <Redirect href="/(tabs)" />;
   }
 

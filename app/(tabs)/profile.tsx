@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   StyleSheet,
@@ -30,6 +31,7 @@ import { useSpendingStore } from '@/src/stores/spendingStore';
 import type { CurrencyCode } from '@/src/types/spending';
 import { getProfileMichi, type MichiVariant } from '@/src/utils/michiAssets';
 import { BudgetPickerModal } from '@/src/components/profile/BudgetPickerModal';
+import { deleteAccount, getCurrentUser, signOut } from '@/src/lib/auth';
 
 const HomeBackground = require('@/assets/botanicals/home-background.png');
 const PROFILE_PHOTO_KEY = '@profile_photo';
@@ -46,6 +48,7 @@ type EditableField =
 
 export default function ProfileScreen() {
   const theme = useAppTheme();
+  const router = useRouter();
   const {
     goal,
     dietType,
@@ -58,6 +61,7 @@ export default function ProfileScreen() {
     currentWeightKg,
     goalWeightKg,
     weeklyDiningBudget,
+    email,
     setGoal,
     setDietType,
     setMacroPriority,
@@ -78,9 +82,11 @@ export default function ProfileScreen() {
   const [editingField, setEditingField] = useState<EditableField | null>(null);
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+  const [accountEmail, setAccountEmail] = useState<string>('');
 
   useEffect(() => {
     loadAvatarSettings();
+    loadAccountEmail();
   }, []);
 
   const loadAvatarSettings = async () => {
@@ -97,6 +103,11 @@ export default function ProfileScreen() {
     } catch {
       // non-blocking
     }
+  };
+
+  const loadAccountEmail = async () => {
+    const user = await getCurrentUser();
+    setAccountEmail(user?.email ?? '');
   };
 
   const saveProfilePhoto = async (uri: string) => {
@@ -180,6 +191,47 @@ export default function ProfileScreen() {
 
   const openCurrencySelector = () => {
     setCurrencyModalVisible(true);
+  };
+
+  const handleLogOut = async () => {
+    Alert.alert('Log Out', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log Out',
+        style: 'destructive',
+        onPress: async () => {
+          await signOut();
+          router.replace('/onboarding/' as any);
+        },
+      },
+    ]);
+  };
+
+  const handleDeleteAccount = async () => {
+    Alert.alert('Delete Account', 'This will permanently delete your account and all data. This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          Alert.alert('Are you absolutely sure?', 'Your account and all data will be permanently deleted.', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Delete Forever',
+              style: 'destructive',
+              onPress: async () => {
+                try {
+                  await deleteAccount();
+                  router.replace('/onboarding/' as any);
+                } catch (error: any) {
+                  Alert.alert('Delete failed', error?.message ?? 'Unable to delete account right now.');
+                }
+              },
+            },
+          ]);
+        },
+      },
+    ]);
   };
 
   return (
@@ -298,6 +350,39 @@ export default function ProfileScreen() {
                   <View style={[styles.tipToggle, { backgroundColor: includeTips ? theme.colors.brand : '#ddd' }]}>
                     <View style={[styles.tipToggleKnob, includeTips && styles.tipToggleKnobOn]} />
                   </View>
+                </TouchableOpacity>
+              </Card>
+            </View>
+
+            <View style={styles.section}>
+              <AppText style={[styles.sectionTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Account</AppText>
+              <Card style={styles.preferencesCard}>
+                <View style={styles.preferenceRow}>
+                  <View style={styles.preferenceLeft}>
+                    <FontAwesome name="envelope" size={18} color={theme.colors.brand} />
+                    <AppText style={[styles.preferenceLabel, { color: theme.colors.text }]}>Email</AppText>
+                  </View>
+                  <AppText style={[styles.preferenceValue, { color: theme.colors.subtext }]}>{accountEmail || email || 'Not set'}</AppText>
+                </View>
+
+                <Divider theme={theme} />
+
+                <TouchableOpacity style={styles.preferenceRow} onPress={handleLogOut} activeOpacity={0.75}>
+                  <View style={styles.preferenceLeft}>
+                    <FontAwesome name="sign-out" size={18} color={theme.colors.trafficAmber} />
+                    <AppText style={[styles.preferenceLabel, { color: theme.colors.trafficAmber }]}>Log Out</AppText>
+                  </View>
+                  <FontAwesome name="chevron-right" size={12} color={theme.colors.subtext} />
+                </TouchableOpacity>
+
+                <Divider theme={theme} />
+
+                <TouchableOpacity style={styles.preferenceRow} onPress={handleDeleteAccount} activeOpacity={0.75}>
+                  <View style={styles.preferenceLeft}>
+                    <FontAwesome name="trash" size={18} color={theme.colors.trafficRed} />
+                    <AppText style={[styles.preferenceLabel, { color: theme.colors.trafficRed }]}>Delete Account</AppText>
+                  </View>
+                  <FontAwesome name="chevron-right" size={12} color={theme.colors.subtext} />
                 </TouchableOpacity>
               </Card>
             </View>

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   StyleSheet,
@@ -30,6 +31,7 @@ import { useSpendingStore } from '@/src/stores/spendingStore';
 import type { CurrencyCode } from '@/src/types/spending';
 import { getProfileMichi, type MichiVariant } from '@/src/utils/michiAssets';
 import { BudgetPickerModal } from '@/src/components/profile/BudgetPickerModal';
+import { deleteAccount, getCurrentUser, signOut } from '@/src/lib/auth';
 
 const HomeBackground = require('@/assets/botanicals/home-background.png');
 const PROFILE_PHOTO_KEY = '@profile_photo';
@@ -46,6 +48,7 @@ type EditableField =
 
 export default function ProfileScreen() {
   const theme = useAppTheme();
+  const router = useRouter();
   const {
     goal,
     dietType,
@@ -58,6 +61,7 @@ export default function ProfileScreen() {
     currentWeightKg,
     goalWeightKg,
     weeklyDiningBudget,
+    email,
     setGoal,
     setDietType,
     setMacroPriority,
@@ -78,9 +82,14 @@ export default function ProfileScreen() {
   const [editingField, setEditingField] = useState<EditableField | null>(null);
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+  const [accountEmail, setAccountEmail] = useState<string>('');
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     loadAvatarSettings();
+    loadAccountEmail();
   }, []);
 
   const loadAvatarSettings = async () => {
@@ -97,6 +106,11 @@ export default function ProfileScreen() {
     } catch {
       // non-blocking
     }
+  };
+
+  const loadAccountEmail = async () => {
+    const user = await getCurrentUser();
+    setAccountEmail(user?.email ?? '');
   };
 
   const saveProfilePhoto = async (uri: string) => {
@@ -180,6 +194,41 @@ export default function ProfileScreen() {
 
   const openCurrencySelector = () => {
     setCurrencyModalVisible(true);
+  };
+
+  const handleLogOut = async () => {
+    Alert.alert('Log Out', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log Out',
+        style: 'destructive',
+        onPress: async () => {
+          await signOut();
+          router.replace('/onboarding/' as any);
+        },
+      },
+    ]);
+  };
+
+  const handleDeleteAccount = () => {
+    setDeleteError(null);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (deletingAccount) return;
+    setDeletingAccount(true);
+    setDeleteError(null);
+
+    try {
+      await deleteAccount();
+      setDeleteModalVisible(false);
+      router.replace('/onboarding/' as any);
+    } catch (error: any) {
+      setDeleteError(error?.message ?? 'Unable to delete account right now.');
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   return (
@@ -303,6 +352,39 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.section}>
+              <AppText style={[styles.sectionTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Account</AppText>
+              <Card style={styles.preferencesCard}>
+                <View style={styles.preferenceRow}>
+                  <View style={styles.preferenceLeft}>
+                    <FontAwesome name="envelope" size={18} color={theme.colors.brand} />
+                    <AppText style={[styles.preferenceLabel, { color: theme.colors.text }]}>Email</AppText>
+                  </View>
+                  <AppText style={[styles.preferenceValue, { color: theme.colors.subtext }]}>{accountEmail || email || 'Not set'}</AppText>
+                </View>
+
+                <Divider theme={theme} />
+
+                <TouchableOpacity style={styles.preferenceRow} onPress={handleLogOut} activeOpacity={0.75}>
+                  <View style={styles.preferenceLeft}>
+                    <FontAwesome name="sign-out" size={18} color={theme.colors.trafficAmber} />
+                    <AppText style={[styles.preferenceLabel, { color: theme.colors.trafficAmber }]}>Log Out</AppText>
+                  </View>
+                  <FontAwesome name="chevron-right" size={12} color={theme.colors.subtext} />
+                </TouchableOpacity>
+
+                <Divider theme={theme} />
+
+                <TouchableOpacity style={styles.preferenceRow} onPress={handleDeleteAccount} activeOpacity={0.75}>
+                  <View style={styles.preferenceLeft}>
+                    <FontAwesome name="trash" size={18} color={theme.colors.trafficRed} />
+                    <AppText style={[styles.preferenceLabel, { color: theme.colors.trafficRed }]}>Delete Account</AppText>
+                  </View>
+                  <FontAwesome name="chevron-right" size={12} color={theme.colors.subtext} />
+                </TouchableOpacity>
+              </Card>
+            </View>
+
+            <View style={styles.section}>
               <Card style={[styles.infoCard, { backgroundColor: theme.colors.cardCream }]}> 
                 <AppText style={[styles.infoTitle, { color: theme.colors.text, fontFamily: theme.fonts.body.semiBold }]}>MenuScan v1.0.0</AppText>
                 <AppText style={[styles.infoSubtitle, { color: theme.colors.subtext }]}>Built to make healthier menu choices easier.</AppText>
@@ -355,6 +437,33 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             ))}
             <TouchableOpacity style={styles.cancelLink} onPress={() => setCurrencyModalVisible(false)}>
+              <AppText style={[styles.cancelLinkText, { color: theme.colors.subtext }]}>Cancel</AppText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
+        <View style={styles.editBackdrop}>
+          <View style={[styles.editCard, { backgroundColor: theme.colors.bg }]}> 
+            <AppText style={[styles.editTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Delete Account</AppText>
+            <AppText style={[styles.deleteWarning, { color: theme.colors.subtext }]}>This permanently deletes your account and data. This action cannot be undone.</AppText>
+
+            {deleteError ? (
+              <View style={[styles.deleteErrorBox, { borderColor: theme.colors.trafficRed }]}> 
+                <AppText style={[styles.deleteErrorText, { color: theme.colors.trafficRed }]}>{deleteError}</AppText>
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={[styles.deleteButton, { backgroundColor: theme.colors.trafficRed, opacity: deletingAccount ? 0.75 : 1 }]}
+              disabled={deletingAccount}
+              onPress={confirmDeleteAccount}
+            >
+              <AppText style={styles.deleteButtonText}>{deletingAccount ? 'Deleting...' : 'Delete Forever'}</AppText>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.cancelLink} onPress={() => setDeleteModalVisible(false)} disabled={deletingAccount}>
               <AppText style={[styles.cancelLinkText, { color: theme.colors.subtext }]}>Cancel</AppText>
             </TouchableOpacity>
           </View>
@@ -981,6 +1090,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  deleteWarning: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  deleteErrorBox: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+  },
+  deleteErrorText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  deleteButton: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
     color: '#fff',
     fontSize: 15,
     fontWeight: '700',

@@ -12,7 +12,7 @@ interface Props {
   subtitle?: string;
   children: ReactNode;
   canContinue?: boolean;
-  onContinue?: () => void;
+  onContinue?: () => void | boolean | Promise<void | boolean>;
   showBack?: boolean;
   buttonText?: string;
   hideProgress?: boolean;
@@ -39,9 +39,12 @@ export function OnboardingScreen({
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (onContinue) {
-      onContinue();
+      const result = await onContinue();
+      if (result === false) {
+        return;
+      }
     }
     nextStep();
   };

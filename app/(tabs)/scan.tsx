@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, SafeAreaView, TouchableOpacity, Platform, Image, Animated, Easing } from 'react-native';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -205,6 +206,14 @@ export default function ScanScreen() {
             disabled={scanState !== 'ready'}
             isProcessing={scanState === 'processing'}
           />
+          <TouchableOpacity
+            style={[styles.manualEntryButton, { borderColor: 'rgba(255,255,255,0.55)' }]}
+            onPress={() => router.push('/manual-entry' as any)}
+            activeOpacity={0.85}
+          >
+            <FontAwesome name="edit" size={16} color="#FFFFFF" />
+            <AppText style={styles.manualEntryText}>Add Item Manually</AppText>
+          </TouchableOpacity>
         </SafeAreaView>
       </CameraView>
 
@@ -316,6 +325,22 @@ const styles = StyleSheet.create({
   controls: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: 40,
+    paddingBottom: 32,
+  },
+  manualEntryButton: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+  },
+  manualEntryText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

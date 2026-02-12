@@ -339,6 +339,14 @@ export default function HistoryScreen() {
           <AppText style={[styles.calendarHint, { color: theme.colors.subtext }]}>• Days with meals are marked</AppText>
         </SafeAreaView>
       </Modal>
+
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: theme.colors.brand }]}
+        onPress={() => router.push('/manual-entry' as any)}
+        activeOpacity={0.85}
+      >
+        <FontAwesome name="plus" size={22} color="#FFFFFF" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -544,6 +552,15 @@ const EmptyHistoryState: React.FC = () => {
           >
             <FontAwesome name="camera" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
             <AppText style={[styles.emptyButtonText, { fontFamily: theme.fonts.body.semiBold }]}>Scan a Menu</AppText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.emptyManualButton, { borderColor: theme.colors.border }]}
+            onPress={() => router.push('/manual-entry' as any)}
+            activeOpacity={0.8}
+          >
+            <FontAwesome name="edit" size={16} color={theme.colors.text} style={{ marginRight: 8 }} />
+            <AppText style={[styles.emptyManualButtonText, { color: theme.colors.text, fontFamily: theme.fonts.body.semiBold }]}>Add Manually</AppText>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -936,5 +953,33 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: 16,
     color: '#FFFFFF',
+  },
+  emptyManualButton: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  emptyManualButtonText: {
+    fontSize: 15,
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 28,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

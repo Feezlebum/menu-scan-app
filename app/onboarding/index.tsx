@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
@@ -37,6 +37,13 @@ export default function MeetMichiScreen() {
         <View style={[styles.placeholder, { borderColor: theme.colors.border, backgroundColor: theme.colors.cardCream }]}>
           <AppText style={[styles.placeholderText, { color: theme.colors.subtext }]}>PLACEHOLDER: Hero Michi Introduction</AppText>
           <AppText style={[styles.placeholderSub, { color: theme.colors.subtext }]}>180x180 • wave / wink / magnifying glass tap states</AppText>
+        </View>
+
+        <View style={styles.loginPrompt}>
+          <AppText style={[styles.loginText, { color: theme.colors.subtext }]}>Already have an account?</AppText>
+          <TouchableOpacity onPress={() => router.push('/onboarding/login' as any)}>
+            <AppText style={[styles.loginLink, { color: theme.colors.brand }]}>Log In</AppText>
+          </TouchableOpacity>
         </View>
       </View>
     </OnboardingScreen>
@@ -98,5 +105,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 11,
     textAlign: 'center',
+  },
+  loginPrompt: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  loginText: {
+    fontSize: 14,
+  },
+  loginLink: {
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

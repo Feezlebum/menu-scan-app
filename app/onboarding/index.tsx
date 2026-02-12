@@ -1,90 +1,102 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
 import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 
-export default function WelcomeScreen() {
+export default function MeetMichiScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { setStep } = useOnboardingStore();
 
-  const handleContinue = () => {
+  useEffect(() => {
     setStep(0);
-    router.push('/onboarding/profile-setup');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [setStep]);
+
+  const handleContinue = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push('/onboarding/biggest-challenge' as any);
   };
 
   return (
     <OnboardingScreen
-      title="Welcome to MenuScan"
-      subtitle="Your personal restaurant menu guide. Scan any menu and get personalized healthy recommendations."
+      title="Meet Michi"
+      subtitle="Hey there! I'm Michi, your personal restaurant guide. I help people like you make confident choices that feel amazing AND save money. Ready to never stress about menus again?"
       showBack={false}
       hideProgress
-      buttonText="Let's Get Started"
+      buttonText="I'm Ready"
       onContinue={handleContinue}
     >
-      <View style={styles.mascotContainer}>
-        {/* Mascot placeholder */}
-        <View style={[styles.mascotPlaceholder, { backgroundColor: theme.colors.brand + '20' }]}>
-          <AppText style={styles.mascotEmoji}>🥗</AppText>
-        </View>
-        
-        <View style={styles.features}>
-          <FeatureItem emoji="📸" text="Scan any restaurant menu" />
-          <FeatureItem emoji="✨" text="Get personalized Top 3 picks" />
-          <FeatureItem emoji="🎯" text="Stay on track with your goals" />
-          <FeatureItem emoji="📊" text="Traffic light nutrition guide" />
+      <View style={styles.content}>
+        <ProgressBadge step={1} total={14} />
+
+        <View style={[styles.placeholder, { borderColor: theme.colors.border, backgroundColor: theme.colors.cardCream }]}>
+          <AppText style={[styles.placeholderText, { color: theme.colors.subtext }]}>PLACEHOLDER: Hero Michi Introduction</AppText>
+          <AppText style={[styles.placeholderSub, { color: theme.colors.subtext }]}>180x180 • wave / wink / magnifying glass tap states</AppText>
         </View>
       </View>
     </OnboardingScreen>
   );
 }
 
-function FeatureItem({ emoji, text }: { emoji: string; text: string }) {
+function ProgressBadge({ step, total }: { step: number; total: number }) {
   const theme = useAppTheme();
-  
   return (
-    <View style={styles.featureItem}>
-      <AppText style={styles.featureEmoji}>{emoji}</AppText>
-      <AppText style={[styles.featureText, { color: theme.colors.text }]}>{text}</AppText>
+    <View style={[styles.progressWrap, { borderColor: theme.colors.border }]}>
+      <AppText style={[styles.progressText, { color: theme.colors.subtext }]}>Step {step}/{total}</AppText>
+      <View style={[styles.track, { backgroundColor: theme.colors.cardSage }]}> 
+        <View style={[styles.fill, { width: `${(step / total) * 100}%`, backgroundColor: theme.colors.brand }]} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  mascotContainer: {
-    flex: 1,
+  content: {
+    gap: 18,
+    paddingTop: 8,
+  },
+  progressWrap: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+    gap: 8,
+  },
+  progressText: {
+    fontSize: 13,
+  },
+  track: {
+    height: 8,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  fill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  placeholder: {
+    width: 180,
+    height: 180,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 12,
   },
-  mascotPlaceholder: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 40,
+  placeholderText: {
+    fontSize: 13,
+    textAlign: 'center',
+    fontWeight: '600',
   },
-  mascotEmoji: {
-    fontSize: 72,
-  },
-  features: {
-    alignSelf: 'stretch',
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 16,
-  },
-  featureEmoji: {
-    fontSize: 24,
-    marginRight: 16,
-  },
-  featureText: {
-    fontSize: 17,
-    fontWeight: '500',
+  placeholderSub: {
+    marginTop: 8,
+    fontSize: 11,
+    textAlign: 'center',
   },
 });

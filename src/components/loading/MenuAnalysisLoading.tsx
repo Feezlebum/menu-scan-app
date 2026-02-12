@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, StyleSheet, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { 
   useAnimatedStyle, 
@@ -12,8 +12,15 @@ import Animated, {
 import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
 import { useScanStore } from '@/src/stores/scanStore';
+import { Video, ResizeMode } from 'expo-av';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const processingVideo = Platform.select({
+  ios: require('@/assets/animations/michi-processing.mp4'),
+  android: require('@/assets/animations/michi-processing.webm'),
+  default: require('@/assets/animations/michi-processing.mp4'),
+});
 
 interface MenuAnalysisLoadingProps {
   onComplete?: () => void;
@@ -104,8 +111,8 @@ export default function MenuAnalysisLoading({
     const breathingInterval = setInterval(breathingAnimation, 3000);
 
     // Phase and text progression
-    let phaseTimeout: NodeJS.Timeout;
-    let textInterval: NodeJS.Timer;
+    let phaseTimeout: ReturnType<typeof setTimeout>;
+    let textInterval: ReturnType<typeof setInterval>;
 
     const startPhaseProgression = () => {
       let totalElapsed = 0;
@@ -169,13 +176,13 @@ export default function MenuAnalysisLoading({
       "Michi is working hard for you...";
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.warmCream }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
       <SafeAreaView style={styles.content}>
         
         {/* Header */}
         <View style={styles.header}>
           <AppText style={[styles.title, { 
-            color: theme.colors.textPrimary,
+            color: theme.colors.text,
             fontFamily: theme.fonts.heading.bold 
           }]}>
             MenuScan
@@ -187,20 +194,23 @@ export default function MenuAnalysisLoading({
           
           {/* Animated Michi */}
           <Animated.View style={[styles.michiContainer, michiStyle]}>
-            <Image
-              source={require('@/assets/michi-magnifying-glass.png')}
-              style={styles.michiImage}
-              resizeMode="contain"
+            <Video
+              source={processingVideo}
+              style={styles.michiVideo}
+              shouldPlay
+              isLooping
+              isMuted
+              resizeMode={ResizeMode.CONTAIN}
             />
           </Animated.View>
 
           {/* Progress Bar */}
           <View style={styles.progressContainer}>
-            <View style={[styles.progressTrack, { backgroundColor: theme.colors.sage + '30' }]}>
+            <View style={[styles.progressTrack, { backgroundColor: theme.colors.cardSage }]}>
               <Animated.View 
                 style={[
                   styles.progressFill, 
-                  { backgroundColor: theme.colors.sage },
+                  { backgroundColor: theme.colors.brand },
                   progressBarStyle
                 ]} 
               />
@@ -210,7 +220,7 @@ export default function MenuAnalysisLoading({
           {/* Status Text */}
           <Animated.View style={textStyle}>
             <AppText style={[styles.statusText, { 
-              color: theme.colors.textSecondary,
+              color: theme.colors.subtext,
               fontFamily: theme.fonts.body.medium 
             }]}>
               {currentText}
@@ -253,7 +263,7 @@ const styles = StyleSheet.create({
   michiContainer: {
     marginBottom: 60,
   },
-  michiImage: {
+  michiVideo: {
     width: 160,
     height: 160,
   },

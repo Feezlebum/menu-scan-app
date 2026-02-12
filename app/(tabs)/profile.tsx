@@ -190,7 +190,7 @@ export default function ProfileScreen() {
             {profilePhoto ? (
               <Image source={{ uri: profilePhoto }} style={styles.profilePhoto} />
             ) : (
-              <View style={[styles.defaultAvatar, { backgroundColor: theme.colors.brand }]}>
+              <View style={[styles.defaultAvatar, { backgroundColor: 'transparent' }]}>
                 <Image source={getProfileMichi(selectedMichi)} style={styles.michiFallback} />
               </View>
             )}

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, SafeAreaView, TouchableOpacity, Platform, Image } from 'react-native';
+import { View, StyleSheet, SafeAreaView, TouchableOpacity, Platform, Image, Animated, Easing } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -15,6 +15,8 @@ import { BrandedDialog } from '@/src/components/dialogs/BrandedDialog';
 
 type ScanState = 'ready' | 'capturing' | 'processing' | 'error';
 
+const MichiProcessing = require('@/assets/michi-magnifying-glass.png');
+
 export default function ScanScreen() {
   const theme = useAppTheme();
   const router = useRouter();
@@ -23,6 +25,8 @@ export default function ScanScreen() {
   const [scanState, setScanState] = useState<ScanState>('ready');
   const [errorDialogVisible, setErrorDialogVisible] = useState(false);
   const [errorDialogMessage, setErrorDialogMessage] = useState('');
+  const processingPulse = useRef(new Animated.Value(1)).current;
+  const processingRotate = useRef(new Animated.Value(0)).current;
   const { setScanResult, setScanError } = useScanStore();
 
   // Request permission on mount if not determined
@@ -31,6 +35,31 @@ export default function ScanScreen() {
       requestPermission();
     }
   }, [permission]);
+
+  useEffect(() => {
+    if (scanState === 'processing') {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(processingPulse, { toValue: 1.08, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(processingPulse, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      );
+
+      const spin = Animated.loop(
+        Animated.timing(processingRotate, { toValue: 1, duration: 2800, easing: Easing.linear, useNativeDriver: true })
+      );
+
+      pulse.start();
+      spin.start();
+
+      return () => {
+        pulse.stop();
+        spin.stop();
+        processingPulse.setValue(1);
+        processingRotate.setValue(0);
+      };
+    }
+  }, [scanState, processingPulse, processingRotate]);
 
   const handleCapture = async () => {
     if (!cameraRef.current || scanState !== 'ready') return;
@@ -147,6 +176,26 @@ export default function ScanScreen() {
         {/* Scan frame overlay */}
         <View style={styles.frameContainer}>
           <ScanFrame isScanning={scanState === 'processing'} />
+          {scanState === 'processing' && (
+            <Animated.View
+              style={[
+                styles.processingMichiWrap,
+                {
+                  transform: [
+                    { scale: processingPulse },
+                    {
+                      rotate: processingRotate.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg'],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Image source={MichiProcessing} style={styles.processingMichi} resizeMode="contain" />
+            </Animated.View>
+          )}
         </View>
 
         {/* Controls */}
@@ -254,6 +303,15 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  processingMichiWrap: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  processingMichi: {
+    width: 120,
+    height: 120,
   },
   controls: {
     alignItems: 'center',

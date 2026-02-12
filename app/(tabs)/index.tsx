@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Image, ImageBackground } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -26,10 +27,10 @@ const HomeBackground = require('@/assets/botanicals/home-background.png');
 // Michi's rotating tips
 const MICHI_TIPS = [
   "Try swapping creamy dressings for vinaigrettes!",
-  "Grilled > fried — same flavor, fewer calories!",
+  "Grilled > fried - same flavor, fewer calories!",
   "Ask for sauce on the side to control portions.",
   "Protein-rich dishes keep you full longer.",
-  "Don't skip the veggies — they're your friends!",
+  "Don't skip the veggies - they're your friends!",
   "Water before meals helps with portions.",
 ];
 
@@ -68,7 +69,7 @@ export default function HomeScreen() {
   // Build unique tags with icons
   const buildTags = () => {
     const tags: { label: string; icon: string; key: string }[] = [];
-    
+
     if (goal === 'lose') {
       tags.push({ label: 'Lower Calorie', icon: '🔥', key: 'goal' });
     } else if (goal === 'gain') {
@@ -76,7 +77,7 @@ export default function HomeScreen() {
     } else if (goal === 'maintain') {
       tags.push({ label: 'Maintain', icon: '⚖️', key: 'goal' });
     }
-    
+
     if (dietType === 'vegan') {
       tags.push({ label: 'Vegan', icon: '🌱', key: 'diet' });
     } else if (dietType === 'keto') {
@@ -86,61 +87,55 @@ export default function HomeScreen() {
     } else if (dietType === 'mediterranean') {
       tags.push({ label: 'Mediterranean', icon: '🫒', key: 'diet' });
     }
-    
+
     if (intolerances?.includes('gluten') || intolerances?.includes('Gluten')) {
       tags.push({ label: 'Gluten-Free', icon: '🌾', key: 'gluten' });
     }
-    
+
     return tags.slice(0, 3);
   };
 
   const tags = buildTags();
 
   return (
-    <ImageBackground 
-      source={HomeBackground} 
-      style={styles.container} 
+    <ImageBackground
+      source={HomeBackground}
+      style={styles.container}
       resizeMode="cover"
     >
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView 
-          showsVerticalScrollIndicator={false} 
+        <ScrollView
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
         >
           {/* Michi Hero - NO card border, sits on background */}
           <View style={styles.michiHero}>
-            <Image 
-              source={MichiHero} 
+            <Image
+              source={MichiHero}
               style={styles.michiHeroImage}
               resizeMode="contain"
             />
           </View>
 
           {/* Healthy Dining Streak */}
-          <TouchableOpacity
-            style={[styles.streakCard, { backgroundColor: currentStreak > 0 ? '#E8F5E2' : '#FFF0D4' }]}
-            activeOpacity={0.9}
-            onPress={handleScan}
-          >
-            <View style={styles.streakHeader}>
-              <AppText style={styles.streakEmoji}>{currentStreak > 0 ? '🔥' : '✨'}</AppText>
-              <View style={styles.streakHeaderText}>
-                <AppText style={[styles.streakTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}> 
-                  {currentStreak > 0 ? `${currentStreak} Healthy Dining Streak` : 'Start a Healthy Dining Streak'}
-                </AppText>
-                {lastChoice ? (
-                  <AppText style={[styles.streakSubtext, { color: theme.colors.subtext }]} numberOfLines={1}>
-                    Last choice: {lastChoice.mealName} ({formatTimeAgo(lastChoice.loggedAt)})
-                  </AppText>
-                ) : (
-                  <AppText style={[styles.streakSubtext, { color: theme.colors.subtext }]}>
-                    Build momentum with each healthy choice.
-                  </AppText>
-                )}
-              </View>
-            </View>
-            <AppText style={[styles.streakCta, { color: theme.colors.brand }]}>Continue the streak — scan your menu!</AppText>
-          </TouchableOpacity>
+          {getStreakBackgroundConfig(currentStreak).gradient ? (
+            <TouchableOpacity activeOpacity={0.9} onPress={handleScan}>
+              <LinearGradient
+                colors={getStreakBackgroundConfig(currentStreak).gradient as [string, string]}
+                style={styles.streakCard}
+              >
+                <StreakContent currentStreak={currentStreak} lastChoice={lastChoice} />
+              </LinearGradient>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.streakCard, { backgroundColor: getStreakBackgroundConfig(currentStreak).solid || '#E8F5E2' }]}
+              activeOpacity={0.9}
+              onPress={handleScan}
+            >
+              <StreakContent currentStreak={currentStreak} lastChoice={lastChoice} />
+            </TouchableOpacity>
+          )}
 
           {/* Weekly Spending Widget */}
           <View style={styles.spendingCard}>
@@ -170,7 +165,7 @@ export default function HomeScreen() {
                     ]}
                   />
                 </View>
-                <AppText style={[styles.spendingSubtext, { color: theme.colors.subtext }]}> 
+                <AppText style={[styles.spendingSubtext, { color: theme.colors.subtext }]}>
                   {budgetPercent >= 100
                     ? 'Over budget this week'
                     : budgetPercent >= 80
@@ -182,15 +177,15 @@ export default function HomeScreen() {
           </View>
 
           {/* Scan a Menu CTA Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.scanButton}
             onPress={handleScan}
             activeOpacity={0.9}
           >
             <FontAwesome name="camera" size={20} color="#fff" style={styles.scanIcon} />
-            <AppText 
+            <AppText
               style={[
-                styles.scanButtonText, 
+                styles.scanButtonText,
                 { fontFamily: theme.fonts.heading.semiBold }
               ]}
             >
@@ -200,11 +195,11 @@ export default function HomeScreen() {
 
           {/* Two-Column Card Row */}
           <View style={styles.cardRow}>
-            {/* Left — Your Focus */}
+            {/* Left - Your Focus */}
             <View style={[styles.focusCard, { backgroundColor: '#E8F5E2' }]}>
-              <AppText 
+              <AppText
                 style={[
-                  styles.cardTitle, 
+                  styles.cardTitle,
                   { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }
                 ]}
               >
@@ -213,14 +208,14 @@ export default function HomeScreen() {
               <View style={styles.tagsContainer}>
                 {tags.length > 0 ? (
                   tags.map((tag) => (
-                    <View 
-                      key={tag.key} 
+                    <View
+                      key={tag.key}
                       style={[styles.tag, { backgroundColor: '#fff', borderColor: '#6BAF7A' }]}
                     >
                       <AppText style={styles.tagIcon}>{tag.icon}</AppText>
-                      <AppText 
+                      <AppText
                         style={[
-                          styles.tagText, 
+                          styles.tagText,
                           { fontFamily: theme.fonts.body.semiBold, color: theme.colors.text }
                         ]}
                       >
@@ -236,22 +231,22 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            {/* Right — Michi says */}
+            {/* Right - Michi says */}
             <View style={[styles.michiCard, { backgroundColor: '#FFE8D6' }]}>
               <View style={styles.michiSaysHeader}>
                 <Image source={MichiAvatar} style={styles.michiAvatar} />
-                <AppText 
+                <AppText
                   style={[
-                    styles.michiSaysLabel, 
+                    styles.michiSaysLabel,
                     { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }
                   ]}
                 >
                   Michi says:
                 </AppText>
               </View>
-              <AppText 
+              <AppText
                 style={[
-                  styles.michiSays, 
+                  styles.michiSays,
                   { fontFamily: theme.fonts.body.regular, color: theme.colors.text }
                 ]}
               >
@@ -274,8 +269,8 @@ export default function HomeScreen() {
               <View style={styles.lastScanContent}>
                 <TrafficLightDot tone={lastMeal.item.trafficLight} size={12} />
                 <View style={styles.lastScanInfo}>
-                  <AppText 
-                    style={[styles.lastScanName, { fontFamily: theme.fonts.body.semiBold, color: theme.colors.text }]} 
+                  <AppText
+                    style={[styles.lastScanName, { fontFamily: theme.fonts.body.semiBold, color: theme.colors.text }]}
                     numberOfLines={1}
                   >
                     {lastMeal.item.name}
@@ -305,6 +300,36 @@ export default function HomeScreen() {
         </ScrollView>
       </SafeAreaView>
     </ImageBackground>
+  );
+}
+
+function getStreakBackgroundConfig(streak: number) {
+  if (streak === 0) return { solid: '#FFF0D4', gradient: null as null | [string, string] };
+  if (streak <= 2) return { solid: '#E8F5E2', gradient: null as null | [string, string] };
+  if (streak <= 6) return { solid: null as null | string, gradient: ['#E8F5E2', '#D4EDDA'] as [string, string] };
+  return { solid: null as null | string, gradient: ['#D4EDDA', '#C3E6CB'] as [string, string] };
+}
+
+function StreakContent({ currentStreak, lastChoice }: { currentStreak: number; lastChoice: any }) {
+  const theme = useAppTheme();
+  const milestone = [7, 14, 30].includes(currentStreak);
+
+  return (
+    <View style={styles.streakContainer}>
+      <View style={styles.streakNumberContainer}>
+        {milestone && <View style={[styles.progressRing, { borderColor: theme.colors.brand + '33' }]} />}
+        <AppText style={[styles.streakNumber, { color: theme.colors.text }]}>{Math.max(0, currentStreak)}</AppText>
+      </View>
+      <AppText style={[styles.streakLabel, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Day Streak</AppText>
+      <AppText style={[styles.streakExplanation, { color: theme.colors.subtext }]}>Keep making healthy choices to improve your streak!</AppText>
+      {lastChoice ? (
+        <AppText style={[styles.streakLastChoice, { color: theme.colors.subtext }]}>
+          Last choice: {lastChoice.mealName} ({formatTimeAgo(lastChoice.loggedAt)})
+        </AppText>
+      ) : (
+        <AppText style={[styles.streakLastChoice, { color: theme.colors.subtext }]}>No choices logged yet.</AppText>
+      )}
+    </View>
   );
 }
 
@@ -361,28 +386,45 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     zIndex: 1,
   },
-  streakHeader: {
-    flexDirection: 'row',
+  streakContainer: {
     alignItems: 'center',
-    gap: 10,
+    paddingVertical: 10,
   },
-  streakEmoji: {
-    fontSize: 24,
+  streakNumberContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+    width: 72,
+    height: 72,
   },
-  streakHeaderText: {
-    flex: 1,
+  progressRing: {
+    position: 'absolute',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 3,
   },
-  streakTitle: {
+  streakNumber: {
+    fontSize: 32,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  streakLabel: {
     fontSize: 16,
-    marginBottom: 2,
+    textAlign: 'center',
+    marginBottom: 8,
   },
-  streakSubtext: {
+  streakExplanation: {
     fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 18,
+    paddingHorizontal: 10,
   },
-  streakCta: {
-    marginTop: 10,
+  streakLastChoice: {
     fontSize: 13,
-    fontWeight: '600',
+    textAlign: 'center',
   },
   spendingCard: {
     borderRadius: 16,

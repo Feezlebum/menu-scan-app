@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Dimensions, Platform } from 'react-native';
+import { View, StyleSheet, Dimensions, Platform, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { 
-  useAnimatedStyle, 
-  useSharedValue, 
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
   withTiming,
   withSequence,
   withDelay,
@@ -24,6 +24,8 @@ const processingVideo = Platform.select({
 
 interface MenuAnalysisLoadingProps {
   onComplete?: () => void;
+  onRetry?: () => void;
+  onManualEntry?: () => void;
   estimatedDurationMs?: number;
 }
 
@@ -45,7 +47,7 @@ const ANALYSIS_PHASES = [
     ]
   },
   {
-    duration: 4000, // 7-11s  
+    duration: 4000, // 7-11s
     texts: [
       "Calculating calories and nutrients... 📊",
       "Michi's doing the math!",
@@ -55,7 +57,7 @@ const ANALYSIS_PHASES = [
   {
     duration: 4000, // 11-15s
     texts: [
-      "Finding your perfect matches... ✨", 
+      "Finding your perfect matches... ✨",
       "Tailoring recommendations just for you!",
       "Michi knows what you like!",
     ]
@@ -70,16 +72,18 @@ const ANALYSIS_PHASES = [
   },
 ];
 
-export default function MenuAnalysisLoading({ 
-  onComplete, 
-  estimatedDurationMs = 19000 
+export default function MenuAnalysisLoading({
+  onComplete,
+  onRetry,
+  onManualEntry,
+  estimatedDurationMs = 19000
 }: MenuAnalysisLoadingProps) {
   const theme = useAppTheme();
   const { currentResult, scanError } = useScanStore();
   const [currentPhase, setCurrentPhase] = useState(0);
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   const [hasCompleted, setHasCompleted] = useState(false);
-  
+
   // Animation values
   const progressWidth = useSharedValue(0);
   const michiScale = useSharedValue(1);
@@ -101,9 +105,9 @@ export default function MenuAnalysisLoading({
     // Progress bar animation - smooth fill over duration
     progressWidth.value = withTiming(
       SCREEN_WIDTH * 0.8, // 80% of screen width
-      { 
+      {
         duration: estimatedDurationMs,
-        easing: Easing.out(Easing.quad) 
+        easing: Easing.out(Easing.quad)
       }
     );
 
@@ -114,7 +118,7 @@ export default function MenuAnalysisLoading({
         withTiming(1, { duration: 1500 })
       );
     };
-    
+
     breathingAnimation();
     const breathingInterval = setInterval(breathingAnimation, 3000);
 
@@ -124,19 +128,19 @@ export default function MenuAnalysisLoading({
 
     const startPhaseProgression = () => {
       let totalElapsed = 0;
-      
+
       ANALYSIS_PHASES.forEach((phase, phaseIndex) => {
         phaseTimeout = setTimeout(() => {
           setCurrentPhase(phaseIndex);
           setCurrentTextIndex(0);
-          
+
           // Cycle through texts within this phase
           let textIndex = 0;
           textInterval = setInterval(() => {
             if (textIndex < phase.texts.length - 1) {
               textIndex++;
               setCurrentTextIndex(textIndex);
-              
+
               // Animate text change
               textOpacity.value = withSequence(
                 withTiming(0.3, { duration: 200 }),
@@ -144,9 +148,9 @@ export default function MenuAnalysisLoading({
               );
             }
           }, phase.duration / phase.texts.length);
-          
+
         }, totalElapsed);
-        
+
         totalElapsed += phase.duration;
       });
     };
@@ -178,20 +182,20 @@ export default function MenuAnalysisLoading({
     opacity: textOpacity.value,
   }));
 
-  const currentText = hasCompleted 
+  const currentText = hasCompleted
     ? (scanError ? "Oops! Let's try that again..." : "Analysis complete! 🎉")
-    : ANALYSIS_PHASES[currentPhase]?.texts[currentTextIndex] || 
+    : ANALYSIS_PHASES[currentPhase]?.texts[currentTextIndex] ||
       "Michi is working hard for you...";
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
       <SafeAreaView style={styles.content}>
-        
+
         {/* Header */}
         <View style={styles.header}>
-          <AppText style={[styles.title, { 
+          <AppText style={[styles.title, {
             color: theme.colors.text,
-            fontFamily: theme.fonts.heading.bold 
+            fontFamily: theme.fonts.heading.bold
           }]}>
             MenuScan
           </AppText>
@@ -199,7 +203,7 @@ export default function MenuAnalysisLoading({
 
         {/* Main Content */}
         <View style={styles.mainContent}>
-          
+
           {/* Animated Michi */}
           <Animated.View style={[styles.michiContainer, michiStyle]}>
             <Video
@@ -215,12 +219,12 @@ export default function MenuAnalysisLoading({
           {/* Progress Bar */}
           <View style={styles.progressContainer}>
             <View style={[styles.progressTrack, { backgroundColor: theme.colors.cardSage }]}>
-              <Animated.View 
+              <Animated.View
                 style={[
-                  styles.progressFill, 
+                  styles.progressFill,
                   { backgroundColor: theme.colors.brand },
                   progressBarStyle
-                ]} 
+                ]}
               />
             </View>
           </View>
@@ -230,10 +234,27 @@ export default function MenuAnalysisLoading({
             <AppText style={[styles.statusText, { 
               color: theme.colors.subtext,
               fontFamily: theme.fonts.body.medium 
-            }]}>
+            }]}> 
               {currentText}
             </AppText>
           </Animated.View>
+
+          {scanError ? (
+            <View style={styles.errorActions}>
+              <View style={[styles.errorBox, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}> 
+                <AppText style={[styles.errorHelpText, { color: theme.colors.text }]}>We couldn't extract this menu. You can retry or add your item manually.</AppText>
+              </View>
+
+              <View style={styles.errorButtonsRow}>
+                <TouchableOpacity style={[styles.secondaryButton, { borderColor: theme.colors.border }]} onPress={onRetry}>
+                  <AppText style={[styles.secondaryButtonText, { color: theme.colors.text }]}>Try Again</AppText>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.primaryButton, { backgroundColor: theme.colors.brand }]} onPress={onManualEntry}>
+                  <AppText style={styles.primaryButtonText}>Add Manually</AppText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
 
         </View>
 
@@ -293,6 +314,48 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 26,
     maxWidth: SCREEN_WIDTH * 0.8,
+  },
+  errorActions: {
+    marginTop: 18,
+    width: '100%',
+    maxWidth: SCREEN_WIDTH * 0.86,
+    gap: 12,
+  },
+  errorBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+  },
+  errorHelpText: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  errorButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  secondaryButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  primaryButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   footer: {
     height: 60,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -19,6 +19,7 @@ import { isDuplicateMealToday } from '@/src/utils/duplicateDetection';
 import { parsePrice } from '@/src/lib/scanService';
 import { PriceEditModal } from '@/src/components/modals/PriceEditModal';
 import { HealthEditModal } from '@/src/components/modals/HealthEditModal';
+import { NutritionEditModal } from '@/src/components/modals/NutritionEditModal';
 
 export default function ItemDetailScreen() {
   const theme = useAppTheme();
@@ -42,7 +43,14 @@ export default function ItemDetailScreen() {
   const [customPriceError, setCustomPriceError] = useState('');
   const [priceEditModalVisible, setPriceEditModalVisible] = useState(false);
   const [healthEditModalVisible, setHealthEditModalVisible] = useState(false);
+  const [nutritionEditModalVisible, setNutritionEditModalVisible] = useState(false);
   const [userPrice, setUserPrice] = useState<number | null>(null);
+  const [nutritionOverrides, setNutritionOverrides] = useState<{
+    estimatedCalories: number;
+    estimatedProtein: number;
+    estimatedCarbs: number;
+    estimatedFat: number;
+  } | null>(null);
   const [healthyOverride, setHealthyOverride] = useState<'ai' | 'healthy' | 'unhealthy'>('ai');
   const [statusDialogVisible, setStatusDialogVisible] = useState(false);
   const [statusDialogTitle, setStatusDialogTitle] = useState('');
@@ -70,6 +78,23 @@ export default function ItemDetailScreen() {
   }
 
   const item = selectedItem;
+
+  useEffect(() => {
+    setNutritionOverrides({
+      estimatedCalories: item.estimatedCalories,
+      estimatedProtein: item.estimatedProtein,
+      estimatedCarbs: item.estimatedCarbs,
+      estimatedFat: item.estimatedFat,
+    });
+  }, [item]);
+
+  const effectiveItem = {
+    ...item,
+    estimatedCalories: nutritionOverrides?.estimatedCalories ?? item.estimatedCalories,
+    estimatedProtein: nutritionOverrides?.estimatedProtein ?? item.estimatedProtein,
+    estimatedCarbs: nutritionOverrides?.estimatedCarbs ?? item.estimatedCarbs,
+    estimatedFat: nutritionOverrides?.estimatedFat ?? item.estimatedFat,
+  };
 
   const getScoreColor = (score: number) => {
     if (score >= 70) return theme.colors.trafficGreen;
@@ -105,7 +130,7 @@ export default function ItemDetailScreen() {
   const shareItem = async () => {
     try {
       await Share.share({
-        message: `${item.name} - ${item.estimatedCalories} cal | Score: ${item.score}/100 | ${item.matchLabel}`,
+        message: `${item.name} - ${effectiveItem.estimatedCalories} cal | Score: ${item.score}/100 | ${item.matchLabel}`,
       });
     } catch (e) {
       console.log('Share failed:', e);
@@ -121,7 +146,7 @@ export default function ItemDetailScreen() {
   ) => {
     if (isLogging) return;
 
-    const evaluation = evaluateHealthyChoice(item, {
+    const evaluation = evaluateHealthyChoice(effectiveItem, {
       dailyCalorieGoal: dailyCalorieTarget,
       dietType,
       restrictedFoods: [...(intolerances || []), ...(dislikes || [])],
@@ -181,7 +206,7 @@ export default function ItemDetailScreen() {
         });
       }
 
-      const mealId = logMeal(scanId, item, restaurantName, {
+      const mealId = logMeal(scanId, effectiveItem, restaurantName, {
         userPrice: typeof userPrice === 'number' ? userPrice : undefined,
         healthyOverride: healthyOverride === 'ai' ? null : healthyOverride,
       });
@@ -214,10 +239,10 @@ export default function ItemDetailScreen() {
       if (hasEnabledTrackers) {
         await exportToTrackers({
           foodName: item.name,
-          calories: item.estimatedCalories,
-          protein: item.estimatedProtein,
-          carbs: item.estimatedCarbs,
-          fat: item.estimatedFat,
+          calories: effectiveItem.estimatedCalories,
+          protein: effectiveItem.estimatedProtein,
+          carbs: effectiveItem.estimatedCarbs,
+          fat: effectiveItem.estimatedFat,
         });
       }
 
@@ -247,7 +272,7 @@ export default function ItemDetailScreen() {
     const currentWeekSpent = getCurrentWeekSpent();
     const projected = currentWeekSpent + (price || 0);
 
-    const message = `${item.name}\nNutrition: ${item.estimatedCalories} cal, ${item.estimatedProtein}g protein\n${price ? `Price: $${price.toFixed(2)}` : 'Price: Not detected'}${weeklyBudget && price ? `\nBudget impact: $${currentWeekSpent.toFixed(0)} → $${projected.toFixed(0)} / $${weeklyBudget.toFixed(0)}` : ''}`;
+    const message = `${item.name}\nNutrition: ${effectiveItem.estimatedCalories} cal, ${effectiveItem.estimatedProtein}g protein\n${price ? `Price: $${price.toFixed(2)}` : 'Price: Not detected'}${weeklyBudget && price ? `\nBudget impact: $${currentWeekSpent.toFixed(0)} → $${projected.toFixed(0)} / $${weeklyBudget.toFixed(0)}` : ''}`;
 
     setConfirmDialogPrice(price);
     setConfirmDialogMessage(message);
@@ -302,14 +327,14 @@ export default function ItemDetailScreen() {
             </AppText>
           </View>
           <View style={styles.matchLabelRow}>
-            <AppText style={[styles.matchLabel, { color: getScoreColor(item.score) }]}> 
+            <AppText style={[styles.matchLabel, { color: getScoreColor(item.score) }]}>
               {item.matchLabel || 'Match'}
             </AppText>
             <TouchableOpacity onPress={() => setHealthEditModalVisible(true)} style={styles.healthEditButton}>
               <FontAwesome name="pencil" size={14} color={theme.colors.brand} />
             </TouchableOpacity>
             {healthyOverride !== 'ai' && (
-              <View style={[styles.editedBadge, { backgroundColor: theme.colors.cardCream }]}> 
+              <View style={[styles.editedBadge, { backgroundColor: theme.colors.cardCream }]}>
                 <AppText style={[styles.editedBadgeText, { color: theme.colors.subtext }]}>edited</AppText>
               </View>
             )}
@@ -379,37 +404,43 @@ export default function ItemDetailScreen() {
 
         {/* Nutrition */}
         <Card style={styles.nutritionCard}>
-          <AppText style={[styles.cardTitle, { color: theme.colors.text }]}>
-            Estimated Nutrition
-          </AppText>
+          <View style={styles.nutritionTitleRow}>
+            <AppText style={[styles.cardTitle, { color: theme.colors.text }]}> 
+              Estimated Nutrition
+            </AppText>
+            <TouchableOpacity onPress={() => setNutritionEditModalVisible(true)} style={styles.nutritionEditButton}>
+              <FontAwesome name="pencil" size={14} color={theme.colors.brand} />
+              <AppText style={[styles.nutritionEditText, { color: theme.colors.brand }]}>Edit</AppText>
+            </TouchableOpacity>
+          </View>
           <View style={styles.nutritionGrid}>
             <NutritionBox
               label="Calories"
-              value={item.estimatedCalories}
+              value={effectiveItem.estimatedCalories}
               unit=""
               theme={theme}
               highlight
             />
             <NutritionBox
               label="Protein"
-              value={item.estimatedProtein}
+              value={effectiveItem.estimatedProtein}
               unit="g"
               theme={theme}
             />
             <NutritionBox
               label="Carbs"
-              value={item.estimatedCarbs}
+              value={effectiveItem.estimatedCarbs}
               unit="g"
               theme={theme}
             />
             <NutritionBox
               label="Fat"
-              value={item.estimatedFat}
+              value={effectiveItem.estimatedFat}
               unit="g"
               theme={theme}
             />
           </View>
-          <AppText style={[styles.disclaimer, { color: theme.colors.subtext }]}>
+          <AppText style={[styles.disclaimer, { color: theme.colors.subtext }]}> 
             Nutrition values are estimates and may vary.
           </AppText>
         </Card>
@@ -718,6 +749,18 @@ export default function ItemDetailScreen() {
         onSave={(price) => setUserPrice(price)}
       />
 
+      <NutritionEditModal
+        visible={nutritionEditModalVisible}
+        initialValues={{
+          estimatedCalories: effectiveItem.estimatedCalories,
+          estimatedProtein: effectiveItem.estimatedProtein,
+          estimatedCarbs: effectiveItem.estimatedCarbs,
+          estimatedFat: effectiveItem.estimatedFat,
+        }}
+        onClose={() => setNutritionEditModalVisible(false)}
+        onSave={(values) => setNutritionOverrides(values)}
+      />
+
       <HealthEditModal
         visible={healthEditModalVisible}
         initialValue={healthyOverride}
@@ -889,6 +932,23 @@ const styles = StyleSheet.create({
   nutritionCard: {
     padding: 16,
     marginBottom: 16,
+  },
+  nutritionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  nutritionEditButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  nutritionEditText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   nutritionGrid: {
     flexDirection: 'row',

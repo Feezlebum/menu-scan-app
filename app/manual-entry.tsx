@@ -11,6 +11,7 @@ import { PrimaryButton } from '@/src/components/ui/PrimaryButton';
 import { OptionCard } from '@/src/components/onboarding/OptionCard';
 import { Card } from '@/src/components/ui/Card';
 import { estimateNutrition, parsePrice, type MenuItem } from '@/src/lib/scanService';
+import { NutritionEditModal } from '@/src/components/modals/NutritionEditModal';
 import { useHistoryStore } from '@/src/stores/historyStore';
 import { useSpendingStore } from '@/src/stores/spendingStore';
 import { useStreakStore } from '@/src/stores/streakStore';
@@ -43,6 +44,7 @@ export default function ManualEntryScreen() {
   const [price, setPrice] = useState('');
   const [selectedCuisine, setSelectedCuisine] = useState<(typeof CUISINE_TYPES)[number] | null>(null);
   const [nutrition, setNutrition] = useState<Awaited<ReturnType<typeof estimateNutrition>> | null>(null);
+  const [nutritionModalVisible, setNutritionModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const canContinue =
@@ -227,6 +229,14 @@ export default function ManualEntryScreen() {
             <AppText style={[styles.detailLine, { color: theme.colors.subtext }]}>{restaurant.trim() || 'Manual Entry'}</AppText>
             <AppText style={[styles.detailLine, { color: theme.colors.subtext }]}>{cuisineSummary}</AppText>
 
+            <View style={styles.nutritionHeaderRow}>
+              <AppText style={[styles.detailLine, { color: theme.colors.subtext }]}>Estimated Nutrition</AppText>
+              <TouchableOpacity onPress={() => setNutritionModalVisible(true)} style={styles.nutritionEditButton}>
+                <FontAwesome name="pencil" size={14} color={theme.colors.brand} />
+                <AppText style={[styles.nutritionEditText, { color: theme.colors.brand }]}>Edit</AppText>
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.nutritionRow}>
               <Metric label="Cal" value={`${nutrition.estimatedCalories}`} />
               <Metric label="P" value={`${nutrition.estimatedProtein}g`} />
@@ -238,6 +248,32 @@ export default function ManualEntryScreen() {
           </Card>
         )}
       </ScrollView>
+
+      {nutrition ? (
+        <NutritionEditModal
+          visible={nutritionModalVisible}
+          initialValues={{
+            estimatedCalories: nutrition.estimatedCalories,
+            estimatedProtein: nutrition.estimatedProtein,
+            estimatedCarbs: nutrition.estimatedCarbs,
+            estimatedFat: nutrition.estimatedFat,
+          }}
+          onClose={() => setNutritionModalVisible(false)}
+          onSave={(values) =>
+            setNutrition((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    estimatedCalories: values.estimatedCalories,
+                    estimatedProtein: values.estimatedProtein,
+                    estimatedCarbs: values.estimatedCarbs,
+                    estimatedFat: values.estimatedFat,
+                  }
+                : prev
+            )
+          }
+        />
+      ) : null}
 
       <View style={styles.footer}>
         <PrimaryButton
@@ -305,6 +341,24 @@ const styles = StyleSheet.create({
   reviewCard: { padding: 16 },
   itemTitle: { fontSize: 20, marginBottom: 6 },
   detailLine: { fontSize: 14, marginBottom: 4 },
+  nutritionHeaderRow: {
+    marginTop: 8,
+    marginBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  nutritionEditButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  nutritionEditText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
   nutritionRow: { flexDirection: 'row', gap: 8, marginVertical: 14 },
   metric: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10 },
   metricValue: { fontSize: 16 },

@@ -27,6 +27,9 @@ const USER_SCOPED_STORAGE_KEYS = [
   'streak-storage',
 ] as const;
 
+const userStoreSnapshotKey = (userId: string, storeName: 'history' | 'spending' | 'health' | 'streak') =>
+  `user-snapshot:${storeName}:${userId}`;
+
 export interface AuthResult {
   success: boolean;
   error?: string;
@@ -186,9 +189,113 @@ function resetUserScopedStoresInMemory() {
   });
 }
 
+async function saveUserScopedSnapshots(userId: string) {
+  const history = useHistoryStore.getState();
+  const spending = useSpendingStore.getState();
+  const health = useHealthStore.getState();
+  const streak = useStreakStore.getState();
+
+  await AsyncStorage.multiSet([
+    [
+      userStoreSnapshotKey(userId, 'history'),
+      JSON.stringify({ scans: history.scans, loggedMeals: history.loggedMeals }),
+    ],
+    [
+      userStoreSnapshotKey(userId, 'spending'),
+      JSON.stringify({
+        weeklyBudget: spending.weeklyBudget,
+        currency: spending.currency,
+        includeTips: spending.includeTips,
+        spendingHistory: spending.spendingHistory,
+      }),
+    ],
+    [
+      userStoreSnapshotKey(userId, 'health'),
+      JSON.stringify({
+        appleHealthConnected: health.appleHealthConnected,
+        appleHealthError: health.appleHealthError,
+        myFitnessPalEnabled: health.myFitnessPalEnabled,
+        loseItEnabled: health.loseItEnabled,
+        isConnecting: false,
+      }),
+    ],
+    [
+      userStoreSnapshotKey(userId, 'streak'),
+      JSON.stringify({
+        currentStreak: streak.currentStreak,
+        longestStreak: streak.longestStreak,
+        lastStreakDate: streak.lastStreakDate,
+        lastBreakDate: streak.lastBreakDate,
+        totalGoodChoices: streak.totalGoodChoices,
+        streakHistory: streak.streakHistory,
+        lastChoice: streak.lastChoice,
+      }),
+    ],
+  ]);
+}
+
+async function loadUserScopedSnapshots(userId: string) {
+  const values = await AsyncStorage.multiGet([
+    userStoreSnapshotKey(userId, 'history'),
+    userStoreSnapshotKey(userId, 'spending'),
+    userStoreSnapshotKey(userId, 'health'),
+    userStoreSnapshotKey(userId, 'streak'),
+  ]);
+
+  const parsed = Object.fromEntries(
+    values.map(([key, value]) => {
+      if (!value) return [key, null];
+      try {
+        return [key, JSON.parse(value)];
+      } catch {
+        return [key, null];
+      }
+    })
+  );
+
+  useHistoryStore.setState(parsed[userStoreSnapshotKey(userId, 'history')] ?? { scans: [], loggedMeals: [] });
+  useSpendingStore.setState(
+    parsed[userStoreSnapshotKey(userId, 'spending')] ?? {
+      weeklyBudget: null,
+      currency: 'USD',
+      includeTips: false,
+      spendingHistory: [],
+    }
+  );
+  useHealthStore.setState(
+    parsed[userStoreSnapshotKey(userId, 'health')] ?? {
+      appleHealthConnected: false,
+      appleHealthError: null,
+      myFitnessPalEnabled: false,
+      loseItEnabled: false,
+      isConnecting: false,
+    }
+  );
+  useStreakStore.setState(
+    parsed[userStoreSnapshotKey(userId, 'streak')] ?? {
+      currentStreak: 0,
+      longestStreak: 0,
+      lastStreakDate: null,
+      lastBreakDate: null,
+      totalGoodChoices: 0,
+      streakHistory: [],
+      lastChoice: null,
+    }
+  );
+}
+
 async function clearUserScopedLocalData() {
   resetUserScopedStoresInMemory();
   await AsyncStorage.multiRemove([...USER_SCOPED_STORAGE_KEYS]);
+}
+
+async function clearUserSnapshots(userId: string) {
+  await AsyncStorage.multiRemove([
+    userStoreSnapshotKey(userId, 'history'),
+    userStoreSnapshotKey(userId, 'spending'),
+    userStoreSnapshotKey(userId, 'health'),
+    userStoreSnapshotKey(userId, 'streak'),
+  ]);
 }
 
 async function clearLocalOnboardingData() {
@@ -246,6 +353,7 @@ export async function signUp(email: string, password: string, firstName: string)
   const onboarding = useOnboardingStore.getState();
 
   await clearUserScopedLocalData();
+  await loadUserScopedSnapshots(user.id);
 
   await syncUserProfile({
     firstName,
@@ -287,6 +395,7 @@ export async function signIn(email: string, password: string): Promise<AuthResul
   }
 
   await clearUserScopedLocalData();
+  await loadUserScopedSnapshots(data.user.id);
   await syncUserProfile({});
 
   const { data: profile } = await supabase
@@ -301,6 +410,11 @@ export async function signIn(email: string, password: string): Promise<AuthResul
 }
 
 export async function signOut(): Promise<void> {
+  const user = await getCurrentUser();
+  if (user) {
+    await saveUserScopedSnapshots(user.id);
+  }
+
   await supabase.auth.signOut();
   await clearUserScopedLocalData();
   await clearLocalOnboardingData();
@@ -325,6 +439,7 @@ export async function deleteAccount(): Promise<void> {
     throw new Error('Account data removed, but auth user deletion is not configured yet (missing delete_user RPC).');
   }
 
+  await clearUserSnapshots(user.id);
   await supabase.auth.signOut();
   await clearUserScopedLocalData();
   await clearLocalOnboardingData();

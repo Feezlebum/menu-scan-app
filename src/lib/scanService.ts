@@ -143,7 +143,7 @@ export async function uploadMenuImage(
 export async function parseMenu(imageUrl: string): Promise<ScanResult> {
   // Get user profile for scoring
   const store = useOnboardingStore.getState();
-  
+
   const userProfile = {
     goal: store.goal || 'health',
     dietType: store.dietType || 'none',
@@ -152,12 +152,26 @@ export async function parseMenu(imageUrl: string): Promise<ScanResult> {
     dislikes: store.dislikes || [],
   };
 
-  const { data, error } = await supabase.functions.invoke('parse-menu', {
-    body: { imageUrl, userProfile },
-  });
+  const invoke = async () =>
+    supabase.functions.invoke('parse-menu', {
+      body: { imageUrl, userProfile },
+    });
+
+  let { data, error } = await invoke();
+
+  // Retry once for reliability on transient model/function misses.
+  if (error || !data?.success || !Array.isArray(data?.items) || data.items.length === 0) {
+    const retry = await invoke();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     throw new Error(`Parse failed: ${error.message}`);
+  }
+
+  if (!data?.success || !Array.isArray(data?.items) || data.items.length === 0) {
+    throw new Error('Parse failed: no menu items detected. Please retake the photo with the full menu visible.');
   }
 
   return data as ScanResult;

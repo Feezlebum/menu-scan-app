@@ -201,6 +201,86 @@ function getMatchLabel(score: number): string {
   return 'Splurge';
 }
 
+function safeParseJson(content: string): any {
+  const jsonStr = content.replace(/```json\n?|\n?```/g, '').trim();
+  try {
+    return JSON.parse(jsonStr);
+  } catch {
+    const start = jsonStr.indexOf('{');
+    const end = jsonStr.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      return JSON.parse(jsonStr.slice(start, end + 1));
+    }
+    throw new Error('Failed to parse model JSON output');
+  }
+}
+
+function normalizeNutrition(items: MenuItem[]): MenuItem[] {
+  return items.map((item) => {
+    const name = `${item.name} ${item.description || ''}`.toLowerCase();
+
+    let calories = Math.max(80, Math.min(2200, Math.round(item.estimatedCalories || 0)));
+    let protein = Math.max(0, Math.min(180, Math.round(item.estimatedProtein || 0)));
+    let carbs = Math.max(0, Math.min(280, Math.round(item.estimatedCarbs || 0)));
+    let fat = Math.max(0, Math.min(150, Math.round(item.estimatedFat || 0)));
+
+    // Keep basic macro-to-calorie consistency.
+    const macroCalories = protein * 4 + carbs * 4 + fat * 9;
+    if (macroCalories > 0 && Math.abs(macroCalories - calories) / Math.max(calories, 1) > 0.45) {
+      calories = Math.round((calories + macroCalories) / 2);
+    }
+
+    // Ingredient-based sanity for hotdogs and loaded variants.
+    if (name.includes('hot dog') || name.includes('hotdog')) {
+      calories = Math.max(calories, 320);
+      if (name.includes('cheese') || name.includes('chili') || name.includes('bacon')) {
+        calories = Math.max(calories, 420);
+        fat = Math.max(fat, 20);
+      }
+    }
+
+    return {
+      ...item,
+      estimatedCalories: calories,
+      estimatedProtein: protein,
+      estimatedCarbs: carbs,
+      estimatedFat: fat,
+    };
+  });
+}
+
+async function callOpenAI(openaiKey: string, imageUrl: string, systemPrompt: string, userPrompt: string) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        {
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: imageUrl } },
+            { type: 'text', text: userPrompt },
+          ],
+        },
+      ],
+      max_tokens: 3200,
+      temperature: 0.1,
+    }),
+  });
+
+  if (!response.ok) throw new Error(`OpenAI error: ${await response.text()}`);
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('No response from OpenAI');
+  return safeParseJson(content);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -224,24 +304,15 @@ serve(async (req) => {
     const intolerances = userProfile?.intolerances || [];
     const dislikes = userProfile?.dislikes || [];
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',  // 🚀 SPEED OPTIMIZATION: Switch to faster model
-        messages: [
-          {
-            role: 'system',
-            content: `Extract orderable dishes from menu for user: Goal=${goal}, Diet=${dietType}, Priority=${macroPriority}, Avoid=${intolerances.join(',')}.
+    const systemPrompt = `Extract orderable dishes from menu for user: Goal=${goal}, Diet=${dietType}, Priority=${macroPriority}, Avoid=${intolerances.join(',')}.
 
-Rules:
-- Combine styles+proteins: "Garlic Chicken" not "Garlic"
-- Include default sides in nutrition (rice adds ~200cal, 45g carbs)
-- Prices: numeric only ("12.95"), null if missing/MP
-- Personalize tips for ${goal} goal${dietType !== 'none' ? ` and ${dietType} diet` : ''}
+Critical rules:
+- Capture ALL menu sections and all visible orderable items (apps, mains, sides, drinks, desserts).
+- Combine styles+proteins: "Garlic Chicken" not "Garlic".
+- Include default sides in nutrition (rice adds ~200cal, ~45g carbs).
+- Prices must be numeric strings ("12.95"), null if missing/MP.
+- Be internally consistent: upgraded variants (e.g., cheese/chili/bacon) should not have fewer calories than plain versions.
+- Personalize tips for ${goal} goal${dietType !== 'none' ? ` and ${dietType} diet` : ''}.
 
 JSON format:
 {
@@ -265,29 +336,24 @@ JSON format:
   }]
 }
 
-Return valid JSON only.`
-          },
-          {
-            role: 'user',
-            content: [
-              { type: 'image_url', image_url: { url: imageUrl } },
-              { type: 'text', text: 'Parse this menu. Create complete dish names (style+protein). Include sides in nutrition estimates.' }
-            ]
-          }
-        ],
-        max_tokens: 2048,  // 🚀 SPEED OPTIMIZATION: Reduce token limit 
-        temperature: 0.3,
-      }),
-    });
+Return valid JSON only.`;
 
-    if (!response.ok) throw new Error(`OpenAI error: ${await response.text()}`);
-    
-    const data = await response.json();
-    const content = data.choices[0]?.message?.content;
-    if (!content) throw new Error('No response from OpenAI');
+    let parsedMenu = await callOpenAI(
+      openaiKey,
+      imageUrl,
+      systemPrompt,
+      'Parse this menu completely. Extract every visible orderable item and estimate nutrition.'
+    );
 
-    const jsonStr = content.replace(/```json\n?|\n?```/g, '').trim();
-    const parsedMenu = JSON.parse(jsonStr);
+    if (!Array.isArray(parsedMenu?.items) || parsedMenu.items.length < 3) {
+      // Reliability retry pass
+      parsedMenu = await callOpenAI(
+        openaiKey,
+        imageUrl,
+        systemPrompt,
+        'Retry carefully. The first pass was incomplete. Re-read the menu and extract every visible item across all sections.'
+      );
+    }
 
     const profile: UserProfile = userProfile || {
       goal: 'health',
@@ -297,7 +363,14 @@ Return valid JSON only.`
       dislikes: [],
     };
 
-    const scoredItems = parsedMenu.items.map((item: MenuItem) => {
+    const rawItems: MenuItem[] = Array.isArray(parsedMenu?.items) ? parsedMenu.items : [];
+    if (rawItems.length === 0) {
+      throw new Error('No menu items detected. Please retake the photo with the full menu in frame.');
+    }
+
+    const normalizedItems = normalizeNutrition(rawItems);
+
+    const scoredItems = normalizedItems.map((item: MenuItem) => {
       const { score, reasons } = scoreItem(item, profile);
       return {
         ...item,
@@ -321,8 +394,8 @@ Return valid JSON only.`
 
     return new Response(JSON.stringify({
       success: true,
-      restaurantName: parsedMenu.restaurantName,
-      restaurantType: parsedMenu.restaurantType,
+      restaurantName: parsedMenu?.restaurantName ?? null,
+      restaurantType: parsedMenu?.restaurantType === 'chain' ? 'chain' : 'independent',
       items: scoredItems,
       topPicks,
       totalItems: scoredItems.length,

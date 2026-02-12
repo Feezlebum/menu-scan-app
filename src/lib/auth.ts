@@ -180,6 +180,8 @@ export async function signIn(email: string, password: string): Promise<AuthResul
     return { success: false, error: normalizeAuthError(error.message) };
   }
 
+  await syncUserProfile({});
+
   return { success: true, user: data.user };
 }
 

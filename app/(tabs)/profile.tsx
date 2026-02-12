@@ -83,6 +83,9 @@ export default function ProfileScreen() {
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const [accountEmail, setAccountEmail] = useState<string>('');
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     loadAvatarSettings();
@@ -207,31 +210,25 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const handleDeleteAccount = async () => {
-    Alert.alert('Delete Account', 'This will permanently delete your account and all data. This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          Alert.alert('Are you absolutely sure?', 'Your account and all data will be permanently deleted.', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Delete Forever',
-              style: 'destructive',
-              onPress: async () => {
-                try {
-                  await deleteAccount();
-                  router.replace('/onboarding/' as any);
-                } catch (error: any) {
-                  Alert.alert('Delete failed', error?.message ?? 'Unable to delete account right now.');
-                }
-              },
-            },
-          ]);
-        },
-      },
-    ]);
+  const handleDeleteAccount = () => {
+    setDeleteError(null);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (deletingAccount) return;
+    setDeletingAccount(true);
+    setDeleteError(null);
+
+    try {
+      await deleteAccount();
+      setDeleteModalVisible(false);
+      router.replace('/onboarding/' as any);
+    } catch (error: any) {
+      setDeleteError(error?.message ?? 'Unable to delete account right now.');
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   return (
@@ -440,6 +437,33 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             ))}
             <TouchableOpacity style={styles.cancelLink} onPress={() => setCurrencyModalVisible(false)}>
+              <AppText style={[styles.cancelLinkText, { color: theme.colors.subtext }]}>Cancel</AppText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
+        <View style={styles.editBackdrop}>
+          <View style={[styles.editCard, { backgroundColor: theme.colors.bg }]}> 
+            <AppText style={[styles.editTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Delete Account</AppText>
+            <AppText style={[styles.deleteWarning, { color: theme.colors.subtext }]}>This permanently deletes your account and data. This action cannot be undone.</AppText>
+
+            {deleteError ? (
+              <View style={[styles.deleteErrorBox, { borderColor: theme.colors.trafficRed }]}> 
+                <AppText style={[styles.deleteErrorText, { color: theme.colors.trafficRed }]}>{deleteError}</AppText>
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={[styles.deleteButton, { backgroundColor: theme.colors.trafficRed, opacity: deletingAccount ? 0.75 : 1 }]}
+              disabled={deletingAccount}
+              onPress={confirmDeleteAccount}
+            >
+              <AppText style={styles.deleteButtonText}>{deletingAccount ? 'Deleting...' : 'Delete Forever'}</AppText>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.cancelLink} onPress={() => setDeleteModalVisible(false)} disabled={deletingAccount}>
               <AppText style={[styles.cancelLinkText, { color: theme.colors.subtext }]}>Cancel</AppText>
             </TouchableOpacity>
           </View>
@@ -1066,6 +1090,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  deleteWarning: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  deleteErrorBox: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+  },
+  deleteErrorText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  deleteButton: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
     color: '#fff',
     fontSize: 15,
     fontWeight: '700',

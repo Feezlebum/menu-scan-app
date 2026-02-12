@@ -34,7 +34,7 @@ export default function SpendingGoalsBudgetScreen() {
     const finalBudget = Number.isFinite(value) ? Math.max(25, Math.min(300, value)) : 100;
     setWeeklyDiningBudget(finalBudget);
     setWeeklyBudget(finalBudget);
-    router.push('/onboarding/profile-setup');
+    router.push('/onboarding/tell-about-you' as any);
   };
 
   return (

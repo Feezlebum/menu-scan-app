@@ -43,6 +43,9 @@ export interface OnboardingData {
   profileMichi: MichiVariant;
   healthGoalV2: HealthGoalV2 | null;
   spendingGoals: SpendingGoal[];
+  firstName: string;
+  email: string;
+  password: string;
 }
 
 interface OnboardingStore extends OnboardingData {
@@ -67,6 +70,9 @@ interface OnboardingStore extends OnboardingData {
   setProfileMichi: (variant: MichiVariant) => void;
   setHealthGoalV2: (goal: HealthGoalV2) => void;
   toggleSpendingGoal: (goal: SpendingGoal) => void;
+  setFirstName: (value: string) => void;
+  setEmail: (value: string) => void;
+  setPassword: (value: string) => void;
   calculatePlan: () => void;
   completeOnboarding: () => void;
   reset: () => void;
@@ -95,6 +101,9 @@ const initialState: OnboardingData = {
   profileMichi: 'avatar',
   healthGoalV2: null,
   spendingGoals: [],
+  firstName: '',
+  email: '',
+  password: '',
 };
 
 // Mifflin-St Jeor TDEE Calculator
@@ -191,6 +200,9 @@ export const useOnboardingStore = create<OnboardingStore>()(
             ? s.spendingGoals.filter((g) => g !== goal)
             : [...s.spendingGoals, goal],
         })),
+      setFirstName: (value) => set({ firstName: value }),
+      setEmail: (value) => set({ email: value }),
+      setPassword: (value) => set({ password: value }),
 
       calculatePlan: () => {
         const state = get();

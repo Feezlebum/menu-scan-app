@@ -13,6 +13,10 @@ import type {
   EatingFrequency,
 } from '@/src/stores/onboardingStore';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
+import { useHistoryStore } from '@/src/stores/historyStore';
+import { useSpendingStore } from '@/src/stores/spendingStore';
+import { useHealthStore } from '@/src/stores/healthStore';
+import { useStreakStore } from '@/src/stores/streakStore';
 import type { MichiVariant } from '@/src/utils/michiAssets';
 
 const ONBOARDING_STORAGE_KEY = 'onboarding-storage';
@@ -156,7 +160,34 @@ function hydrateOnboardingStoreFromProfile(user: User, profile: UserProfileRow |
   });
 }
 
+function resetUserScopedStoresInMemory() {
+  useHistoryStore.setState({ scans: [], loggedMeals: [] });
+  useSpendingStore.setState({
+    weeklyBudget: null,
+    currency: 'USD',
+    includeTips: false,
+    spendingHistory: [],
+  });
+  useHealthStore.setState({
+    appleHealthConnected: false,
+    appleHealthError: null,
+    myFitnessPalEnabled: false,
+    loseItEnabled: false,
+    isConnecting: false,
+  });
+  useStreakStore.setState({
+    currentStreak: 0,
+    longestStreak: 0,
+    lastStreakDate: null,
+    lastBreakDate: null,
+    totalGoodChoices: 0,
+    streakHistory: [],
+    lastChoice: null,
+  });
+}
+
 async function clearUserScopedLocalData() {
+  resetUserScopedStoresInMemory();
   await AsyncStorage.multiRemove([...USER_SCOPED_STORAGE_KEYS]);
 }
 

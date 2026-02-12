@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { decode } from 'base64-arraybuffer';
 
 export interface MenuItem {
@@ -62,10 +63,47 @@ export const parsePrice = (priceText: string | null): number | null => {
 };
 
 /**
- * Upload image to Supabase Storage
+ * Compress image for optimal upload size and processing
  */
-export async function uploadMenuImage(uri: string): Promise<string> {
-  const filename = `menu-${Date.now()}.jpg`;
+export async function compressImageForUpload(uri: string): Promise<string> {
+  try {
+    const manipResult = await ImageManipulator.manipulateAsync(
+      uri,
+      [
+        // Resize to reasonable dimensions for OCR (balance quality vs upload speed)
+        { resize: { width: 1200 } }, // Height auto-scales to maintain aspect ratio
+      ],
+      {
+        compress: 0.8, // 80% quality - good balance of file size vs clarity
+        format: ImageManipulator.SaveFormat.JPEG,
+      }
+    );
+    
+    return manipResult.uri;
+  } catch (error) {
+    console.warn('Image compression failed, using original:', error);
+    return uri; // Fallback to original if compression fails
+  }
+}
+
+/**
+ * Prepare upload metadata (can run in parallel with compression)
+ */
+export async function prepareUploadMetadata(): Promise<{ filename: string; contentType: string }> {
+  return {
+    filename: `menu-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`,
+    contentType: 'image/jpeg',
+  };
+}
+
+/**
+ * Upload image to Supabase Storage (optimized version)
+ */
+export async function uploadMenuImage(
+  uri: string, 
+  metadata?: { filename: string; contentType: string }
+): Promise<string> {
+  const uploadMeta = metadata || await prepareUploadMetadata();
   
   // Read file as base64 (React Native compatible)
   const base64 = await FileSystem.readAsStringAsync(uri, {
@@ -77,8 +115,8 @@ export async function uploadMenuImage(uri: string): Promise<string> {
   
   const { data, error } = await supabase.storage
     .from('menu-scans')
-    .upload(filename, arrayBuffer, {
-      contentType: 'image/jpeg',
+    .upload(uploadMeta.filename, arrayBuffer, {
+      contentType: uploadMeta.contentType,
       upsert: false,
     });
 
@@ -121,10 +159,51 @@ export async function parseMenu(imageUrl: string): Promise<ScanResult> {
 }
 
 /**
- * Full scan flow: upload + parse
+ * Optimized scan flow with parallel processing
  */
 export async function scanMenu(localUri: string): Promise<ScanResult> {
-  // Step 1: Upload to storage
+  const startTime = Date.now();
+  
+  try {
+    // PARALLEL OPTIMIZATION: Start compression and metadata prep simultaneously
+    console.log('🚀 Starting optimized scan with parallel processing...');
+    const parallelStart = Date.now();
+    
+    const [compressedUri, uploadMetadata] = await Promise.all([
+      compressImageForUpload(localUri),
+      prepareUploadMetadata(),
+    ]);
+    
+    const parallelEnd = Date.now();
+    console.log(`✅ Parallel prep complete in ${parallelEnd - parallelStart}ms`);
+    
+    // Upload the compressed image
+    const uploadStart = Date.now();
+    const imageUrl = await uploadMenuImage(compressedUri, uploadMetadata);
+    const uploadEnd = Date.now();
+    console.log(`📤 Upload complete in ${uploadEnd - uploadStart}ms`);
+    
+    // Parse with AI
+    const parseStart = Date.now();
+    const result = await parseMenu(imageUrl);
+    const parseEnd = Date.now();
+    console.log(`🧠 AI analysis complete in ${parseEnd - parseStart}ms`);
+    
+    const totalTime = Date.now() - startTime;
+    console.log(`🏁 Total optimized scan time: ${totalTime}ms`);
+    
+    return result;
+  } catch (error) {
+    console.warn('Optimized scan failed, falling back to original method:', error);
+    return await scanMenuFallback(localUri);
+  }
+}
+
+/**
+ * Fallback scan flow (original method)
+ */
+export async function scanMenuFallback(localUri: string): Promise<ScanResult> {
+  // Step 1: Upload to storage (original method, no compression)
   const imageUrl = await uploadMenuImage(localUri);
   
   // Step 2: Parse with AI

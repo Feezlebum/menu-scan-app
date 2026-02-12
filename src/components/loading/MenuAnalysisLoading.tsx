@@ -29,7 +29,15 @@ interface MenuAnalysisLoadingProps {
 
 const ANALYSIS_PHASES = [
   {
-    duration: 5000, // 0-5s
+    duration: 3000, // 0-3s - New optimization phase
+    texts: [
+      "🚀 Optimizing image for super-fast processing...",
+      "Compressing and preparing in parallel!",
+      "Using smart algorithms for speed!",
+    ]
+  },
+  {
+    duration: 4000, // 3-7s
     texts: [
       "Michi is reading the menu... 🤔",
       "Checking out all the tasty options!",
@@ -37,7 +45,7 @@ const ANALYSIS_PHASES = [
     ]
   },
   {
-    duration: 5000, // 5-10s  
+    duration: 4000, // 7-11s  
     texts: [
       "Calculating calories and nutrients... 📊",
       "Michi's doing the math!",
@@ -45,7 +53,7 @@ const ANALYSIS_PHASES = [
     ]
   },
   {
-    duration: 5000, // 10-15s
+    duration: 4000, // 11-15s
     texts: [
       "Finding your perfect matches... ✨", 
       "Tailoring recommendations just for you!",

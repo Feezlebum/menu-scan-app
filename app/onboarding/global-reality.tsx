@@ -27,7 +27,7 @@ export default function GlobalRealityScreen() {
       subtitle="You're not the problem. The system makes good decisions harder than they should be."
       hideProgress
       buttonText="Continue"
-      onContinue={() => router.push('/onboarding/profile-setup')}
+      onContinue={() => router.push('/onboarding/money-superpowers' as any)}
     >
       <View style={styles.content}>
         <ProgressBadge step={3} total={14} />

@@ -11,6 +11,14 @@ export type DietType = 'cico' | 'keto' | 'vegan' | 'lowcarb' | 'mediterranean' |
 export type MacroPriority = 'lowcal' | 'highprotein' | 'lowcarb' | 'balanced';
 export type EatingFrequency = '1-2x' | '3-4x' | '5+';
 export type DiningChallenge = 'calories' | 'social' | 'willpower' | 'overwhelm';
+export type HealthGoalV2 =
+  | 'lose_weight'
+  | 'build_muscle'
+  | 'maintain_weight'
+  | 'eat_healthier'
+  | 'athletic_performance'
+  | 'manage_health_conditions';
+export type SpendingGoal = 'stay_within_budget' | 'track_spending' | 'better_value' | 'cut_costs';
 
 export interface OnboardingData {
   currentStep: number;
@@ -33,6 +41,8 @@ export interface OnboardingData {
   dailyCalorieTarget: number | null;
   goalDate: string | null;
   profileMichi: MichiVariant;
+  healthGoalV2: HealthGoalV2 | null;
+  spendingGoals: SpendingGoal[];
 }
 
 interface OnboardingStore extends OnboardingData {
@@ -55,6 +65,8 @@ interface OnboardingStore extends OnboardingData {
   setEatingFrequency: (freq: EatingFrequency) => void;
   setDiningChallenge: (challenge: DiningChallenge) => void;
   setProfileMichi: (variant: MichiVariant) => void;
+  setHealthGoalV2: (goal: HealthGoalV2) => void;
+  toggleSpendingGoal: (goal: SpendingGoal) => void;
   calculatePlan: () => void;
   completeOnboarding: () => void;
   reset: () => void;
@@ -81,6 +93,8 @@ const initialState: OnboardingData = {
   dailyCalorieTarget: null,
   goalDate: null,
   profileMichi: 'avatar',
+  healthGoalV2: null,
+  spendingGoals: [],
 };
 
 // Mifflin-St Jeor TDEE Calculator
@@ -170,6 +184,13 @@ export const useOnboardingStore = create<OnboardingStore>()(
       setEatingFrequency: (freq) => set({ eatingFrequency: freq }),
       setDiningChallenge: (challenge) => set({ diningChallenge: challenge }),
       setProfileMichi: (variant) => set({ profileMichi: variant }),
+      setHealthGoalV2: (goal) => set({ healthGoalV2: goal }),
+      toggleSpendingGoal: (goal) =>
+        set((s) => ({
+          spendingGoals: s.spendingGoals.includes(goal)
+            ? s.spendingGoals.filter((g) => g !== goal)
+            : [...s.spendingGoals, goal],
+        })),
 
       calculatePlan: () => {
         const state = get();
@@ -221,4 +242,4 @@ export const useOnboardingStore = create<OnboardingStore>()(
 );
 
 // Total steps for progress calculation
-export const TOTAL_ONBOARDING_STEPS = 22;
+export const TOTAL_ONBOARDING_STEPS = 14;

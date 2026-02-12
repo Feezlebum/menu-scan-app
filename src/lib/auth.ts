@@ -16,6 +16,12 @@ import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import type { MichiVariant } from '@/src/utils/michiAssets';
 
 const ONBOARDING_STORAGE_KEY = 'onboarding-storage';
+const USER_SCOPED_STORAGE_KEYS = [
+  'history-storage',
+  'spending-storage',
+  'health-storage',
+  'streak-storage',
+] as const;
 
 export interface AuthResult {
   success: boolean;
@@ -150,6 +156,10 @@ function hydrateOnboardingStoreFromProfile(user: User, profile: UserProfileRow |
   });
 }
 
+async function clearUserScopedLocalData() {
+  await AsyncStorage.multiRemove([...USER_SCOPED_STORAGE_KEYS]);
+}
+
 async function clearLocalOnboardingData() {
   useOnboardingStore.getState().reset();
   await AsyncStorage.removeItem(ONBOARDING_STORAGE_KEY);
@@ -204,6 +214,8 @@ export async function signUp(email: string, password: string, firstName: string)
 
   const onboarding = useOnboardingStore.getState();
 
+  await clearUserScopedLocalData();
+
   await syncUserProfile({
     firstName,
     email,
@@ -243,6 +255,7 @@ export async function signIn(email: string, password: string): Promise<AuthResul
     return { success: false, error: 'Unable to load user session.' };
   }
 
+  await clearUserScopedLocalData();
   await syncUserProfile({});
 
   const { data: profile } = await supabase
@@ -258,12 +271,14 @@ export async function signIn(email: string, password: string): Promise<AuthResul
 
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
+  await clearUserScopedLocalData();
   await clearLocalOnboardingData();
 }
 
 export async function deleteAccount(): Promise<void> {
   const user = await getCurrentUser();
   if (!user) {
+    await clearUserScopedLocalData();
     await clearLocalOnboardingData();
     return;
   }
@@ -280,5 +295,6 @@ export async function deleteAccount(): Promise<void> {
   }
 
   await supabase.auth.signOut();
+  await clearUserScopedLocalData();
   await clearLocalOnboardingData();
 }

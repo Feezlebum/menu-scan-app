@@ -17,7 +17,7 @@ export default function SuccessVisionScreen(){
     router.replace('/(tabs)');
   }
 
-  return <OnboardingScreen title="Your Success Vision" subtitle="Choose your path. You can always upgrade later." hideProgress buttonText="Skip" onContinue={()=>finish('freemium')}>
+  return <OnboardingScreen title="Your Success Vision" subtitle="Choose your path. You can always upgrade later." hideProgress showBack={false} buttonText="Continue with Freemium" onContinue={()=>finish('freemium')}>
     <View style={styles.wrap}><Badge step={14} total={14}/>
       <View style={[styles.card,{borderColor:theme.colors.border,backgroundColor:'#fff'}]}>
         <AppText style={[styles.h,{color:theme.colors.text}]}>Projected first-month outcome</AppText>

@@ -13,6 +13,7 @@ import type {
   EatingFrequency,
 } from '@/src/stores/onboardingStore';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
+import type { MichiVariant } from '@/src/utils/michiAssets';
 
 const ONBOARDING_STORAGE_KEY = 'onboarding-storage';
 
@@ -45,6 +46,32 @@ export interface UserProfile {
   profileMichi?: string | null;
   healthGoalV2?: HealthGoalV2 | null;
   spendingGoals?: SpendingGoal[];
+}
+
+interface UserProfileRow {
+  id: string;
+  first_name: string;
+  email: string;
+  goal: Goal | null;
+  diet_type: DietType | null;
+  macro_priority: MacroPriority | null;
+  activity_level: ActivityLevel | null;
+  age: number | null;
+  gender: Gender | null;
+  height_cm: number | null;
+  current_weight_kg: number | null;
+  goal_weight_kg: number | null;
+  weekly_dining_budget: number | null;
+  intolerances: string[] | null;
+  dislikes: string[] | null;
+  favorite_cuisines: string[] | null;
+  eating_frequency: EatingFrequency | null;
+  dining_challenge: DiningChallenge | null;
+  daily_calorie_target: number | null;
+  goal_date: string | null;
+  profile_michi: string | null;
+  health_goal_v2: HealthGoalV2 | null;
+  spending_goals: SpendingGoal[] | null;
 }
 
 function normalizeAuthError(message?: string): string {
@@ -89,6 +116,38 @@ function mapProfileToRow(userId: string, userData: Partial<UserProfile>, fallbac
     spending_goals: userData.spendingGoals,
     updated_at: new Date().toISOString(),
   };
+}
+
+function hydrateOnboardingStoreFromProfile(user: User, profile: UserProfileRow | null) {
+  const reset = useOnboardingStore.getState().reset;
+  reset();
+
+  useOnboardingStore.setState({
+    completed: true,
+    firstName: profile?.first_name ?? (user.user_metadata?.first_name as string | undefined) ?? '',
+    email: user.email ?? profile?.email ?? '',
+    password: '',
+    goal: profile?.goal ?? null,
+    dietType: profile?.diet_type ?? null,
+    macroPriority: profile?.macro_priority ?? null,
+    activityLevel: profile?.activity_level ?? null,
+    age: profile?.age ?? null,
+    gender: profile?.gender ?? null,
+    heightCm: profile?.height_cm ?? null,
+    currentWeightKg: profile?.current_weight_kg ?? null,
+    goalWeightKg: profile?.goal_weight_kg ?? null,
+    weeklyDiningBudget: profile?.weekly_dining_budget ?? null,
+    intolerances: profile?.intolerances ?? [],
+    dislikes: profile?.dislikes ?? [],
+    favoriteCuisines: profile?.favorite_cuisines ?? [],
+    eatingFrequency: profile?.eating_frequency ?? null,
+    diningChallenge: profile?.dining_challenge ?? null,
+    dailyCalorieTarget: profile?.daily_calorie_target ?? null,
+    goalDate: profile?.goal_date ?? null,
+    profileMichi: (profile?.profile_michi as MichiVariant | null) ?? 'avatar',
+    healthGoalV2: profile?.health_goal_v2 ?? null,
+    spendingGoals: profile?.spending_goals ?? [],
+  });
 }
 
 async function clearLocalOnboardingData() {
@@ -180,7 +239,19 @@ export async function signIn(email: string, password: string): Promise<AuthResul
     return { success: false, error: normalizeAuthError(error.message) };
   }
 
+  if (!data.user) {
+    return { success: false, error: 'Unable to load user session.' };
+  }
+
   await syncUserProfile({});
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('id', data.user.id)
+    .maybeSingle<UserProfileRow>();
+
+  hydrateOnboardingStoreFromProfile(data.user, profile ?? null);
 
   return { success: true, user: data.user };
 }

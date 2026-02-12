@@ -19,7 +19,7 @@ export default function MeetMichiScreen() {
 
   const handleContinue = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/onboarding/biggest-challenge' as any);
+    router.push('/onboarding/translation-intro' as any);
   };
 
   return (

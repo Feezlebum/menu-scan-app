@@ -97,20 +97,30 @@ export default function ScanScreen() {
         const imageUrl = await uploadMenuImage(compressedUri);
 
         // Attempt translation first (for non-English menus)
-        setTranslating();
-        const translationResult = await translateMenu(imageUrl, 'en');
+        let translated = false;
+        try {
+          setTranslating();
+          const translationResult = await translateMenu(imageUrl, 'en');
 
-        if (translationResult.success && translationResult.languageCode !== 'en' && translationResult.translatedItems.length > 0) {
+          if (translationResult.success && translationResult.languageCode !== 'en' && translationResult.translatedItems.length > 0) {
+            clearTranslation();
+            setTranslationResult(translationResult);
+            router.replace({
+              pathname: '/translation-results' as any,
+              params: { translationData: JSON.stringify(translationResult) },
+            });
+            translated = true;
+          } else {
+            clearTranslation();
+          }
+        } catch {
+          // Translation is best-effort; continue with normal scan flow.
           clearTranslation();
-          setTranslationResult(translationResult);
-          router.replace({
-            pathname: '/translation-results' as any,
-            params: { translationData: JSON.stringify(translationResult) },
-          });
-          return;
         }
 
-        clearTranslation();
+        if (translated) {
+          return;
+        }
 
         // Fallback to standard nutrition scan flow
         const result = await parseMenu(imageUrl);

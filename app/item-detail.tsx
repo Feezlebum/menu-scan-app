@@ -24,8 +24,8 @@ import { NutritionEditModal } from '@/src/components/modals/NutritionEditModal';
 export default function ItemDetailScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { selectedItem, setSelectedItem, currentResult } = useScanStore();
-  const { saveScan, logMeal, scans, loggedMeals } = useHistoryStore();
+  const { selectedItem, setSelectedItem, currentResult, selectedMealId, setSelectedMealId } = useScanStore();
+  const { saveScan, logMeal, scans, loggedMeals, updateMealOverrides } = useHistoryStore();
   const { exportToTrackers, hasEnabledTrackers } = useTrackerExport();
   const { dailyCalorieTarget, dietType, intolerances, dislikes } = useOnboardingStore();
   const { currentStreak, recordMealDecision } = useStreakStore();
@@ -86,7 +86,19 @@ export default function ItemDetailScreen() {
       estimatedCarbs: item.estimatedCarbs,
       estimatedFat: item.estimatedFat,
     });
-  }, [item]);
+
+    if (selectedMealId) {
+      const meal = loggedMeals.find((m) => m.id === selectedMealId);
+      if (meal?.healthyOverride) {
+        setHealthyOverride(meal.healthyOverride);
+      } else {
+        setHealthyOverride('ai');
+      }
+      if (typeof meal?.userPrice === 'number') {
+        setUserPrice(meal.userPrice);
+      }
+    }
+  }, [item, selectedMealId, loggedMeals]);
 
   const effectiveItem = {
     ...item,
@@ -104,6 +116,7 @@ export default function ItemDetailScreen() {
 
   const handleClose = () => {
     setSelectedItem(null);
+    setSelectedMealId(null);
     router.back();
   };
 
@@ -746,7 +759,12 @@ export default function ItemDetailScreen() {
         visible={priceEditModalVisible}
         initialPrice={userPrice ?? parsePrice(item.price) ?? 0}
         onClose={() => setPriceEditModalVisible(false)}
-        onSave={(price) => setUserPrice(price)}
+        onSave={(price) => {
+          setUserPrice(price);
+          if (selectedMealId) {
+            updateMealOverrides(selectedMealId, { userPrice: price });
+          }
+        }}
       />
 
       <NutritionEditModal
@@ -758,14 +776,36 @@ export default function ItemDetailScreen() {
           estimatedFat: effectiveItem.estimatedFat,
         }}
         onClose={() => setNutritionEditModalVisible(false)}
-        onSave={(values) => setNutritionOverrides(values)}
+        onSave={(values) => {
+          setNutritionOverrides(values);
+          if (selectedMealId) {
+            updateMealOverrides(selectedMealId, {
+              item: {
+                estimatedCalories: values.estimatedCalories,
+                estimatedProtein: values.estimatedProtein,
+                estimatedCarbs: values.estimatedCarbs,
+                estimatedFat: values.estimatedFat,
+              },
+            });
+          }
+        }}
       />
 
       <HealthEditModal
         visible={healthEditModalVisible}
         initialValue={healthyOverride}
         onClose={() => setHealthEditModalVisible(false)}
-        onSave={(value) => setHealthyOverride(value)}
+        onSave={(value) => {
+          setHealthyOverride(value);
+          if (selectedMealId) {
+            updateMealOverrides(selectedMealId, {
+              healthyOverride: value === 'ai' ? null : value,
+            });
+            setStatusDialogTitle('Saved');
+            setStatusDialogMessage('Meal preference updated in your history.');
+            setStatusDialogVisible(true);
+          }
+        }}
       />
     </SafeAreaView>
   );

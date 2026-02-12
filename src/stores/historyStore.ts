@@ -46,6 +46,10 @@ interface HistoryState {
   getMealsForScan: (scanId: string) => LoggedMeal[];
   deleteScan: (id: string) => void;
   deleteMeal: (id: string) => void;
+  updateMealOverrides: (
+    id: string,
+    updates: Partial<Pick<LoggedMeal, 'healthyOverride' | 'userPrice'>> & { item?: Partial<MenuItem> }
+  ) => void;
   clearHistory: () => void;
 }
 
@@ -171,6 +175,28 @@ export const useHistoryStore = create<HistoryState>()(
                   : scan
               )
             : state.scans,
+        }));
+      },
+
+      updateMealOverrides: (id, updates) => {
+        set((state) => ({
+          loggedMeals: state.loggedMeals.map((meal) =>
+            meal.id === id
+              ? {
+                  ...meal,
+                  ...(updates.healthyOverride !== undefined ? { healthyOverride: updates.healthyOverride } : {}),
+                  ...(updates.userPrice !== undefined ? { userPrice: updates.userPrice } : {}),
+                  ...(updates.item
+                    ? {
+                        item: {
+                          ...meal.item,
+                          ...updates.item,
+                        },
+                      }
+                    : {}),
+                }
+              : meal
+          ),
         }));
       },
 

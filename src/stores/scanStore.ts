@@ -9,12 +9,14 @@ interface ScanStore {
   // Results
   currentResult: ScanResult | null;
   selectedItem: MenuItem | null;
+  selectedMealId: string | null;
   
   // Actions
   startScan: () => void;
   setScanResult: (result: ScanResult) => void;
   setScanError: (error: string) => void;
   setSelectedItem: (item: MenuItem | null) => void;
+  setSelectedMealId: (id: string | null) => void;
   clearScan: () => void;
 }
 
@@ -23,6 +25,7 @@ export const useScanStore = create<ScanStore>((set) => ({
   scanError: null,
   currentResult: null,
   selectedItem: null,
+  selectedMealId: null,
 
   startScan: () => set({ 
     isScanning: true, 
@@ -45,10 +48,15 @@ export const useScanStore = create<ScanStore>((set) => ({
     selectedItem: item,
   }),
 
+  setSelectedMealId: (id) => set({
+    selectedMealId: id,
+  }),
+
   clearScan: () => set({ 
     isScanning: false, 
     scanError: null, 
     currentResult: null,
     selectedItem: null,
+    selectedMealId: null,
   }),
 }));

@@ -49,7 +49,7 @@ export default function HistoryScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { loggedMeals, deleteMeal } = useHistoryStore();
-  const { setSelectedItem } = useScanStore();
+  const { setSelectedItem, setSelectedMealId } = useScanStore();
 
   const [timeRange, setTimeRange] = useState<TimeRange>('week');
   const [searchVisible, setSearchVisible] = useState(false);
@@ -143,6 +143,7 @@ export default function HistoryScreen() {
   const handleMealPress = (meal: LoggedMeal) => {
     Haptics.selectionAsync();
     setSelectedItem(meal.item);
+    setSelectedMealId(meal.id);
     router.push('/item-detail');
   };
 

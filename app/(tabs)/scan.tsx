@@ -9,8 +9,10 @@ import { useAppTheme } from '@/src/theme/theme';
 import { ScanFrame } from '@/src/components/scan/ScanFrame';
 import { CaptureButton } from '@/src/components/scan/CaptureButton';
 import { compressImage } from '@/src/utils/imageUtils';
-import { scanMenu } from '@/src/lib/scanService';
+import { uploadMenuImage, parseMenu } from '@/src/lib/scanService';
+import { translateMenu } from '@/src/lib/translationService';
 import { useScanStore } from '@/src/stores/scanStore';
+import { useTranslationStore } from '@/src/stores/translationStore';
 import { getScanMichi } from '@/src/utils/michiAssets';
 import { BrandedDialog } from '@/src/components/dialogs/BrandedDialog';
 
@@ -29,6 +31,7 @@ export default function ScanScreen() {
   const processingPulse = useRef(new Animated.Value(1)).current;
   const processingRotate = useRef(new Animated.Value(0)).current;
   const { setScanResult, setScanError } = useScanStore();
+  const { setTranslating, setTranslationResult, setTranslationError, clearTranslation } = useTranslationStore();
 
   // Request permission on mount if not determined
   useEffect(() => {
@@ -90,19 +93,38 @@ export default function ScanScreen() {
         // Compress image
         const compressedUri = await compressImage(photo.uri);
         console.log('Captured and compressed:', compressedUri);
-        
-        // Upload to Supabase Storage and call Edge Function
-        const result = await scanMenu(compressedUri);
-        
+
+        const imageUrl = await uploadMenuImage(compressedUri);
+
+        // Attempt translation first (for non-English menus)
+        setTranslating();
+        const translationResult = await translateMenu(imageUrl, 'en');
+
+        if (translationResult.success && translationResult.languageCode !== 'en' && translationResult.translatedItems.length > 0) {
+          clearTranslation();
+          setTranslationResult(translationResult);
+          router.replace({
+            pathname: '/translation-results' as any,
+            params: { translationData: JSON.stringify(translationResult) },
+          });
+          return;
+        }
+
+        clearTranslation();
+
+        // Fallback to standard nutrition scan flow
+        const result = await parseMenu(imageUrl);
+
         if (!result.success) {
           throw new Error(result.error || 'Failed to parse menu');
         }
-        
+
         // Store results for the loading screen to pick up
         setScanResult(result);
-        
+
       } catch (backgroundError) {
         console.error('Background processing error:', backgroundError);
+        setTranslationError(backgroundError instanceof Error ? backgroundError.message : 'Unknown error');
         setScanError(backgroundError instanceof Error ? backgroundError.message : 'Unknown error');
         // Loading screen will handle showing the error
       }

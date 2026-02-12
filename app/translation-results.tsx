@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 import { AppText } from '@/src/components/ui/AppText';
 import { Card } from '@/src/components/ui/Card';
+import { BrandedDialog } from '@/src/components/dialogs/BrandedDialog';
 import { useAppTheme } from '@/src/theme/theme';
 import { useTranslationStore } from '@/src/stores/translationStore';
 import type { TranslationResult, TranslatedMenuItem, OrderingPhrase } from '@/src/lib/translationService';
@@ -39,6 +40,8 @@ export default function TranslationResultsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ translationData?: string }>();
   const { currentTranslation, clearTranslation } = useTranslationStore();
+  const [audioDialogVisible, setAudioDialogVisible] = useState(false);
+  const [audioDialogText, setAudioDialogText] = useState('');
 
   const translationData = useMemo(() => parseParamResult(params.translationData) ?? currentTranslation, [params.translationData, currentTranslation]);
 
@@ -82,7 +85,14 @@ export default function TranslationResultsScreen() {
         <View style={styles.section}>
           <AppText style={[styles.sectionTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Translated Menu</AppText>
           {translationData.translatedItems.map((item, idx) => (
-            <TranslatedItemCard key={`${item.original}-${idx}`} item={item} />
+            <TranslatedItemCard
+              key={`${item.original}-${idx}`}
+              item={item}
+              onPlay={() => {
+                setAudioDialogText(item.original || item.translated);
+                setAudioDialogVisible(true);
+              }}
+            />
           ))}
         </View>
 
@@ -111,11 +121,20 @@ export default function TranslationResultsScreen() {
           </View>
         )}
       </ScrollView>
+
+      <BrandedDialog
+        visible={audioDialogVisible}
+        title="Pronunciation Audio"
+        message={`Audio playback is coming soon. For now, use the phonetic guide:\n\n${audioDialogText}`}
+        michiState="thinking"
+        onClose={() => setAudioDialogVisible(false)}
+        actions={[{ text: 'Got it', variant: 'primary', onPress: () => setAudioDialogVisible(false) }]}
+      />
     </SafeAreaView>
   );
 }
 
-function TranslatedItemCard({ item }: { item: TranslatedMenuItem }) {
+function TranslatedItemCard({ item, onPlay }: { item: TranslatedMenuItem; onPlay: () => void }) {
   const theme = useAppTheme();
 
   const healthColor =
@@ -129,7 +148,12 @@ function TranslatedItemCard({ item }: { item: TranslatedMenuItem }) {
     <Card style={styles.card}>
       <AppText style={[styles.originalText, { color: theme.colors.text, fontFamily: theme.fonts.body.semiBold }]}>{item.original}</AppText>
       <AppText style={[styles.translatedText, { color: theme.colors.brand }]}>{item.translated}</AppText>
-      {!!item.phonetic && <AppText style={[styles.phoneticText, { color: theme.colors.subtext }]}>/{item.phonetic}/</AppText>}
+      <View style={styles.phoneticRow}>
+        {!!item.phonetic && <AppText style={[styles.phoneticText, { color: theme.colors.subtext }]}>/{item.phonetic}/</AppText>}
+        <TouchableOpacity style={styles.audioButton} onPress={onPlay}>
+          <FontAwesome name="volume-up" size={14} color={theme.colors.brand} />
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.metaRow}>
         <View style={[styles.healthBadge, { backgroundColor: `${healthColor}20` }]}>
@@ -182,7 +206,15 @@ const styles = StyleSheet.create({
   card: { padding: 14, gap: 8 },
   originalText: { fontSize: 17 },
   translatedText: { fontSize: 16 },
-  phoneticText: { fontSize: 13, fontStyle: 'italic' },
+  phoneticRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  phoneticText: { fontSize: 13, fontStyle: 'italic', flex: 1 },
+  audioButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
   healthBadge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
   healthText: { fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },

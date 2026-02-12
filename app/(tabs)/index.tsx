@@ -42,7 +42,7 @@ const getMichiTip = () => {
 export default function HomeScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { goal, macroPriority, dietType, intolerances } = useOnboardingStore();
+  const { goal, macroPriority, dietType, intolerances, spendingGoals } = useOnboardingStore();
   const { loggedMeals } = useHistoryStore();
   const { currentStreak, lastChoice } = useStreakStore();
   const { weeklyBudget, getCurrentWeekSpent } = useSpendingStore();
@@ -66,33 +66,58 @@ export default function HomeScreen() {
     }
   };
 
-  // Build unique tags with icons
+  // Build exactly 3 focus tags: Goal, Diet Type, Macro Focus
   const buildTags = () => {
     const tags: { label: string; icon: string; key: string }[] = [];
 
-    if (goal === 'lose') {
-      tags.push({ label: 'Lower Calorie', icon: '🔥', key: 'goal' });
-    } else if (goal === 'gain') {
-      tags.push({ label: 'Build Muscle', icon: '💪', key: 'goal' });
-    } else if (goal === 'maintain') {
-      tags.push({ label: 'Maintain', icon: '⚖️', key: 'goal' });
+    const hasMoneyGoal =
+      spendingGoals?.includes('stay_within_budget') ||
+      spendingGoals?.includes('track_spending') ||
+      spendingGoals?.includes('better_value') ||
+      spendingGoals?.includes('cut_costs');
+
+    const goalTag = hasMoneyGoal
+      ? { label: 'Save Money', icon: '💰', key: 'goal' }
+      : goal === 'lose'
+      ? { label: 'Lose Weight', icon: '🔥', key: 'goal' }
+      : goal === 'gain'
+      ? { label: 'Build Muscle', icon: '💪', key: 'goal' }
+      : goal === 'maintain'
+      ? { label: 'Maintain', icon: '⚖️', key: 'goal' }
+      : { label: 'Eat Healthier', icon: '🥬', key: 'goal' };
+
+    const dietTag =
+      dietType === 'vegan'
+        ? { label: 'Vegan', icon: '🌱', key: 'diet' }
+        : dietType === 'keto'
+        ? { label: 'Keto', icon: '🥑', key: 'diet' }
+        : dietType === 'lowcarb'
+        ? { label: 'Low Carb Diet', icon: '🥗', key: 'diet' }
+        : dietType === 'mediterranean'
+        ? { label: 'Mediterranean', icon: '🫒', key: 'diet' }
+        : dietType === 'cico'
+        ? { label: 'Calorie Focus', icon: '🎯', key: 'diet' }
+        : { label: 'No Diet Restriction', icon: '🍽️', key: 'diet' };
+
+    const macroTag =
+      macroPriority === 'highprotein'
+        ? { label: 'High Protein', icon: '🥩', key: 'macro' }
+        : macroPriority === 'lowcarb'
+        ? { label: 'Low Carb', icon: '🥗', key: 'macro' }
+        : macroPriority === 'lowcal'
+        ? { label: 'Low Calorie', icon: '📉', key: 'macro' }
+        : { label: 'Balanced Macros', icon: '⚖️', key: 'macro' };
+
+    tags.push(goalTag, dietTag, macroTag);
+
+    if (
+      dietType === 'none' &&
+      (intolerances?.includes('gluten') || intolerances?.includes('Gluten'))
+    ) {
+      tags[1] = { label: 'Gluten-Free', icon: '🌾', key: 'diet' };
     }
 
-    if (dietType === 'vegan') {
-      tags.push({ label: 'Vegan', icon: '🌱', key: 'diet' });
-    } else if (dietType === 'keto') {
-      tags.push({ label: 'Keto', icon: '🥑', key: 'diet' });
-    } else if (dietType === 'lowcarb' || macroPriority === 'lowcarb') {
-      tags.push({ label: 'Low Carb', icon: '🥗', key: 'diet' });
-    } else if (dietType === 'mediterranean') {
-      tags.push({ label: 'Mediterranean', icon: '🫒', key: 'diet' });
-    }
-
-    if (intolerances?.includes('gluten') || intolerances?.includes('Gluten')) {
-      tags.push({ label: 'Gluten-Free', icon: '🌾', key: 'gluten' });
-    }
-
-    return tags.slice(0, 3);
+    return tags;
   };
 
   const tags = buildTags();

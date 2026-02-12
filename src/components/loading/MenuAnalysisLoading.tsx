@@ -111,8 +111,8 @@ export default function MenuAnalysisLoading({
     const breathingInterval = setInterval(breathingAnimation, 3000);
 
     // Phase and text progression
-    let phaseTimeout: NodeJS.Timeout;
-    let textInterval: NodeJS.Timeout;
+    let phaseTimeout: ReturnType<typeof setTimeout>;
+    let textInterval: ReturnType<typeof setInterval>;
 
     const startPhaseProgression = () => {
       let totalElapsed = 0;

@@ -5,7 +5,7 @@ import Purchases, {
 } from 'react-native-purchases';
 
 const API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
-const PRO_ENTITLEMENT_ID = 'pro';
+const PRO_ENTITLEMENT_ID = process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID || 'pro';
 
 let configured = false;
 

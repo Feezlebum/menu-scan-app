@@ -16,7 +16,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.menuscan.app",
+      "bundleIdentifier": "com.softfocus.michimenuhelper",
       "entitlements": {
         "com.apple.developer.healthkit": true,
         "com.apple.developer.healthkit.background-delivery": false
@@ -29,7 +29,7 @@
       }
     },
     "android": {
-      "package": "com.menuscan.app",
+      "package": "com.softfocus.michimenuhelper",
       "permissions": [
         "CAMERA",
         "POST_NOTIFICATIONS",

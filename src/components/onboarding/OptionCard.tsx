@@ -1,15 +1,14 @@
 import React, { useCallback } from 'react';
 import { TouchableOpacity, StyleSheet, View } from 'react-native';
-import Animated, { 
-  useAnimatedStyle, 
+import Animated, {
+  useAnimatedStyle,
   withSpring,
-  interpolateColor,
   useSharedValue,
-  withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/src/theme/theme';
 import { AppText } from '@/src/components/ui/AppText';
+import MichiMoji from '@/src/components/MichiMoji';
 
 interface Props {
   label: string;
@@ -51,13 +50,13 @@ export function OptionCard({ label, emoji, selected, onPress, description }: Pro
     >
       {emoji && (
         <View style={styles.emojiContainer}>
-          <AppText style={styles.emoji}>{emoji}</AppText>
+          <MichiMoji emoji={emoji} size={28} />
         </View>
       )}
       <View style={styles.content}>
-        <AppText 
+        <AppText
           style={[
-            styles.label, 
+            styles.label,
             { color: selected ? theme.colors.brand : theme.colors.text }
           ]}
         >
@@ -92,9 +91,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-  },
-  emoji: {
-    fontSize: 28,
   },
   content: {
     flex: 1,

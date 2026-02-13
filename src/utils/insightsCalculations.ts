@@ -370,7 +370,7 @@ export function getRestaurantBreakdown(scans: ScanHistoryEntry[]): RestaurantVis
 
 export interface MichiRecap {
   message: string;
-  emoji: string;
+  emoji: 'eyes' | 'sad' | 'fire' | 'workout' | 'celebrate' | 'sparkle';
   mood: 'celebrating' | 'encouraging' | 'concerned' | 'thinking';
   michiImage: any; // Require asset for the mood
 }
@@ -398,7 +398,7 @@ export function getMichiRecapMessage(
   if (thisWeekScans === 0 && lastWeekScans === 0) {
     return {
       message: "Scan some menus and I'll start tracking your patterns!",
-      emoji: '🔍',
+      emoji: 'eyes',
       mood: 'thinking',
       michiImage: MichiAssets.thinking,
     };
@@ -407,8 +407,8 @@ export function getMichiRecapMessage(
   // Scanning less than last week
   if (thisWeekScans < lastWeekScans && lastWeekScans > 0) {
     return {
-      message: "I miss you! Let's scan more this week 🥺",
-      emoji: '🥺',
+      message: "I miss you! Let's scan more this week.",
+      emoji: 'sad',
       mood: 'concerned',
       michiImage: MichiAssets.concerned,
     };
@@ -418,8 +418,8 @@ export function getMichiRecapMessage(
   const caloriesTrendingDown = isCalorieTrendDown(meals, 7);
   if (caloriesTrendingDown && goal === 'lose') {
     return {
-      message: "You're eating lighter this week — keep it up! 🔥",
-      emoji: '🔥',
+      message: "You're eating lighter this week — keep it up!",
+      emoji: 'fire',
       mood: 'celebrating',
       michiImage: MichiAssets.celebrating,
     };
@@ -428,8 +428,8 @@ export function getMichiRecapMessage(
   // Protein increasing
   if (thisWeekMacros.protein > lastWeekMacros.protein * 1.1 && lastWeekMacros.protein > 0) {
     return {
-      message: "More protein this week — Michi approves 💪",
-      emoji: '💪',
+      message: "More protein this week — Michi approves.",
+      emoji: 'workout',
       mood: 'celebrating',
       michiImage: MichiAssets.celebrating,
     };
@@ -438,8 +438,8 @@ export function getMichiRecapMessage(
   // Scanning more consistently
   if (thisWeekScans >= lastWeekScans && thisWeekScans >= 3) {
     return {
-      message: "You're staying on track! Consistency wins 🏆",
-      emoji: '🏆',
+      message: "You're staying on track! Consistency wins.",
+      emoji: 'celebrate',
       mood: 'celebrating',
       michiImage: MichiAssets.celebrating,
     };
@@ -448,7 +448,7 @@ export function getMichiRecapMessage(
   // Default encouraging message
   return {
     message: "Keep scanning and I'll find more patterns for you!",
-    emoji: '✨',
+    emoji: 'sparkle',
     mood: 'encouraging',
     michiImage: MichiAssets.encouraging,
   };

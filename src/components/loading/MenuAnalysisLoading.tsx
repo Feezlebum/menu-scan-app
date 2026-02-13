@@ -13,6 +13,8 @@ import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
 import { useScanStore } from '@/src/stores/scanStore';
 import { Video, ResizeMode } from 'expo-av';
+import MichiMoji from '@/src/components/MichiMoji';
+import type { MichiMojiName } from '@/assets/michimojis/michiMojiMap';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -33,7 +35,7 @@ const ANALYSIS_PHASES = [
   {
     duration: 3000, // 0-3s - New optimization phase
     texts: [
-      "🚀 Optimizing image for super-fast processing...",
+      "Optimizing image for super-fast processing...",
       "Compressing and preparing in parallel!",
       "Using smart algorithms for speed!",
     ]
@@ -41,7 +43,7 @@ const ANALYSIS_PHASES = [
   {
     duration: 4000, // 3-7s
     texts: [
-      "Michi is reading the menu... 🤔",
+      "Michi is reading the menu...",
       "Checking out all the tasty options!",
       "Spotting the dish names...",
     ]
@@ -49,7 +51,7 @@ const ANALYSIS_PHASES = [
   {
     duration: 4000, // 7-11s
     texts: [
-      "Calculating calories and nutrients... 📊",
+      "Calculating calories and nutrients...",
       "Michi's doing the math!",
       "Checking ingredients carefully...",
     ]
@@ -57,7 +59,7 @@ const ANALYSIS_PHASES = [
   {
     duration: 4000, // 11-15s
     texts: [
-      "Finding your perfect matches... ✨",
+      "Finding your perfect matches...",
       "Tailoring recommendations just for you!",
       "Michi knows what you like!",
     ]
@@ -65,12 +67,14 @@ const ANALYSIS_PHASES = [
   {
     duration: 4000, // 15-19s
     texts: [
-      "Almost ready with your results! 🎉",
+      "Almost ready with your results!",
       "Putting the finishing touches...",
       "Your personalized menu is ready!",
     ]
   },
 ];
+
+const PHASE_EMOJIS: MichiMojiName[] = ['sparkle', 'think', 'workout', 'eyes', 'celebrate'];
 
 export default function MenuAnalysisLoading({
   onComplete,
@@ -183,9 +187,13 @@ export default function MenuAnalysisLoading({
   }));
 
   const currentText = hasCompleted
-    ? (scanError ? "Oops! Let's try that again..." : "Analysis complete! 🎉")
+    ? (scanError ? "Oops! Let's try that again..." : "Analysis complete!")
     : ANALYSIS_PHASES[currentPhase]?.texts[currentTextIndex] ||
       "Michi is working hard for you...";
+
+  const currentEmojiName: MichiMojiName = hasCompleted
+    ? (scanError ? 'confused' : 'celebrate')
+    : PHASE_EMOJIS[currentPhase] || 'think';
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
@@ -230,10 +238,11 @@ export default function MenuAnalysisLoading({
           </View>
 
           {/* Status Text */}
-          <Animated.View style={textStyle}>
-            <AppText style={[styles.statusText, { 
+          <Animated.View style={[textStyle, styles.statusRow]}>
+            <MichiMoji name={currentEmojiName} size={24} style={styles.statusEmoji} />
+            <AppText style={[styles.statusText, {
               color: theme.colors.subtext,
-              fontFamily: theme.fonts.body.medium 
+              fontFamily: theme.fonts.body.medium
             }]}> 
               {currentText}
             </AppText>
@@ -309,11 +318,21 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 12,
   },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    maxWidth: SCREEN_WIDTH * 0.86,
+  },
+  statusEmoji: {
+    marginTop: 2,
+  },
   statusText: {
     fontSize: 18,
     textAlign: 'center',
     lineHeight: 26,
-    maxWidth: SCREEN_WIDTH * 0.8,
+    maxWidth: SCREEN_WIDTH * 0.78,
   },
   errorActions: {
     marginTop: 18,

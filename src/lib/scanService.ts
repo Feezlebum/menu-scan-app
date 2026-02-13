@@ -185,7 +185,7 @@ export async function scanMenu(localUri: string): Promise<ScanResult> {
   
   try {
     // PARALLEL OPTIMIZATION: Start compression and metadata prep simultaneously
-    console.log('🚀 Starting optimized scan with parallel processing...');
+    console.log('[scan] Starting optimized scan with parallel processing...');
     const parallelStart = Date.now();
     
     const [compressedUri, uploadMetadata] = await Promise.all([
@@ -194,22 +194,22 @@ export async function scanMenu(localUri: string): Promise<ScanResult> {
     ]);
     
     const parallelEnd = Date.now();
-    console.log(`✅ Parallel prep complete in ${parallelEnd - parallelStart}ms`);
+    console.log(`[scan] Parallel prep complete in ${parallelEnd - parallelStart}ms`);
     
     // Upload the compressed image
     const uploadStart = Date.now();
     const imageUrl = await uploadMenuImage(compressedUri, uploadMetadata);
     const uploadEnd = Date.now();
-    console.log(`📤 Upload complete in ${uploadEnd - uploadStart}ms`);
+    console.log(`[scan] Upload complete in ${uploadEnd - uploadStart}ms`);
     
     // Parse with AI
     const parseStart = Date.now();
     const result = await parseMenu(imageUrl);
     const parseEnd = Date.now();
-    console.log(`🧠 AI analysis complete in ${parseEnd - parseStart}ms`);
+    console.log(`[scan] AI analysis complete in ${parseEnd - parseStart}ms`);
     
     const totalTime = Date.now() - startTime;
-    console.log(`🏁 Total optimized scan time: ${totalTime}ms`);
+    console.log(`[scan] Total optimized scan time: ${totalTime}ms`);
     
     return result;
   } catch (error) {

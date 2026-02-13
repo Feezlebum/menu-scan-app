@@ -30,6 +30,7 @@
     },
     "android": {
       "package": "com.softfocus.michimenuhelper",
+      "versionCode": 2,
       "permissions": [
         "CAMERA",
         "POST_NOTIFICATIONS",

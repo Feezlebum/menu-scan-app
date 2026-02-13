@@ -13,6 +13,7 @@ import { uploadMenuImage, parseMenu } from '@/src/lib/scanService';
 import { translateMenu } from '@/src/lib/translationService';
 import { useScanStore } from '@/src/stores/scanStore';
 import { useTranslationStore } from '@/src/stores/translationStore';
+import { useSubscriptionStore } from '@/src/stores/subscriptionStore';
 import { getScanMichi } from '@/src/utils/michiAssets';
 import { BrandedDialog } from '@/src/components/dialogs/BrandedDialog';
 
@@ -32,6 +33,7 @@ export default function ScanScreen() {
   const processingRotate = useRef(new Animated.Value(0)).current;
   const { setScanResult, setScanError } = useScanStore();
   const { setTranslating, setTranslationResult, setTranslationError, clearTranslation } = useTranslationStore();
+  const { initializeUser, incrementScanCount, checkScanLimit, isProUser, isTrialActive } = useSubscriptionStore();
 
   // Request permission on mount if not determined
   useEffect(() => {
@@ -39,6 +41,10 @@ export default function ScanScreen() {
       requestPermission();
     }
   }, [permission]);
+
+  useEffect(() => {
+    initializeUser();
+  }, [initializeUser]);
 
   useEffect(() => {
     if (scanState === 'processing') {
@@ -67,6 +73,20 @@ export default function ScanScreen() {
 
   const handleCapture = async () => {
     if (!cameraRef.current || scanState !== 'ready') return;
+
+    const scanAllowed = incrementScanCount();
+    if (!scanAllowed && !isProUser && !isTrialActive) {
+      const { remaining, resetDate } = checkScanLimit();
+      router.push({
+        pathname: '/scan-limit-paywall' as any,
+        params: {
+          remaining: remaining.toString(),
+          resetDate,
+          context: 'scan_limit',
+        },
+      });
+      return;
+    }
 
     try {
       setScanState('capturing');

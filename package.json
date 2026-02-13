@@ -1,5 +1,5 @@
 {
-  "name": "menu-scan-app",
+  "name": "michi-menu-helper",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {

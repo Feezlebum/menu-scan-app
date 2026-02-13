@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Menu Scan",
-    "slug": "menu-scan-app",
+    "slug": "michi-menu-helper",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

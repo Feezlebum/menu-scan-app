@@ -49,11 +49,44 @@ export type MichiMojiName =
   | 'shrug' | 'sick' | 'sleep' | 'sneaky' | 'sparkle' | 'think' 
   | 'thumbsup' | 'wave' | 'workout';
 
+const MICHI_MOJI_BY_NAME: Record<MichiMojiName, any> = {
+  angry: require('./optimized/angry.png'),
+  celebrate: require('./optimized/celebrate.png'),
+  clap: require('./optimized/clap.png'),
+  cold: require('./optimized/cold.png'),
+  confused: require('./optimized/confused.png'),
+  cook: require('./optimized/cook.png'),
+  cool: require('./optimized/cool.png'),
+  eyes: require('./optimized/eyes.png'),
+  facepalm: require('./optimized/facepalm.png'),
+  fire: require('./optimized/fire.png'),
+  heart: require('./optimized/heart.png'),
+  hot: require('./optimized/hot.png'),
+  hungry: require('./optimized/hungry.png'),
+  laugh: require('./optimized/laugh.png'),
+  love: require('./optimized/love.png'),
+  money: require('./optimized/money.png'),
+  pray: require('./optimized/pray.png'),
+  proud: require('./optimized/proud.png'),
+  sad: require('./optimized/sad.png'),
+  salute: require('./optimized/salute.png'),
+  shocked: require('./optimized/shocked.png'),
+  shrug: require('./optimized/shrug.png'),
+  sick: require('./optimized/sick.png'),
+  sleep: require('./optimized/sleep.png'),
+  sneaky: require('./optimized/sneaky.png'),
+  sparkle: require('./optimized/sparkle.png'),
+  think: require('./optimized/think.png'),
+  thumbsup: require('./optimized/thumbsup.png'),
+  wave: require('./optimized/wave.png'),
+  workout: require('./optimized/workout.png'),
+};
+
 /**
  * Get Michi-moji asset by name
  */
 export function getMichiMoji(name: MichiMojiName) {
-  return require(`./optimized/${name}.png`);
+  return MICHI_MOJI_BY_NAME[name];
 }
 
 /**

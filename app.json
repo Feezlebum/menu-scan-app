@@ -29,9 +29,12 @@
       }
     },
     "android": {
+      "package": "com.menuscan.app",
       "permissions": [
         "CAMERA",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -52,12 +55,18 @@
         }
       ],
       "expo-notifications",
-      "@sentry/react-native",
       "./plugins/withHealthKit",
       "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6c0d4295-d1df-4dd3-ad23-a75fc3327449"
+      }
+    },
+    "owner": "softfocus"
   }
 }

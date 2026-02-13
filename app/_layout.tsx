@@ -19,6 +19,7 @@ import {
 } from '@expo-google-fonts/nunito';
 import 'react-native-reanimated';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
+import { useSubscriptionStore } from '@/src/stores/subscriptionStore';
 import { isAuthenticated } from '@/src/lib/auth';
 import { supabase } from '@/src/lib/supabase';
 
@@ -28,6 +29,7 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const segments = useSegments();
   const { completed } = useOnboardingStore();
+  const { initializeUser } = useSubscriptionStore();
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -61,19 +63,21 @@ export default function RootLayout() {
       const authenticated = await isAuthenticated();
       setIsLoggedIn(authenticated);
       setIsAuthChecked(true);
+      await initializeUser();
     };
 
     checkAuthStatus();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setIsLoggedIn(!!session?.user);
       setIsAuthChecked(true);
+      await initializeUser();
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [initializeUser]);
 
   // Wait for fonts/auth check to load
   if ((!fontsLoaded && !fontError) || !isAuthChecked) {

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { checkSubscriptionStatus, purchasePackage, startTrialPurchase } from '@/src/lib/purchases';
 
 interface ScanUsage {
   count: number;
@@ -64,13 +65,21 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       initializeUser: async () => {
         const state = get();
 
-        const trialActive = isTrialActive(state.trialEndDate);
+        const remoteStatus = await checkSubscriptionStatus();
+        const trialActiveLocal = isTrialActive(state.trialEndDate);
         const now = new Date();
         const resetDate = new Date(state.scanUsage.resetDate);
 
         set({
-          isTrialActive: trialActive,
-          subscriptionType: trialActive ? 'trial' : state.isProUser ? state.subscriptionType : 'none',
+          isProUser: remoteStatus.isProUser,
+          subscriptionType:
+            remoteStatus.subscriptionType !== 'none'
+              ? remoteStatus.subscriptionType
+              : trialActiveLocal
+              ? 'trial'
+              : 'none',
+          isTrialActive: remoteStatus.isTrialActive || trialActiveLocal,
+          trialEndDate: remoteStatus.trialEndDate ?? state.trialEndDate,
         });
 
         if (now >= resetDate) {
@@ -135,27 +144,47 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       },
 
       startTrial: async () => {
-        const trialEnd = new Date();
-        trialEnd.setDate(trialEnd.getDate() + 7);
+        const result = await startTrialPurchase();
 
-        set({
-          isTrialActive: true,
-          trialEndDate: trialEnd.toISOString(),
-          subscriptionType: 'trial',
-        });
+        if (result.success && result.status) {
+          set({
+            isProUser: result.status.isProUser,
+            subscriptionType: result.status.subscriptionType,
+            isTrialActive: result.status.isTrialActive,
+            trialEndDate: result.status.trialEndDate,
+          });
+          return true;
+        }
 
-        return true;
+        // Fallback local trial if purchase flow is unavailable in local/dev env.
+        if (!result.success && (result as any).error?.includes('not configured')) {
+          const trialEnd = new Date();
+          trialEnd.setDate(trialEnd.getDate() + 7);
+          set({
+            isTrialActive: true,
+            trialEndDate: trialEnd.toISOString(),
+            subscriptionType: 'trial',
+          });
+          return true;
+        }
+
+        return false;
       },
 
       subscribe: async (type) => {
-        set({
-          isProUser: true,
-          subscriptionType: type,
-          isTrialActive: false,
-          trialEndDate: null,
-        });
+        const result = await purchasePackage(type);
 
-        return true;
+        if (result.success && result.status) {
+          set({
+            isProUser: result.status.isProUser,
+            subscriptionType: result.status.subscriptionType,
+            isTrialActive: result.status.isTrialActive,
+            trialEndDate: result.status.trialEndDate,
+          });
+          return true;
+        }
+
+        return false;
       },
 
       resetScanUsage: () => {

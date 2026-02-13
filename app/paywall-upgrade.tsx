@@ -11,21 +11,32 @@ export default function PaywallUpgradeScreen() {
   const router = useRouter();
   const { startTrial, subscribe } = useSubscriptionStore();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleTrial = async () => {
     if (loading) return;
+    setError(null);
     setLoading(true);
-    await startTrial();
+    const ok = await startTrial();
     setLoading(false);
-    router.replace('/(tabs)/scan');
+    if (ok) {
+      router.replace('/(tabs)/scan');
+    } else {
+      setError('Could not start trial. Please check store setup and try again.');
+    }
   };
 
   const handleSubscribe = async (plan: 'monthly' | 'annual') => {
     if (loading) return;
+    setError(null);
     setLoading(true);
-    await subscribe(plan);
+    const ok = await subscribe(plan);
     setLoading(false);
-    router.replace('/(tabs)/scan');
+    if (ok) {
+      router.replace('/(tabs)/scan');
+    } else {
+      setError('Purchase did not complete. Please try again.');
+    }
   };
 
   return (
@@ -50,6 +61,8 @@ export default function PaywallUpgradeScreen() {
         <TouchableOpacity onPress={handleTrial} disabled={loading} style={styles.trialButton}>
           <AppText style={[styles.trialText, { color: theme.colors.subtext }]}>Start 7-day free trial</AppText>
         </TouchableOpacity>
+
+        {error ? <AppText style={[styles.errorText, { color: theme.colors.trafficRed }]}>{error}</AppText> : null}
       </View>
     </SafeAreaView>
   );
@@ -66,4 +79,5 @@ const styles = StyleSheet.create({
   planMeta: { fontSize: 13, marginBottom: 4 },
   trialButton: { alignItems: 'center', marginTop: 4 },
   trialText: { fontSize: 14 },
+  errorText: { fontSize: 13, textAlign: 'center' },
 });

@@ -43,7 +43,7 @@ export default function WeeklyBudgetScreen() {
 
   return (
     <OnboardingScreen
-      title="💰 Weekly Dining Budget"
+      title="Weekly Dining Budget"
       subtitle="How much do you typically spend eating out per week?"
       canContinue={isValid}
       onContinue={continueNext}

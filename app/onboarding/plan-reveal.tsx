@@ -64,7 +64,7 @@ export default function PlanRevealScreen() {
         {/* Header */}
         <Animated.View entering={FadeInUp.delay(200)}>
           <AppText style={[styles.header, { color: theme.colors.brand }]}>
-            Your personalized plan is ready! 🎉
+            Your personalized plan is ready!
           </AppText>
         </Animated.View>
 

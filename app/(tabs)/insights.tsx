@@ -525,7 +525,7 @@ function ConsistencyCard({
   const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   const getMessage = () => {
-    if (consistency.activeDays >= 5) return { text: "Crushing it! 🔥", mood: 'celebrating' };
+    if (consistency.activeDays >= 5) return { text: 'Crushing it!', mood: 'celebrating' };
     if (consistency.activeDays >= 3) return { text: "Solid week!", mood: 'encouraging' };
     return { text: "Let's get back on track!", mood: 'encouraging' };
   };

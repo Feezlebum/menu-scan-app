@@ -6,6 +6,7 @@ import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/src/theme/theme';
 import { AppText } from '@/src/components/ui/AppText';
+import MichiMoji from '@/src/components/MichiMoji';
 import { PrimaryButton } from '@/src/components/ui/PrimaryButton';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import { useSubscriptionStore } from '@/src/stores/subscriptionStore';
@@ -18,13 +19,13 @@ const PLANS = {
 };
 
 const FEATURES = [
-  { emoji: '📸', label: 'Unlimited menu scans' },
+  { emoji: '👀', label: 'Unlimited menu scans' },
   { emoji: '🎯', label: 'Personalized Top 3 picks' },
-  { emoji: '📊', label: 'Full nutrition breakdown' },
-  { emoji: '✏️', label: 'Modification suggestions' },
-  { emoji: '💬', label: '"What to say" scripts' },
+  { emoji: '✨', label: 'Full nutrition breakdown' },
+  { emoji: '🤔', label: 'Modification suggestions' },
+  { emoji: '👍', label: '"What to say" scripts' },
   { emoji: '🔥', label: 'Streak tracking' },
-  { emoji: '🚫', label: 'Ad-free experience' },
+  { emoji: '😎', label: 'Ad-free experience' },
 ];
 
 export default function PaywallScreen() {
@@ -71,7 +72,7 @@ export default function PaywallScreen() {
         {/* Header */}
         <Animated.View entering={FadeInUp.delay(100)}>
           <View style={[styles.mascot, { backgroundColor: theme.colors.brand + '20' }]}>
-            <AppText style={styles.mascotEmoji}>🥗</AppText>
+            <MichiMoji name="cook" size={44} />
           </View>
           <AppText style={[styles.title, { color: theme.colors.text }]}>
             Start Your Free Trial
@@ -85,11 +86,11 @@ export default function PaywallScreen() {
         <Animated.View entering={FadeInUp.delay(200)} style={styles.features}>
           {FEATURES.map((feature, i) => (
             <View key={i} style={styles.featureRow}>
-              <AppText style={styles.featureEmoji}>{feature.emoji}</AppText>
-              <AppText style={[styles.featureLabel, { color: theme.colors.text }]}>
+              <MichiMoji emoji={feature.emoji} size={20} style={styles.featureEmojiImage} />
+              <AppText style={[styles.featureLabel, { color: theme.colors.text }]}> 
                 {feature.label}
               </AppText>
-              <AppText style={[styles.featureCheck, { color: theme.colors.brand }]}>✓</AppText>
+              <MichiMoji name="thumbsup" size={16} />
             </View>
           ))}
         </Animated.View>
@@ -185,14 +186,14 @@ export default function PaywallScreen() {
           disabled={loading}
         />
         <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
-          <AppText style={[styles.skipText, { color: theme.colors.subtext }]}> 
+          <AppText style={[styles.skipText, { color: theme.colors.subtext }]}>
             Continue with limited features
           </AppText>
         </TouchableOpacity>
         {error ? (
           <AppText style={[styles.errorText, { color: theme.colors.trafficRed }]}>{error}</AppText>
         ) : null}
-        <AppText style={[styles.legal, { color: theme.colors.subtext }]}> 
+        <AppText style={[styles.legal, { color: theme.colors.subtext }]}>
           Cancel anytime. Subscription renews automatically.
         </AppText>
       </Animated.View>
@@ -239,8 +240,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
   },
-  featureEmoji: {
-    fontSize: 20,
+  featureEmojiImage: {
     marginRight: 12,
   },
   featureLabel: {

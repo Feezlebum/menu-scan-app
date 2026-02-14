@@ -189,10 +189,10 @@ export default function ProfileScreen() {
 
   const heroMessage = useMemo(() => {
     const messages: Record<Goal, string> = {
-      lose: 'Every scan gets you closer to your goal! 💪',
-      gain: 'Building those gains, one meal at a time! 🔥',
-      maintain: 'Staying consistent is the key to success! ⚖️',
-      health: 'Making healthier choices every day! 🌱',
+      lose: 'Every scan gets you closer to your goal.',
+      gain: 'Building those gains, one meal at a time.',
+      maintain: 'Staying consistent is the key to success.',
+      health: 'Making healthier choices every day.',
     };
 
     return messages[goal || 'health'];

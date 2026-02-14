@@ -43,9 +43,9 @@ export default function GoalWeightScreen() {
   const getMotivation = () => {
     if (!currentWeightKg || !goalWeightKg) return '';
     const diff = Math.abs(currentWeightKg - goalWeightKg);
-    if (diff <= 5) return 'A realistic and achievable goal! 🎯';
-    if (diff <= 15) return 'Great goal! Steady progress wins. 💪';
-    return 'Big goals start with small steps. You got this! 🚀';
+    if (diff <= 5) return 'A realistic and achievable goal.';
+    if (diff <= 15) return 'Great goal! Steady progress wins.';
+    return 'Big goals start with small steps. You got this!';
   };
 
   return (

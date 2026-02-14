@@ -38,7 +38,7 @@ function FeatureIcon({ icon }: { icon: Feature['icon'] }) {
   if (icon === 'scan') return <MichiMoji name="eyes" size={28} />;
   if (icon === 'star') return <MichiMoji name="celebrate" size={28} />;
   if (icon === 'dollar') return <MichiMoji name="money" size={28} />;
-  return <MichiMoji name="cool" size={28} />;
+  return <MichiMoji name="wave" size={28} />;
 }
 
 const FEATURE_COLORS = ['#5FA6A6', '#6BAF7A', '#F2B95E', '#E86B50'];

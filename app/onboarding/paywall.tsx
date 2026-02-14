@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -29,6 +30,7 @@ const FEATURES = [
 export default function PaywallScreen() {
   const theme = useAppTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { completeOnboarding } = useOnboardingStore();
   const { subscribe } = useSubscriptionStore();
   const [selectedPlan, setSelectedPlan] = useState<Plan>('annual');
@@ -176,7 +178,7 @@ export default function PaywallScreen() {
       </ScrollView>
 
       {/* Footer */}
-      <Animated.View entering={FadeIn.delay(500)} style={styles.footer}>
+      <Animated.View entering={FadeIn.delay(500)} style={[styles.footer, { paddingBottom: Math.max(24, insets.bottom + 12) }]}>
         <PrimaryButton
           label={loading ? 'Processing…' : 'Start 7-Day Free Trial'}
           onPress={handleSubscribe}

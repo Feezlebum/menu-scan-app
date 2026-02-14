@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, SafeAreaView, TouchableOpacity, Platform, Image, Animated, Easing } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { AppText } from '@/src/components/ui/AppText';
@@ -24,6 +25,7 @@ const MichiProcessing = require('@/assets/michi-magnifying-glass.png');
 export default function ScanScreen() {
   const theme = useAppTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const cameraRef = useRef<CameraView>(null);
   const isMountedRef = useRef(true);
   const [permission, requestPermission] = useCameraPermissions();
@@ -272,7 +274,7 @@ export default function ScanScreen() {
         </View>
 
         {/* Controls */}
-        <SafeAreaView style={styles.controls}>
+        <SafeAreaView style={[styles.controls, { paddingBottom: Math.max(20, insets.bottom + 12) }]}>
           <CaptureButton
             onPress={handleCapture}
             disabled={scanState !== 'ready'}

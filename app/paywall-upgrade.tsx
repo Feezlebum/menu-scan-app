@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { AppText } from '@/src/components/ui/AppText';
 import { PrimaryButton } from '@/src/components/ui/PrimaryButton';
@@ -9,6 +10,7 @@ import { useSubscriptionStore } from '@/src/stores/subscriptionStore';
 export default function PaywallUpgradeScreen() {
   const theme = useAppTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { startTrial, subscribe, restore } = useSubscriptionStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +56,7 @@ export default function PaywallUpgradeScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]}> 
-      <View style={styles.content}>
+      <View style={[styles.content, { paddingBottom: Math.max(24, insets.bottom + 12) }]}> 
         <AppText style={[styles.title, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Go Pro</AppText>
         <AppText style={[styles.subtitle, { color: theme.colors.subtext }]}>Unlimited scans, advanced insights, and premium translation features.</AppText>
 

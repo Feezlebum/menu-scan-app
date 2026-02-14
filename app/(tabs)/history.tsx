@@ -10,7 +10,7 @@ import {
   TextInput,
   Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as Haptics from 'expo-haptics';
@@ -52,6 +52,7 @@ interface MealCardProps {
 export default function HistoryScreen() {
   const theme = useAppTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { loggedMeals, deleteMeal } = useHistoryStore();
   const { currency: homeCurrency } = useSpendingStore();
   const { setSelectedItem, setSelectedMealId } = useScanStore();
@@ -348,7 +349,7 @@ export default function HistoryScreen() {
       </Modal>
 
       <TouchableOpacity
-        style={[styles.fab, { backgroundColor: theme.colors.brand }]}
+        style={[styles.fab, { backgroundColor: theme.colors.brand, bottom: Math.max(28, insets.bottom + 12) }]}
         onPress={() => router.push('/manual-entry' as any)}
         activeOpacity={0.85}
       >

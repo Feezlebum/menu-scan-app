@@ -63,7 +63,23 @@ export const parsePrice = (priceText: string | null): number | null => {
   return Number.isNaN(parsed) ? null : parsed;
 };
 
-export async function estimateNutrition(itemName: string, cuisineKey: string): Promise<NutritionEstimate> {
+export async function estimateNutrition(
+  itemName: string,
+  cuisineKey: string,
+  restaurantName?: string
+): Promise<NutritionEstimate> {
+  try {
+    const { data, error } = await supabase.functions.invoke('estimate-nutrition', {
+      body: { itemName, cuisineKey, restaurantName: restaurantName?.trim() || null },
+    });
+
+    if (!error && data?.success && data?.estimate) {
+      return data.estimate as NutritionEstimate;
+    }
+  } catch {
+    // Fall through to local heuristic estimator when edge function is unavailable.
+  }
+
   return estimateManualNutrition(itemName, cuisineKey);
 }
 

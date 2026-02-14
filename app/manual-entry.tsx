@@ -75,7 +75,7 @@ export default function ManualEntryScreen() {
     }
 
     if (step === 2 && selectedCuisine) {
-      const estimate = await estimateNutrition(itemName.trim(), selectedCuisine.key);
+      const estimate = await estimateNutrition(itemName.trim(), selectedCuisine.key, restaurant.trim());
       setNutrition(estimate);
       setStep(3);
       return;
@@ -303,7 +303,15 @@ export default function ManualEntryScreen() {
 
       <View style={styles.footer}>
         <PrimaryButton
-          label={step === 3 ? (saving ? 'Saving...' : 'Add to History') : 'Continue'}
+          label={
+            step === 3
+              ? saving
+                ? 'Saving...'
+                : 'Add to History'
+              : step === 2
+                ? 'Estimate with AI'
+                : 'Continue'
+          }
           onPress={handleContinue}
           disabled={!canContinue || saving}
         />

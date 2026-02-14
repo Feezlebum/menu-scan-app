@@ -121,7 +121,7 @@ export default function ItemDetailScreen() {
       setUserCurrency(effectiveDetectedCurrency);
     }
     setHasReviewedCurrency(false);
-  }, [item, selectedMealId, loggedMeals, effectiveDetectedCurrency]);
+  }, [item, selectedMealId, effectiveDetectedCurrency]);
 
   const effectiveItem = {
     ...item,

@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { AppText } from '@/src/components/ui/AppText';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
 import { useAppTheme } from '@/src/theme/theme';
-import { requestPasswordReset, signIn } from '@/src/lib/auth';
+import { signIn } from '@/src/lib/auth';
 
 export default function LoginScreen() {
   const theme = useAppTheme();
@@ -12,12 +12,11 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resettingPassword, setResettingPassword] = useState(false);
 
   const canContinue = /@/.test(email) && password.length >= 6;
 
   const handleLogin = async () => {
-    if (loading || resettingPassword) return false;
+    if (loading) return false;
 
     setLoading(true);
     const result = await signIn(email.trim(), password);
@@ -32,25 +31,13 @@ export default function LoginScreen() {
     return false;
   };
 
-  const handleForgotPassword = async () => {
-    if (loading || resettingPassword) return;
-
+  const handleForgotPassword = () => {
     const candidate = email.trim();
-    if (!candidate || !candidate.includes('@')) {
-      Alert.alert('Reset password', 'Enter your account email first, then tap Forgot password.');
-      return;
-    }
-
-    setResettingPassword(true);
-    const result = await requestPasswordReset(candidate);
-    setResettingPassword(false);
-
-    if (result.success) {
-      Alert.alert('Check your email', 'If this account exists, a password reset link has been sent.');
-      return;
-    }
-
-    Alert.alert('Could not send reset email', result.error || 'Please try again.');
+    router.push(
+      candidate
+        ? (`/onboarding/forgot-password?email=${encodeURIComponent(candidate)}` as any)
+        : ('/onboarding/forgot-password' as any)
+    );
   };
 
   const handleAccountHelp = async () => {
@@ -75,9 +62,9 @@ export default function LoginScreen() {
       title="Welcome Back!"
       subtitle="Log in to your account to continue tracking."
       hideProgress
-      canContinue={canContinue && !loading && !resettingPassword}
+      canContinue={canContinue && !loading}
       onContinue={handleLogin}
-      buttonText={loading ? 'Signing in...' : resettingPassword ? 'Sending reset...' : 'Log In'}
+      buttonText={loading ? 'Signing in...' : 'Log In'}
       showBack
     >
       <View style={styles.form}>
@@ -102,18 +89,18 @@ export default function LoginScreen() {
           />
         </Field>
 
-        <TouchableOpacity onPress={handleForgotPassword} disabled={loading || resettingPassword}>
-          <AppText style={[styles.linkText, { color: theme.colors.brand, opacity: loading || resettingPassword ? 0.6 : 1 }]}>Forgot password?</AppText>
+        <TouchableOpacity onPress={handleForgotPassword} disabled={loading}>
+          <AppText style={[styles.linkText, { color: theme.colors.brand, opacity: loading ? 0.6 : 1 }]}>Forgot password?</AppText>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleAccountHelp} disabled={loading || resettingPassword}>
-          <AppText style={[styles.helpText, { color: theme.colors.subtext, opacity: loading || resettingPassword ? 0.6 : 1 }]}>Need help accessing your account or forgot your email?</AppText>
+        <TouchableOpacity onPress={handleAccountHelp} disabled={loading}>
+          <AppText style={[styles.helpText, { color: theme.colors.subtext, opacity: loading ? 0.6 : 1 }]}>Need help accessing your account or forgot your email?</AppText>
         </TouchableOpacity>
 
-        {(loading || resettingPassword) && (
+        {loading && (
           <View style={styles.loading}>
             <ActivityIndicator color={theme.colors.brand} />
-            <AppText style={[styles.loadingText, { color: theme.colors.subtext }]}>{loading ? 'Signing in...' : 'Sending reset email...'}</AppText>
+            <AppText style={[styles.loadingText, { color: theme.colors.subtext }]}>Signing in...</AppText>
           </View>
         )}
       </View>

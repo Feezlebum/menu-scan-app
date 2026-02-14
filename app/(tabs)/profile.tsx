@@ -9,6 +9,8 @@ import {
   ImageBackground,
   Image,
   Modal,
+  Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -208,6 +210,24 @@ export default function ProfileScreen() {
     setCurrencyModalVisible(true);
   };
 
+  const handleManageSubscription = async () => {
+    const url =
+      Platform.OS === 'ios'
+        ? 'https://apps.apple.com/account/subscriptions'
+        : 'https://play.google.com/store/account/subscriptions';
+
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) {
+        Alert.alert('Unable to open subscriptions', 'Please open your App Store / Google Play account subscriptions manually.');
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Unable to open subscriptions', 'Please open your App Store / Google Play account subscriptions manually.');
+    }
+  };
+
   const handleLogOut = async () => {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
@@ -401,6 +421,16 @@ export default function ProfileScreen() {
 
                 <Divider theme={theme} />
 
+                <TouchableOpacity style={styles.preferenceRow} onPress={handleManageSubscription} activeOpacity={0.75}>
+                  <View style={styles.preferenceLeft}>
+                    <FontAwesome name="credit-card" size={18} color={theme.colors.brand} />
+                    <AppText style={[styles.preferenceLabel, { color: theme.colors.text }]}>Manage Subscription</AppText>
+                  </View>
+                  <FontAwesome name="external-link" size={12} color={theme.colors.subtext} />
+                </TouchableOpacity>
+
+                <Divider theme={theme} />
+
                 <TouchableOpacity style={styles.preferenceRow} onPress={handleLogOut} activeOpacity={0.75}>
                   <View style={styles.preferenceLeft}>
                     <FontAwesome name="sign-out" size={18} color={theme.colors.trafficAmber} />
@@ -425,6 +455,7 @@ export default function ProfileScreen() {
               <Card style={[styles.infoCard, { backgroundColor: theme.colors.cardCream }]}> 
                 <AppText style={[styles.infoTitle, { color: theme.colors.text, fontFamily: theme.fonts.body.semiBold }]}>MenuScan v1.0.0</AppText>
                 <AppText style={[styles.infoSubtitle, { color: theme.colors.subtext }]}>Built to make healthier menu choices easier.</AppText>
+                <AppText style={[styles.infoSubtitle, { color: theme.colors.subtext, marginTop: 6 }]}>Subscriptions are billed and managed by Apple App Store / Google Play.</AppText>
               </Card>
             </View>
           </ScrollView>

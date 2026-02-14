@@ -7,6 +7,7 @@ import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
 import { useOnboardingStore, SpendingGoal } from '@/src/stores/onboardingStore';
 import { useSpendingStore } from '@/src/stores/spendingStore';
+import { formatMoney } from '@/src/utils/currency';
 
 const GOALS: Array<{ key: SpendingGoal; label: string }> = [
   { key: 'stay_within_budget', label: 'Stay within budget' },
@@ -19,7 +20,7 @@ export default function SpendingGoalsBudgetScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { weeklyDiningBudget, setWeeklyDiningBudget, spendingGoals, toggleSpendingGoal } = useOnboardingStore();
-  const { setWeeklyBudget } = useSpendingStore();
+  const { currency: homeCurrency, setWeeklyBudget } = useSpendingStore();
   const [budgetInput, setBudgetInput] = useState(weeklyDiningBudget ? String(weeklyDiningBudget) : '100');
 
   const parsedBudget = Number.parseFloat(budgetInput.replace(/[^0-9.]/g, ''));
@@ -50,7 +51,7 @@ export default function SpendingGoalsBudgetScreen() {
         <ProgressBadge step={8} total={14} />
 
         <View style={[styles.inputWrap, { borderColor: theme.colors.border, backgroundColor: '#fff' }]}>
-          <AppText style={[styles.dollar, { color: theme.colors.subtext }]}>$</AppText>
+          <AppText style={[styles.dollar, { color: theme.colors.subtext }]}>{homeCurrency}</AppText>
           <TextInput
             value={budgetInput}
             onChangeText={(v) => setBudgetInput(v.replace(/[^0-9.]/g, ''))}
@@ -61,7 +62,7 @@ export default function SpendingGoalsBudgetScreen() {
           />
         </View>
 
-        <AppText style={[styles.helper, { color: theme.colors.subtext }]}>Weekly target: ${weeklyProjection.toFixed(0)} • recommended range $25–$200+</AppText>
+        <AppText style={[styles.helper, { color: theme.colors.subtext }]}>Weekly target: {formatMoney(weeklyProjection, homeCurrency)} • recommended range {formatMoney(25, homeCurrency)}–{formatMoney(200, homeCurrency)}+</AppText>
 
         {GOALS.map((goal) => {
           const active = spendingGoals.includes(goal.key);

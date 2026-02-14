@@ -12,6 +12,7 @@ import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import { useHistoryStore } from '@/src/stores/historyStore';
 import { useStreakStore } from '@/src/stores/streakStore';
 import { useSpendingStore } from '@/src/stores/spendingStore';
+import { formatMoney } from '@/src/utils/currency';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -45,7 +46,7 @@ export default function HomeScreen() {
   const { goal, macroPriority, dietType, intolerances, spendingGoals } = useOnboardingStore();
   const { loggedMeals } = useHistoryStore();
   const { currentStreak, lastChoice } = useStreakStore();
-  const { weeklyBudget, getCurrentWeekSpent } = useSpendingStore();
+  const { weeklyBudget, currency: homeCurrency, getCurrentWeekSpent } = useSpendingStore();
 
   const currentWeekSpent = getCurrentWeekSpent();
   const budgetPercent = weeklyBudget && weeklyBudget > 0 ? (currentWeekSpent / weeklyBudget) * 100 : 0;
@@ -168,7 +169,7 @@ export default function HomeScreen() {
               <View style={styles.spendingTitleBlock}>
                 <AppText style={[styles.spendingTitle, { color: theme.colors.text }]}>💰 Weekly Spending</AppText>
                 {weeklyBudget ? (
-                  <AppText style={[styles.spendingAmount, { color: theme.colors.text }]}>${currentWeekSpent.toFixed(0)} / ${weeklyBudget.toFixed(0)}</AppText>
+                  <AppText style={[styles.spendingAmount, { color: theme.colors.text }]}>{formatMoney(currentWeekSpent, homeCurrency)} / {formatMoney(weeklyBudget, homeCurrency)}</AppText>
                 ) : (
                   <AppText style={[styles.spendingUnset, { color: theme.colors.subtext }]}>Set a budget in onboarding/profile</AppText>
                 )}

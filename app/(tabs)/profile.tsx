@@ -29,6 +29,7 @@ import {
 } from '@/src/stores/onboardingStore';
 import { useSpendingStore } from '@/src/stores/spendingStore';
 import type { CurrencyCode } from '@/src/types/spending';
+import { formatMoney } from '@/src/utils/currency';
 import { getProfileMichi, type MichiVariant } from '@/src/utils/michiAssets';
 import { BudgetPickerModal } from '@/src/components/profile/BudgetPickerModal';
 import { deleteAccount, getCurrentUser, signOut } from '@/src/lib/auth';
@@ -333,7 +334,7 @@ export default function ProfileScreen() {
                 <EditableRow
                   icon="dollar"
                   label="Weekly Dining Budget"
-                  value={weeklyBudget ? `$${weeklyBudget.toFixed(0)}` : 'Not set'}
+                  value={weeklyBudget ? formatMoney(weeklyBudget, currency) : 'Not set'}
                   theme={theme}
                   onPress={openBudgetEditor}
                 />

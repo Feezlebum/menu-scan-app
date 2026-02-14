@@ -22,6 +22,8 @@ import { useAppTheme } from '@/src/theme/theme';
 import { useHistoryStore, LoggedMeal, getMealPrice } from '@/src/stores/historyStore';
 import { BrandedDialog } from '@/src/components/dialogs/BrandedDialog';
 import { useScanStore } from '@/src/stores/scanStore';
+import { useSpendingStore } from '@/src/stores/spendingStore';
+import { formatMoney } from '@/src/utils/currency';
 
 const HomeBackground = require('@/assets/botanicals/home-background.png');
 const MichiHistoryAvatar = require('@/assets/michi-avatar.png');
@@ -37,10 +39,12 @@ interface MealSection {
 
 interface DayHeaderProps {
   section: MealSection;
+  homeCurrency: import('@/src/types/spending').CurrencyCode;
 }
 
 interface MealCardProps {
   meal: LoggedMeal;
+  homeCurrency: import('@/src/types/spending').CurrencyCode;
   onPress: () => void;
   onDelete: () => void;
 }
@@ -49,6 +53,7 @@ export default function HistoryScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { loggedMeals, deleteMeal } = useHistoryStore();
+  const { currency: homeCurrency } = useSpendingStore();
   const { setSelectedItem, setSelectedMealId } = useScanStore();
 
   const [timeRange, setTimeRange] = useState<TimeRange>('week');
@@ -164,7 +169,7 @@ export default function HistoryScreen() {
             </AppText>
             <AppText style={[styles.heroStats, { color: theme.colors.subtext }]}> 
               {totalMeals} meals • {totalDays} days • {totalCalories.toLocaleString()} cal
-              {totalSpending > 0 ? ` • $${totalSpending.toFixed(0)} spent` : ''}
+              {totalSpending > 0 ? ` • ${formatMoney(totalSpending, homeCurrency)} spent` : ''}
             </AppText>
           </View>
         </View>
@@ -262,6 +267,7 @@ export default function HistoryScreen() {
               renderItem={({ item }) => (
                 <MealCard
                   meal={item}
+                  homeCurrency={homeCurrency}
                   onPress={() => handleMealPress(item)}
                   onDelete={() => {
                     setMealToDelete(item);
@@ -269,7 +275,7 @@ export default function HistoryScreen() {
                   }}
                 />
               )}
-              renderSectionHeader={({ section }) => <DayHeader section={section} />}
+              renderSectionHeader={({ section }) => <DayHeader section={section} homeCurrency={homeCurrency} />}
               ListFooterComponent={showLoadMore ? <LoadMoreButton onPress={() => setCurrentPage((p) => p + 1)} /> : null}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
@@ -352,7 +358,7 @@ export default function HistoryScreen() {
   );
 }
 
-const DayHeader: React.FC<DayHeaderProps> = ({ section }) => {
+const DayHeader: React.FC<DayHeaderProps> = ({ section, homeCurrency }) => {
   const theme = useAppTheme();
 
   const dayCalories = section.data.reduce((sum, meal) => sum + (meal.item.estimatedCalories || 0), 0);
@@ -380,7 +386,7 @@ const DayHeader: React.FC<DayHeaderProps> = ({ section }) => {
           {daySpending > 0 && (
             <View style={styles.statItem}>
               <AppText style={[styles.statNumber, { color: theme.colors.accent, fontFamily: theme.fonts.body.semiBold }]}> 
-                ${daySpending.toFixed(0)}
+                {formatMoney(daySpending, homeCurrency)}
               </AppText>
               <AppText style={[styles.statLabel, { color: theme.colors.subtext }]}>spent</AppText>
             </View>
@@ -400,7 +406,7 @@ const DayHeader: React.FC<DayHeaderProps> = ({ section }) => {
   );
 };
 
-const MealCard: React.FC<MealCardProps> = ({ meal, onPress, onDelete }) => {
+const MealCard: React.FC<MealCardProps> = ({ meal, homeCurrency, onPress, onDelete }) => {
   const theme = useAppTheme();
   const price = getMealPrice(meal);
 
@@ -421,7 +427,7 @@ const MealCard: React.FC<MealCardProps> = ({ meal, onPress, onDelete }) => {
               {price !== null && (
                 <View style={[styles.priceBadge, { backgroundColor: theme.colors.cardCream }]}> 
                   <AppText style={[styles.badgeText, { color: theme.colors.text, fontFamily: theme.fonts.body.semiBold }]}> 
-                    ${price.toFixed(2)}
+                    {formatMoney(price, homeCurrency)}
                   </AppText>
                   {typeof meal.userPrice === 'number' && (
                     <AppText style={[styles.priceEditedText, { color: theme.colors.subtext }]}>edited</AppText>

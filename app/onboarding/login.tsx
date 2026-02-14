@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, Alert, ActivityIndicator, TouchableOpacity, Linking } from 'react-native';
+import { View, StyleSheet, TextInput, ActivityIndicator, TouchableOpacity, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppText } from '@/src/components/ui/AppText';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
 import { useAppTheme } from '@/src/theme/theme';
 import { getAuthDiagnostics, requestMagicLinkSignIn, signIn } from '@/src/lib/auth';
+import { BrandedDialog } from '@/src/components/dialogs/BrandedDialog';
 
 export default function LoginScreen() {
   const theme = useAppTheme();
@@ -13,8 +14,17 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [sendingMagicLink, setSendingMagicLink] = useState(false);
+  const [dialogVisible, setDialogVisible] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState('');
+  const [dialogMessage, setDialogMessage] = useState('');
 
   const canContinue = /@/.test(email) && password.length >= 6;
+
+  const showDialog = (title: string, message: string) => {
+    setDialogTitle(title);
+    setDialogMessage(message);
+    setDialogVisible(true);
+  };
 
   const handleLogin = async () => {
     if (loading || sendingMagicLink) return false;
@@ -34,7 +44,7 @@ export default function LoginScreen() {
       message = `${message}\n\n${diag}`;
     }
 
-    Alert.alert('Login Failed', message);
+    showDialog('Login Failed', message);
     return false;
   };
 
@@ -52,7 +62,7 @@ export default function LoginScreen() {
 
     const candidate = email.trim();
     if (!candidate || !candidate.includes('@')) {
-      Alert.alert('Magic Link', 'Enter your account email first, then tap Email me a sign-in link.');
+      showDialog('Magic Link', 'Enter your account email first, then tap Email me a sign-in link.');
       return;
     }
 
@@ -61,11 +71,11 @@ export default function LoginScreen() {
     setSendingMagicLink(false);
 
     if (result.success) {
-      Alert.alert('Check your email', 'We sent a magic sign-in link. Open it on this device to continue.');
+      showDialog('Check your email', 'We sent a magic sign-in link. Open it on this device to continue.');
       return;
     }
 
-    Alert.alert('Could not send magic link', result.error || 'Please try again.');
+    showDialog('Could not send magic link', result.error || 'Please try again.');
   };
 
   const handleAccountHelp = async () => {
@@ -82,7 +92,7 @@ export default function LoginScreen() {
       // fallback alert below
     }
 
-    Alert.alert('Need help?', `Please contact ${support} and include any prior receipt/subscription details so we can help find your account email.`);
+    showDialog('Need help?', `Please contact ${support} and include any prior receipt/subscription details so we can help find your account email.`);
   };
 
   return (
@@ -136,6 +146,21 @@ export default function LoginScreen() {
           </View>
         )}
       </View>
+
+      <BrandedDialog
+        visible={dialogVisible}
+        title={dialogTitle || 'Notice'}
+        message={dialogMessage}
+        michiState={dialogTitle.toLowerCase().includes('failed') ? 'worried' : 'thinking'}
+        onClose={() => setDialogVisible(false)}
+        actions={[
+          {
+            text: 'OK',
+            variant: 'primary',
+            onPress: () => setDialogVisible(false),
+          },
+        ]}
+      />
     </OnboardingScreen>
   );
 }

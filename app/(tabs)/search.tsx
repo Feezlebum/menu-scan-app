@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TextInput, FlatList, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { AppText } from '@/src/components/ui/AppText';
@@ -24,6 +25,7 @@ const POPULAR_RESTAURANTS: Restaurant[] = [
 
 export default function SearchScreen() {
   const theme = useAppTheme();
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Restaurant[]>([]);
 
@@ -41,8 +43,8 @@ export default function SearchScreen() {
   };
 
   const handleSelectRestaurant = (restaurant: Restaurant) => {
-    // TODO: Navigate to restaurant menu or show pre-loaded nutrition data
-    console.log('Selected:', restaurant.name);
+    // Until we support per-restaurant preloaded menus, take users straight to live scan.
+    router.push('/(tabs)/scan');
   };
 
   return (

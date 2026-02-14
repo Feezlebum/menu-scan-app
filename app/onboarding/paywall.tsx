@@ -7,6 +7,7 @@ import { useAppTheme } from '@/src/theme/theme';
 import { AppText } from '@/src/components/ui/AppText';
 import { PrimaryButton } from '@/src/components/ui/PrimaryButton';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
+import { useSubscriptionStore } from '@/src/stores/subscriptionStore';
 
 type Plan = 'annual' | 'monthly';
 
@@ -29,18 +30,32 @@ export default function PaywallScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { completeOnboarding } = useOnboardingStore();
+  const { subscribe } = useSubscriptionStore();
   const [selectedPlan, setSelectedPlan] = useState<Plan>('annual');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSelectPlan = (plan: Plan) => {
     Haptics.selectionAsync();
     setSelectedPlan(plan);
   };
 
-  const handleSubscribe = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    // TODO: Integrate RevenueCat
-    completeOnboarding();
-    router.replace('/(tabs)');
+  const handleSubscribe = async () => {
+    if (loading) return;
+
+    setError(null);
+    setLoading(true);
+    const ok = await subscribe(selectedPlan);
+    setLoading(false);
+
+    if (ok) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      completeOnboarding();
+      router.replace('/(tabs)');
+      return;
+    }
+
+    setError('Purchase did not complete. You can continue and restore later from Settings.');
   };
 
   const handleSkip = () => {
@@ -98,8 +113,8 @@ export default function PaywallScreen() {
             )}
             <View style={styles.planHeader}>
               <View style={[
-                styles.radio, 
-                { 
+                styles.radio,
+                {
                   borderColor: selectedPlan === 'annual' ? theme.colors.brand : theme.colors.border,
                   backgroundColor: selectedPlan === 'annual' ? theme.colors.brand : 'transparent',
                 }
@@ -135,8 +150,8 @@ export default function PaywallScreen() {
           >
             <View style={styles.planHeader}>
               <View style={[
-                styles.radio, 
-                { 
+                styles.radio,
+                {
                   borderColor: selectedPlan === 'monthly' ? theme.colors.brand : theme.colors.border,
                   backgroundColor: selectedPlan === 'monthly' ? theme.colors.brand : 'transparent',
                 }
@@ -162,16 +177,20 @@ export default function PaywallScreen() {
 
       {/* Footer */}
       <Animated.View entering={FadeIn.delay(500)} style={styles.footer}>
-        <PrimaryButton 
-          label="Start 7-Day Free Trial" 
-          onPress={handleSubscribe} 
+        <PrimaryButton
+          label={loading ? 'Processing…' : 'Start 7-Day Free Trial'}
+          onPress={handleSubscribe}
+          disabled={loading}
         />
         <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
-          <AppText style={[styles.skipText, { color: theme.colors.subtext }]}>
+          <AppText style={[styles.skipText, { color: theme.colors.subtext }]}> 
             Continue with limited features
           </AppText>
         </TouchableOpacity>
-        <AppText style={[styles.legal, { color: theme.colors.subtext }]}>
+        {error ? (
+          <AppText style={[styles.errorText, { color: theme.colors.trafficRed }]}>{error}</AppText>
+        ) : null}
+        <AppText style={[styles.legal, { color: theme.colors.subtext }]}> 
           Cancel anytime. Subscription renews automatically.
         </AppText>
       </Animated.View>
@@ -300,6 +319,11 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 14,
+  },
+  errorText: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 10,
   },
   legal: {
     fontSize: 11,

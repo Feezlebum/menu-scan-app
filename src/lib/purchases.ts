@@ -5,16 +5,36 @@ import Purchases, {
 } from 'react-native-purchases';
 
 const API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
-const PRO_ENTITLEMENT_ID = process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID || 'pro';
+const CONFIGURED_ENTITLEMENT_ID = process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID;
+const FALLBACK_ENTITLEMENT_IDS = ['Michi: Menu Helper Pro', 'pro'];
 
 let configured = false;
 
+function getActiveEntitlement(customerInfo: CustomerInfo) {
+  const activeEntitlements = customerInfo.entitlements.active;
+
+  if (CONFIGURED_ENTITLEMENT_ID && activeEntitlements[CONFIGURED_ENTITLEMENT_ID]) {
+    return activeEntitlements[CONFIGURED_ENTITLEMENT_ID];
+  }
+
+  for (const id of FALLBACK_ENTITLEMENT_IDS) {
+    if (activeEntitlements[id]) return activeEntitlements[id];
+  }
+
+  const activeIds = Object.keys(activeEntitlements);
+  if (activeIds.length === 1) {
+    return activeEntitlements[activeIds[0]];
+  }
+
+  return null;
+}
+
 function hasActiveProEntitlement(customerInfo: CustomerInfo): boolean {
-  return !!customerInfo.entitlements.active[PRO_ENTITLEMENT_ID];
+  return !!getActiveEntitlement(customerInfo);
 }
 
 function inferSubscriptionType(customerInfo: CustomerInfo): 'none' | 'monthly' | 'annual' | 'trial' {
-  const active = customerInfo.entitlements.active[PRO_ENTITLEMENT_ID];
+  const active = getActiveEntitlement(customerInfo);
   if (!active) return 'none';
 
   const product = (active.productIdentifier || '').toLowerCase();
@@ -26,7 +46,7 @@ function inferSubscriptionType(customerInfo: CustomerInfo): 'none' | 'monthly' |
 }
 
 function getTrialEndDate(customerInfo: CustomerInfo): string | null {
-  const active = customerInfo.entitlements.active[PRO_ENTITLEMENT_ID];
+  const active = getActiveEntitlement(customerInfo);
   if (!active) return null;
 
   if (active.periodType !== 'trial' && active.periodType !== 'intro') return null;
@@ -127,4 +147,27 @@ export async function startTrialPurchase() {
   const annual = await purchasePackage('annual');
   if (annual.success || annual.cancelled) return annual;
   return purchasePackage('monthly');
+}
+
+export async function restorePurchases() {
+  const ready = await initializePurchases();
+  if (!ready) return { success: false, error: 'RevenueCat is not configured yet.' };
+
+  try {
+    const customerInfo = await Purchases.restorePurchases();
+    return {
+      success: hasActiveProEntitlement(customerInfo),
+      status: {
+        isProUser: hasActiveProEntitlement(customerInfo),
+        subscriptionType: inferSubscriptionType(customerInfo),
+        isTrialActive: inferSubscriptionType(customerInfo) === 'trial',
+        trialEndDate: getTrialEndDate(customerInfo),
+      },
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error?.message ?? 'Unable to restore purchases right now.',
+    };
+  }
 }

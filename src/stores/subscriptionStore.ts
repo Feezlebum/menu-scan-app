@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { checkSubscriptionStatus, purchasePackage, startTrialPurchase } from '@/src/lib/purchases';
+import { checkSubscriptionStatus, purchasePackage, restorePurchases, startTrialPurchase } from '@/src/lib/purchases';
 
 interface ScanUsage {
   count: number;
@@ -32,6 +32,7 @@ interface SubscriptionState {
   checkScanLimit: () => ScanLimitStatus;
   startTrial: () => Promise<boolean>;
   subscribe: (type: 'monthly' | 'annual') => Promise<boolean>;
+  restore: () => Promise<boolean>;
   resetScanUsage: () => void;
   markPaywallShown: () => void;
 }
@@ -173,6 +174,22 @@ export const useSubscriptionStore = create<SubscriptionState>()(
 
       subscribe: async (type) => {
         const result = await purchasePackage(type);
+
+        if (result.success && result.status) {
+          set({
+            isProUser: result.status.isProUser,
+            subscriptionType: result.status.subscriptionType,
+            isTrialActive: result.status.isTrialActive,
+            trialEndDate: result.status.trialEndDate,
+          });
+          return true;
+        }
+
+        return false;
+      },
+
+      restore: async () => {
+        const result = await restorePurchases();
 
         if (result.success && result.status) {
           set({

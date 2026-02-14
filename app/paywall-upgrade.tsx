@@ -9,7 +9,7 @@ import { useSubscriptionStore } from '@/src/stores/subscriptionStore';
 export default function PaywallUpgradeScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { startTrial, subscribe } = useSubscriptionStore();
+  const { startTrial, subscribe, restore } = useSubscriptionStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +39,19 @@ export default function PaywallUpgradeScreen() {
     }
   };
 
+  const handleRestore = async () => {
+    if (loading) return;
+    setError(null);
+    setLoading(true);
+    const ok = await restore();
+    setLoading(false);
+    if (ok) {
+      router.replace('/(tabs)/scan');
+    } else {
+      setError('No active subscription found to restore.');
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]}> 
       <View style={styles.content}>
@@ -62,6 +75,10 @@ export default function PaywallUpgradeScreen() {
           <AppText style={[styles.trialText, { color: theme.colors.subtext }]}>Start 7-day free trial</AppText>
         </TouchableOpacity>
 
+        <TouchableOpacity onPress={handleRestore} disabled={loading} style={styles.restoreButton}>
+          <AppText style={[styles.restoreText, { color: theme.colors.brand }]}>Restore Purchases</AppText>
+        </TouchableOpacity>
+
         {error ? <AppText style={[styles.errorText, { color: theme.colors.trafficRed }]}>{error}</AppText> : null}
       </View>
     </SafeAreaView>
@@ -79,5 +96,7 @@ const styles = StyleSheet.create({
   planMeta: { fontSize: 13, marginBottom: 4 },
   trialButton: { alignItems: 'center', marginTop: 4 },
   trialText: { fontSize: 14 },
+  restoreButton: { alignItems: 'center', marginTop: 2 },
+  restoreText: { fontSize: 14, fontWeight: '600' },
   errorText: { fontSize: 13, textAlign: 'center' },
 });

@@ -87,22 +87,30 @@ export default function MenuAnalysisLoading({
   const [currentPhase, setCurrentPhase] = useState(0);
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   const [hasCompleted, setHasCompleted] = useState(false);
+  const [isTakingLonger, setIsTakingLonger] = useState(false);
 
   // Animation values
   const progressWidth = useSharedValue(0);
   const michiScale = useSharedValue(1);
   const textOpacity = useSharedValue(1);
 
-  // Check for completion (results available or error)
+  // Check for completion (results available). Keep user on loading if still processing.
   useEffect(() => {
-    if ((currentResult || scanError) && !hasCompleted) {
+    if (currentResult && !hasCompleted) {
       setHasCompleted(true);
       // Small delay to let user see completion, then navigate
       setTimeout(() => {
         onComplete?.();
-      }, 1000);
+      }, 700);
     }
-  }, [currentResult, scanError, hasCompleted, onComplete]);
+  }, [currentResult, hasCompleted, onComplete]);
+
+  // If we exceed expected duration without result/error, surface that processing is still running.
+  useEffect(() => {
+    if (currentResult || scanError) return;
+    const slowTimeout = setTimeout(() => setIsTakingLonger(true), estimatedDurationMs + 1500);
+    return () => clearTimeout(slowTimeout);
+  }, [currentResult, scanError, estimatedDurationMs]);
 
   // Start animations on mount
   useEffect(() => {
@@ -161,18 +169,12 @@ export default function MenuAnalysisLoading({
 
     startPhaseProgression();
 
-    // Complete callback
-    const completeTimeout = setTimeout(() => {
-      onComplete?.();
-    }, estimatedDurationMs);
-
     return () => {
       clearTimeout(phaseTimeout);
       clearInterval(textInterval);
       clearInterval(breathingInterval);
-      clearTimeout(completeTimeout);
     };
-  }, [estimatedDurationMs, onComplete]);
+  }, [estimatedDurationMs]);
 
   const progressBarStyle = useAnimatedStyle(() => ({
     width: progressWidth.value,
@@ -188,8 +190,10 @@ export default function MenuAnalysisLoading({
 
   const currentText = hasCompleted
     ? (scanError ? "Oops! Let's try that again..." : "Analysis complete!")
-    : ANALYSIS_PHASES[currentPhase]?.texts[currentTextIndex] ||
-      "Michi is working hard for you...";
+    : isTakingLonger
+      ? 'Still analyzing — this menu is taking a bit longer than usual...'
+      : ANALYSIS_PHASES[currentPhase]?.texts[currentTextIndex] ||
+        'Michi is working hard for you...';
 
   const currentEmojiName: MichiMojiName = hasCompleted
     ? (scanError ? 'confused' : 'celebrate')

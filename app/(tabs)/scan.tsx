@@ -31,7 +31,7 @@ export default function ScanScreen() {
   const [errorDialogMessage, setErrorDialogMessage] = useState('');
   const processingPulse = useRef(new Animated.Value(1)).current;
   const processingRotate = useRef(new Animated.Value(0)).current;
-  const { setScanResult, setScanError } = useScanStore();
+  const { startScan, setScanResult, setScanError } = useScanStore();
   const { setTranslating, setTranslationResult, setTranslationError, clearTranslation } = useTranslationStore();
   const { initializeUser, incrementScanCount, checkScanLimit, isProUser, isTrialActive } = useSubscriptionStore();
 
@@ -104,6 +104,9 @@ export default function ScanScreen() {
 
       setScanState('ready');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Reset scan state so loading screen waits for fresh result/error.
+      startScan();
 
       // Navigate to loading screen immediately
       router.push('/menu-analysis-loading');

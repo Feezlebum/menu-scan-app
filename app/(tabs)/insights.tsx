@@ -16,6 +16,8 @@ import { TrafficLightDot } from '@/src/components/ui/TrafficLightDot';
 import { useAppTheme } from '@/src/theme/theme';
 import { useHistoryStore, getMealPrice } from '@/src/stores/historyStore';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
+import { useSpendingStore } from '@/src/stores/spendingStore';
+import { formatMoney } from '@/src/utils/currency';
 import {
   getWeeklyScans,
   getWeeklyComparison,
@@ -44,6 +46,7 @@ export default function InsightsScreen() {
   const theme = useAppTheme();
   const { loggedMeals, scans } = useHistoryStore();
   const { goal } = useOnboardingStore();
+  const { currency: homeCurrency } = useSpendingStore();
   
   const [trendPeriod, setTrendPeriod] = useState<7 | 30>(7);
 
@@ -116,6 +119,7 @@ export default function InsightsScreen() {
             weekMeals={weekMeals.length}
             mealsWithPrices={mealsWithPrices}
             hasData={loggedMeals.length > 0}
+            currency={homeCurrency}
           />
 
           {/* 4. Cost Breakdown */}
@@ -123,6 +127,7 @@ export default function InsightsScreen() {
             theme={theme}
             restaurantSpending={restaurantSpending}
             hasData={restaurantSpending.length > 0}
+            currency={homeCurrency}
           />
 
           {/* 5. Calorie & Macro Trends */}
@@ -268,12 +273,14 @@ function WeeklySpendingCard({
   weekMeals,
   mealsWithPrices,
   hasData,
+  currency,
 }: CardProps & {
   weekSpending: number;
   spendingTrend: number;
   weekMeals: number;
   mealsWithPrices: number;
   hasData: boolean;
+  currency: import('@/src/types/spending').CurrencyCode;
 }) {
   if (!hasData) {
     return (
@@ -292,19 +299,19 @@ function WeeklySpendingCard({
     <View style={[styles.card, { backgroundColor: theme.colors.cardCream }]}> 
       <AppText style={[styles.sectionHeader, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>Weekly Spending</AppText>
       <View style={styles.spendingRow}>
-        <AppText style={[styles.spendingAmount, { color: theme.colors.text }]}>${weekSpending.toFixed(0)}</AppText>
+        <AppText style={[styles.spendingAmount, { color: theme.colors.text }]}>{formatMoney(weekSpending, currency)}</AppText>
         <View style={styles.spendingTrend}>
           {spendingTrend > 0 ? (
-            <AppText style={styles.trendUp}>↑ ${Math.abs(spendingTrend).toFixed(0)} vs last week</AppText>
+            <AppText style={styles.trendUp}>↑ {formatMoney(Math.abs(spendingTrend), currency)} vs last week</AppText>
           ) : spendingTrend < 0 ? (
-            <AppText style={styles.trendDown}>↓ ${Math.abs(spendingTrend).toFixed(0)} vs last week</AppText>
+            <AppText style={styles.trendDown}>↓ {formatMoney(Math.abs(spendingTrend), currency)} vs last week</AppText>
           ) : (
             <AppText style={[styles.trendFlat, { color: theme.colors.subtext }]}>Same as last week</AppText>
           )}
         </View>
       </View>
       <AppText style={[styles.spendingDetail, { color: theme.colors.subtext }]}> 
-        ${avgPerMeal.toFixed(2)} per meal · {mealsWithPrices}/{weekMeals} priced
+        {formatMoney(avgPerMeal, currency)} per meal · {mealsWithPrices}/{weekMeals} priced
       </AppText>
     </View>
   );
@@ -315,9 +322,11 @@ function CostBreakdownCard({
   theme,
   restaurantSpending,
   hasData,
+  currency,
 }: CardProps & {
   restaurantSpending: ReturnType<typeof getRestaurantSpending>;
   hasData: boolean;
+  currency: import('@/src/types/spending').CurrencyCode;
 }) {
   if (!hasData) {
     return (
@@ -339,7 +348,7 @@ function CostBreakdownCard({
             {restaurant}
           </AppText>
           <View style={styles.breakdownMeta}>
-            <AppText style={[styles.breakdownAmount, { color: theme.colors.text }]}>${amount.toFixed(0)}</AppText>
+            <AppText style={[styles.breakdownAmount, { color: theme.colors.text }]}>{formatMoney(amount, currency)}</AppText>
             <AppText style={[styles.breakdownMeals, { color: theme.colors.subtext }]}>{meals} meals</AppText>
           </View>
         </View>

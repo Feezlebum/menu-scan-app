@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Modal, View, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
+import { useSpendingStore } from '@/src/stores/spendingStore';
+import { formatMoney } from '@/src/utils/currency';
 
 interface BudgetPickerModalProps {
   visible: boolean;
@@ -15,6 +17,7 @@ const PRESETS = [50, 100, 150, 200, 250];
 
 export function BudgetPickerModal({ visible, currentBudget, onClose, onSave, onClear }: BudgetPickerModalProps) {
   const theme = useAppTheme();
+  const { currency } = useSpendingStore();
   const [customBudgetInput, setCustomBudgetInput] = useState('');
   const [customBudgetError, setCustomBudgetError] = useState('');
 
@@ -56,14 +59,14 @@ export function BudgetPickerModal({ visible, currentBudget, onClose, onSave, onC
                   onClose();
                 }}
               >
-                <AppText style={[styles.presetText, { color: theme.colors.text }]}>${amount}</AppText>
+                <AppText style={[styles.presetText, { color: theme.colors.text }]}>{formatMoney(amount, currency)}</AppText>
               </TouchableOpacity>
             ))}
           </View>
 
           <AppText style={[styles.subtitle, { color: theme.colors.subtext }]}>Custom amount</AppText>
           <View style={[styles.inputWrap, { borderColor: theme.colors.border }]}> 
-            <AppText style={[styles.dollar, { color: theme.colors.subtext }]}>$</AppText>
+            <AppText style={[styles.dollar, { color: theme.colors.subtext }]}>{currency}</AppText>
             <TextInput
               value={customBudgetInput}
               onChangeText={(value) => {

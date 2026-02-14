@@ -284,7 +284,11 @@ export default function ItemDetailScreen() {
           fxRate,
           fxTimestamp: fxQuote?.timestamp ?? new Date().toISOString(),
           currencyConfidence: effectiveCurrencyConfidence,
-          currencySignals: [detectedCurrency.reason, tripCurrency ? 'trip-currency-default' : 'auto-detected'],
+          currencySignals: [
+            detectedCurrency.reason,
+            tripCurrency ? 'trip-currency-default' : 'auto-detected',
+            `fx-source:${fxQuote?.source ?? 'fallback'}`,
+          ],
           restaurant: restaurantName || 'Restaurant',
           mealName: item.name,
           extractionMethod: manualPriceOverride !== undefined ? 'manual' : 'ocr',
@@ -319,11 +323,16 @@ export default function ItemDetailScreen() {
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      const message = finalHealthy
+      const baseMessage = finalHealthy
         ? `🔥 Streak extended to ${nextStreak}! Great choice.`
         : currentStreak > 0
           ? `Streak reset. You made it ${currentStreak} choices - start fresh!`
           : `${item.name} has been saved to your history.`;
+
+      const fxFallbackNote = fxQuote?.source === 'fallback' && originalCurrency !== homeCurrency
+        ? '\nFX rate used a fallback estimate (offline/unavailable live rate).'
+        : '';
+      const message = `${baseMessage}${fxFallbackNote}`;
 
       setStatusDialogTitle('Meal Logged! ✓');
       setStatusDialogMessage(message);
@@ -721,7 +730,7 @@ export default function ItemDetailScreen() {
             },
           },
           {
-            text: '$10',
+            text: formatMoney(10, userCurrency),
             variant: 'secondary',
             onPress: () => {
               setPriceEstimateDialogVisible(false);
@@ -729,7 +738,7 @@ export default function ItemDetailScreen() {
             },
           },
           {
-            text: '$15',
+            text: formatMoney(15, userCurrency),
             variant: 'secondary',
             onPress: () => {
               setPriceEstimateDialogVisible(false);
@@ -737,7 +746,7 @@ export default function ItemDetailScreen() {
             },
           },
           {
-            text: '$20',
+            text: formatMoney(20, userCurrency),
             variant: 'secondary',
             onPress: () => {
               setPriceEstimateDialogVisible(false);

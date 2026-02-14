@@ -89,8 +89,15 @@ export default function ManualEntryScreen() {
         const parsedPrice = parsePrice(price.trim() || null);
         const symbolDetection = detectCurrencyFromPriceText(price.trim(), homeCurrency);
         const cuisineDetection = inferCurrencyFromCuisine(selectedCuisine?.key, homeCurrency);
-        const detectedCurrency: CurrencyCode =
-          symbolDetection.confidence >= cuisineDetection.confidence ? symbolDetection.currency : cuisineDetection.currency;
+
+        // Manual entry is high-risk for false foreign inference.
+        // Prefer explicit symbol/code signals; otherwise default to home currency.
+        const useSymbolDetection = symbolDetection.confidence >= 0.85;
+        const detectedCurrency: CurrencyCode = useSymbolDetection ? symbolDetection.currency : homeCurrency;
+        const currencyConfidence = useSymbolDetection ? symbolDetection.confidence : 0.45;
+        const currencySignals = useSymbolDetection
+          ? [symbolDetection.reason, 'manual-symbol-detected']
+          : [symbolDetection.reason, cuisineDetection.reason, 'manual-default-home-without-symbol'];
 
         const manualItem: MenuItem = {
           name: itemName.trim(),
@@ -146,8 +153,8 @@ export default function ManualEntryScreen() {
             originalCurrency: detectedCurrency,
             fxRate,
             fxTimestamp: fx?.timestamp ?? new Date().toISOString(),
-            currencyConfidence: Math.max(symbolDetection.confidence, cuisineDetection.confidence),
-            currencySignals: [symbolDetection.reason, cuisineDetection.reason],
+            currencyConfidence,
+            currencySignals: [...currencySignals, `fx-source:${fx?.source ?? 'fallback'}`],
             restaurant: restaurantName,
             mealName: manualItem.name,
             extractionMethod: 'manual',

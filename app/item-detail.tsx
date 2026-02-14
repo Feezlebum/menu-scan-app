@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -77,6 +77,13 @@ export default function ItemDetailScreen() {
     manualPriceOverride?: number;
     skipDuplicateWarning?: boolean;
   } | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   if (!selectedItem) {
     return (
@@ -334,17 +341,21 @@ export default function ItemDetailScreen() {
         : '';
       const message = `${baseMessage}${fxFallbackNote}`;
 
+      if (!isMountedRef.current) return;
       setStatusDialogTitle('Meal Logged! ✓');
       setStatusDialogMessage(message);
       setStatusDialogVisible(true);
     } catch (error) {
       console.error('Error logging meal:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      if (!isMountedRef.current) return;
       setStatusDialogTitle('Error');
       setStatusDialogMessage('Failed to log meal. Please try again.');
       setStatusDialogVisible(true);
     } finally {
-      setIsLogging(false);
+      if (isMountedRef.current) {
+        setIsLogging(false);
+      }
     }
   };
 

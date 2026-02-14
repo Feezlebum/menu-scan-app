@@ -319,13 +319,18 @@ export default function ItemDetailScreen() {
       });
 
       if (hasEnabledTrackers) {
-        await exportToTrackers({
-          foodName: item.name,
-          calories: effectiveItem.estimatedCalories,
-          protein: effectiveItem.estimatedProtein,
-          carbs: effectiveItem.estimatedCarbs,
-          fat: effectiveItem.estimatedFat,
-        });
+        try {
+          await exportToTrackers({
+            foodName: item.name,
+            calories: effectiveItem.estimatedCalories,
+            protein: effectiveItem.estimatedProtein,
+            carbs: effectiveItem.estimatedCarbs,
+            fat: effectiveItem.estimatedFat,
+          });
+        } catch (trackerError) {
+          // Do not fail meal logging if downstream tracker export fails.
+          console.warn('Tracker export failed after meal log:', trackerError);
+        }
       }
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

@@ -8,8 +8,14 @@ interface RecordSpendingInput {
   restaurant: string;
   mealName: string;
   extractionMethod: 'ocr' | 'manual' | 'estimate';
-  currency?: CurrencyCode;
+  currency?: CurrencyCode; // Home currency
   date?: string;
+  originalAmount?: number;
+  originalCurrency?: CurrencyCode;
+  fxRate?: number;
+  fxTimestamp?: string;
+  currencyConfidence?: number;
+  currencySignals?: string[];
 }
 
 interface SpendingState extends SpendingTracker {
@@ -41,7 +47,20 @@ export const useSpendingStore = create<SpendingState>()(
       setCurrency: (currency) => set({ currency }),
       setIncludeTips: (enabled) => set({ includeTips: enabled }),
 
-      recordSpending: ({ amount, restaurant, mealName, extractionMethod, currency, date }) => {
+      recordSpending: ({
+        amount,
+        restaurant,
+        mealName,
+        extractionMethod,
+        currency,
+        date,
+        originalAmount,
+        originalCurrency,
+        fxRate,
+        fxTimestamp,
+        currencyConfidence,
+        currencySignals,
+      }) => {
         const entry: SpendingEntry = {
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           date: date || new Date().toISOString(),
@@ -50,6 +69,12 @@ export const useSpendingStore = create<SpendingState>()(
           mealName,
           extractionMethod,
           currency: currency || get().currency,
+          originalAmount,
+          originalCurrency,
+          fxRate,
+          fxTimestamp,
+          currencyConfidence,
+          currencySignals,
         };
 
         set((state) => ({

@@ -419,7 +419,7 @@ export default function ProfileScreen() {
         <View style={styles.editBackdrop}>
           <View style={[styles.editCard, { backgroundColor: theme.colors.bg }]}> 
             <AppText style={[styles.editTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Choose Currency</AppText>
-            {(['USD', 'GBP', 'EUR'] as CurrencyCode[]).map((code) => (
+            {(['USD', 'EUR', 'GBP', 'THB', 'INR', 'JPY', 'CNY', 'AUD', 'CAD', 'SGD', 'MXN'] as CurrencyCode[]).map((code) => (
               <TouchableOpacity
                 key={code}
                 style={[

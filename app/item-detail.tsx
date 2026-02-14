@@ -18,6 +18,8 @@ import { evaluateHealthyChoice } from '@/src/utils/healthyCriteria';
 import { isDuplicateMealToday } from '@/src/utils/duplicateDetection';
 import { parsePrice } from '@/src/lib/scanService';
 import { PriceEditModal } from '@/src/components/modals/PriceEditModal';
+import type { CurrencyCode } from '@/src/types/spending';
+import { convertCurrency, detectCurrencyFromPriceText, formatMoney } from '@/src/utils/currency';
 import { HealthEditModal } from '@/src/components/modals/HealthEditModal';
 import { NutritionEditModal } from '@/src/components/modals/NutritionEditModal';
 
@@ -29,7 +31,7 @@ export default function ItemDetailScreen() {
   const { exportToTrackers, hasEnabledTrackers } = useTrackerExport();
   const { dailyCalorieTarget, dietType, intolerances, dislikes } = useOnboardingStore();
   const { currentStreak, recordMealDecision } = useStreakStore();
-  const { weeklyBudget, getCurrentWeekSpent, recordSpending } = useSpendingStore();
+  const { weeklyBudget, currency: homeCurrency, getCurrentWeekSpent, recordSpending } = useSpendingStore();
   const [isLogging, setIsLogging] = useState(false);
   const [streakDialogVisible, setStreakDialogVisible] = useState(false);
   const [budgetDialogVisible, setBudgetDialogVisible] = useState(false);
@@ -45,6 +47,7 @@ export default function ItemDetailScreen() {
   const [healthEditModalVisible, setHealthEditModalVisible] = useState(false);
   const [nutritionEditModalVisible, setNutritionEditModalVisible] = useState(false);
   const [userPrice, setUserPrice] = useState<number | null>(null);
+  const [userCurrency, setUserCurrency] = useState<CurrencyCode>(homeCurrency);
   const [nutritionOverrides, setNutritionOverrides] = useState<{
     estimatedCalories: number;
     estimatedProtein: number;
@@ -78,6 +81,7 @@ export default function ItemDetailScreen() {
   }
 
   const item = selectedItem;
+  const detectedCurrency = detectCurrencyFromPriceText(item.price, homeCurrency);
 
   useEffect(() => {
     setNutritionOverrides({
@@ -97,8 +101,13 @@ export default function ItemDetailScreen() {
       if (typeof meal?.userPrice === 'number') {
         setUserPrice(meal.userPrice);
       }
+      if (meal?.userCurrency) {
+        setUserCurrency(meal.userCurrency);
+      }
+    } else {
+      setUserCurrency(detectedCurrency.currency);
     }
-  }, [item, selectedMealId, loggedMeals]);
+  }, [item, selectedMealId, loggedMeals, detectedCurrency.currency]);
 
   const effectiveItem = {
     ...item,
@@ -138,6 +147,9 @@ export default function ItemDetailScreen() {
   };
 
   const orderScript = generateOrderScript();
+  const displayOriginalPrice = userPrice ?? parsePrice(item.price) ?? 0;
+  const displayHomePrice = convertCurrency(displayOriginalPrice, userCurrency, homeCurrency) ?? displayOriginalPrice;
+  const showDualCurrency = userCurrency !== homeCurrency;
 
 
   const shareItem = async () => {
@@ -165,13 +177,16 @@ export default function ItemDetailScreen() {
       restrictedFoods: [...(intolerances || []), ...(dislikes || [])],
     });
 
-    const detectedPrice = manualPriceOverride ?? userPrice ?? parsePrice(item.price);
+    const originalPrice = manualPriceOverride ?? userPrice ?? parsePrice(item.price);
+    const originalCurrency = userCurrency || detectedCurrency.currency;
+    const convertedHomePrice = originalPrice ? (convertCurrency(originalPrice, originalCurrency, homeCurrency) ?? originalPrice) : null;
+    const detectedPrice = convertedHomePrice;
     const currentWeekSpent = getCurrentWeekSpent();
     const projectedWeekSpent = currentWeekSpent + (detectedPrice || 0);
 
     if (!skipBudgetWarning && weeklyBudget && detectedPrice && projectedWeekSpent >= weeklyBudget * 0.9) {
       setDialogMessage(
-        `This order will put you at ${Math.round((projectedWeekSpent / weeklyBudget) * 100)}% of your weekly budget\n\nCurrent: $${currentWeekSpent.toFixed(0)} / $${weeklyBudget.toFixed(0)}\nAfter this meal: $${projectedWeekSpent.toFixed(0)} / $${weeklyBudget.toFixed(0)}`
+        `This order will put you at ${Math.round((projectedWeekSpent / weeklyBudget) * 100)}% of your weekly budget\n\nCurrent: ${formatMoney(currentWeekSpent, homeCurrency)} / ${formatMoney(weeklyBudget, homeCurrency)}\nAfter this meal: ${formatMoney(projectedWeekSpent, homeCurrency)} / ${formatMoney(weeklyBudget, homeCurrency)}`
       );
       setPendingLogArgs({ overrideHealthyChoice, skipStreakWarning, skipBudgetWarning: true, manualPriceOverride: detectedPrice, skipDuplicateWarning });
       setBudgetDialogVisible(true);
@@ -221,12 +236,21 @@ export default function ItemDetailScreen() {
 
       const mealId = logMeal(scanId, effectiveItem, restaurantName, {
         userPrice: typeof userPrice === 'number' ? userPrice : undefined,
+        userCurrency,
         healthyOverride: healthyOverride === 'ai' ? null : healthyOverride,
       });
 
       if (detectedPrice && detectedPrice > 0) {
+        const fxRate = originalPrice && originalCurrency !== homeCurrency ? Number((detectedPrice / originalPrice).toFixed(6)) : undefined;
         recordSpending({
           amount: detectedPrice,
+          currency: homeCurrency,
+          originalAmount: originalPrice || undefined,
+          originalCurrency,
+          fxRate,
+          fxTimestamp: new Date().toISOString(),
+          currencyConfidence: detectedCurrency.confidence,
+          currencySignals: [detectedCurrency.reason],
           restaurant: restaurantName || 'Restaurant',
           mealName: item.name,
           extractionMethod: manualPriceOverride !== undefined ? 'manual' : 'ocr',
@@ -281,13 +305,22 @@ export default function ItemDetailScreen() {
     }
   };
 
-  const openConfirmDialogWithPrice = (price: number | undefined) => {
+  const openConfirmDialogWithPrice = (originalPrice: number | undefined) => {
+    const homePrice = originalPrice
+      ? (convertCurrency(originalPrice, userCurrency, homeCurrency) ?? originalPrice)
+      : undefined;
     const currentWeekSpent = getCurrentWeekSpent();
-    const projected = currentWeekSpent + (price || 0);
+    const projected = currentWeekSpent + (homePrice || 0);
 
-    const message = `${item.name}\nNutrition: ${effectiveItem.estimatedCalories} cal, ${effectiveItem.estimatedProtein}g protein\n${price ? `Price: $${price.toFixed(2)}` : 'Price: Not detected'}${weeklyBudget && price ? `\nBudget impact: $${currentWeekSpent.toFixed(0)} → $${projected.toFixed(0)} / $${weeklyBudget.toFixed(0)}` : ''}`;
+    const priceLine = !originalPrice
+      ? 'Price: Not detected'
+      : userCurrency === homeCurrency
+        ? `Price: ${formatMoney(originalPrice, homeCurrency)}`
+        : `Price: ${formatMoney(originalPrice, userCurrency)} (~${formatMoney(homePrice || originalPrice, homeCurrency)})`;
 
-    setConfirmDialogPrice(price);
+    const message = `${item.name}\nNutrition: ${effectiveItem.estimatedCalories} cal, ${effectiveItem.estimatedProtein}g protein\n${priceLine}${weeklyBudget && homePrice ? `\nBudget impact: ${formatMoney(currentWeekSpent, homeCurrency)} → ${formatMoney(projected, homeCurrency)} / ${formatMoney(weeklyBudget, homeCurrency)}` : ''}`;
+
+    setConfirmDialogPrice(originalPrice);
     setConfirmDialogMessage(message);
     setConfirmDialogVisible(true);
   };
@@ -360,8 +393,10 @@ export default function ItemDetailScreen() {
             {item.name}
           </AppText>
           <View style={styles.priceRow}>
-            <AppText style={[styles.price, { color: theme.colors.brand }]}>
-              ${Number((userPrice ?? parsePrice(item.price) ?? 0).toFixed(2)).toFixed(2)}
+            <AppText style={[styles.price, { color: theme.colors.brand }]}> 
+              {showDualCurrency
+                ? `${formatMoney(displayOriginalPrice, userCurrency)} (~${formatMoney(displayHomePrice, homeCurrency)})`
+                : formatMoney(displayOriginalPrice, homeCurrency)}
             </AppText>
             <TouchableOpacity onPress={() => setPriceEditModalVisible(true)} style={styles.priceEditButton}>
               <FontAwesome name="pencil" size={14} color={theme.colors.brand} />
@@ -418,7 +453,7 @@ export default function ItemDetailScreen() {
         {/* Nutrition */}
         <Card style={styles.nutritionCard}>
           <View style={styles.nutritionTitleRow}>
-            <AppText style={[styles.cardTitle, { color: theme.colors.text }]}> 
+            <AppText style={[styles.cardTitle, { color: theme.colors.text }]}>
               Estimated Nutrition
             </AppText>
             <TouchableOpacity onPress={() => setNutritionEditModalVisible(true)} style={styles.nutritionEditButton}>
@@ -453,7 +488,7 @@ export default function ItemDetailScreen() {
               theme={theme}
             />
           </View>
-          <AppText style={[styles.disclaimer, { color: theme.colors.subtext }]}> 
+          <AppText style={[styles.disclaimer, { color: theme.colors.subtext }]}>
             Nutrition values are estimates and may vary.
           </AppText>
         </Card>
@@ -681,7 +716,7 @@ export default function ItemDetailScreen() {
             <AppText style={[styles.customPriceTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Add Meal Price</AppText>
             <AppText style={[styles.customPriceSubtitle, { color: theme.colors.subtext }]}>Enter the amount paid</AppText>
             <View style={[styles.customPriceInputWrap, { borderColor: theme.colors.border }]}>
-              <AppText style={[styles.customPriceDollar, { color: theme.colors.subtext }]}>$</AppText>
+              <AppText style={[styles.customPriceDollar, { color: theme.colors.subtext }]}>{userCurrency}</AppText>
               <TextInput
                 value={customPriceInput}
                 onChangeText={(value) => {
@@ -758,11 +793,13 @@ export default function ItemDetailScreen() {
       <PriceEditModal
         visible={priceEditModalVisible}
         initialPrice={userPrice ?? parsePrice(item.price) ?? 0}
+        initialCurrency={userCurrency}
         onClose={() => setPriceEditModalVisible(false)}
-        onSave={(price) => {
+        onSave={(price, currency) => {
           setUserPrice(price);
+          setUserCurrency(currency);
           if (selectedMealId) {
-            updateMealOverrides(selectedMealId, { userPrice: price });
+            updateMealOverrides(selectedMealId, { userPrice: price, userCurrency: currency });
           }
         }}
       />

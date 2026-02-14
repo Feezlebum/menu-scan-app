@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { parsePrice } from '@/src/lib/scanService';
 import type { MenuItem, TopPick, ScanResult } from '@/src/lib/scanService';
+import type { CurrencyCode } from '@/src/types/spending';
 
 export interface LoggedMeal {
   id: string;
@@ -11,6 +12,7 @@ export interface LoggedMeal {
   scanId: string;
   restaurantName: string | null;
   userPrice?: number;
+  userCurrency?: CurrencyCode;
   healthyOverride?: 'healthy' | 'unhealthy' | null;
 }
 
@@ -38,7 +40,7 @@ interface HistoryState {
     scanId: string,
     item: MenuItem,
     restaurantName: string | null,
-    options?: { userPrice?: number; healthyOverride?: 'healthy' | 'unhealthy' | null }
+    options?: { userPrice?: number; userCurrency?: CurrencyCode; healthyOverride?: 'healthy' | 'unhealthy' | null }
   ) => string; // Returns meal ID
   getScanById: (id: string) => ScanHistoryEntry | undefined;
   getMealById: (id: string) => LoggedMeal | undefined;
@@ -48,7 +50,7 @@ interface HistoryState {
   deleteMeal: (id: string) => void;
   updateMealOverrides: (
     id: string,
-    updates: Partial<Pick<LoggedMeal, 'healthyOverride' | 'userPrice'>> & { item?: Partial<MenuItem> }
+    updates: Partial<Pick<LoggedMeal, 'healthyOverride' | 'userPrice' | 'userCurrency'>> & { item?: Partial<MenuItem> }
   ) => void;
   clearHistory: () => void;
 }
@@ -123,6 +125,7 @@ export const useHistoryStore = create<HistoryState>()(
           scanId,
           restaurantName,
           userPrice: options?.userPrice,
+          userCurrency: options?.userCurrency,
           healthyOverride: options?.healthyOverride ?? null,
         };
         
@@ -186,6 +189,7 @@ export const useHistoryStore = create<HistoryState>()(
                   ...meal,
                   ...(updates.healthyOverride !== undefined ? { healthyOverride: updates.healthyOverride } : {}),
                   ...(updates.userPrice !== undefined ? { userPrice: updates.userPrice } : {}),
+                  ...(updates.userCurrency !== undefined ? { userCurrency: updates.userCurrency } : {}),
                   ...(updates.item
                     ? {
                         item: {

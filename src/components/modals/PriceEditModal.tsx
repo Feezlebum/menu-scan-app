@@ -2,34 +2,40 @@ import React, { useEffect, useState } from 'react';
 import { Modal, View, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
+import type { CurrencyCode } from '@/src/types/spending';
+
+const SUPPORTED_CURRENCIES: CurrencyCode[] = ['USD', 'EUR', 'GBP', 'THB', 'INR', 'JPY', 'CNY', 'AUD', 'CAD', 'SGD', 'MXN'];
 
 interface PriceEditModalProps {
   visible: boolean;
   initialPrice: number;
+  initialCurrency: CurrencyCode;
   onClose: () => void;
-  onSave: (price: number) => void;
+  onSave: (price: number, currency: CurrencyCode) => void;
 }
 
-export function PriceEditModal({ visible, initialPrice, onClose, onSave }: PriceEditModalProps) {
+export function PriceEditModal({ visible, initialPrice, initialCurrency, onClose, onSave }: PriceEditModalProps) {
   const theme = useAppTheme();
   const [priceInput, setPriceInput] = useState('');
+  const [currency, setCurrency] = useState<CurrencyCode>(initialCurrency);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (visible) {
       setPriceInput(initialPrice.toFixed(2));
+      setCurrency(initialCurrency);
       setError('');
     }
-  }, [visible, initialPrice]);
+  }, [visible, initialPrice, initialCurrency]);
 
   const handleSave = () => {
     const parsed = Number.parseFloat(priceInput.replace(/[^0-9.]/g, ''));
-    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1000) {
-      setError('Please enter a valid price between 0.00 and 1000.00');
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100000) {
+      setError('Please enter a valid price between 0.00 and 100000.00');
       return;
     }
 
-    onSave(Number(parsed.toFixed(2)));
+    onSave(Number(parsed.toFixed(2)), currency);
     onClose();
   };
 
@@ -40,7 +46,6 @@ export function PriceEditModal({ visible, initialPrice, onClose, onSave }: Price
           <AppText style={[styles.title, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Edit Price</AppText>
 
           <View style={[styles.inputWrap, { borderColor: theme.colors.border }]}> 
-            <AppText style={[styles.dollar, { color: theme.colors.subtext }]}>$</AppText>
             <TextInput
               value={priceInput}
               onChangeText={(value) => {
@@ -52,6 +57,22 @@ export function PriceEditModal({ visible, initialPrice, onClose, onSave }: Price
               placeholderTextColor={theme.colors.subtext}
               style={[styles.input, { color: theme.colors.text }]}
             />
+          </View>
+
+          <View style={styles.currencyWrap}>
+            {SUPPORTED_CURRENCIES.map((code) => (
+              <TouchableOpacity
+                key={code}
+                style={[
+                  styles.currencyPill,
+                  { borderColor: theme.colors.border },
+                  currency === code && { borderColor: theme.colors.brand, backgroundColor: `${theme.colors.brand}18` },
+                ]}
+                onPress={() => setCurrency(code)}
+              >
+                <AppText style={[styles.currencyText, { color: theme.colors.text }]}>{code}</AppText>
+              </TouchableOpacity>
+            ))}
           </View>
 
           {error ? <AppText style={[styles.error, { color: theme.colors.trafficRed }]}>{error}</AppText> : null}
@@ -88,18 +109,27 @@ const styles = StyleSheet.create({
   inputWrap: {
     borderWidth: 1,
     borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 12,
   },
-  dollar: {
-    fontSize: 18,
-    marginRight: 6,
-  },
   input: {
-    flex: 1,
     height: 46,
     fontSize: 17,
+  },
+  currencyWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  currencyPill: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  currencyText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   error: {
     marginTop: 8,

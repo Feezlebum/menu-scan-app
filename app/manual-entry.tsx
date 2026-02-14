@@ -11,6 +11,8 @@ import { PrimaryButton } from '@/src/components/ui/PrimaryButton';
 import { OptionCard } from '@/src/components/onboarding/OptionCard';
 import { Card } from '@/src/components/ui/Card';
 import { estimateNutrition, parsePrice, type MenuItem } from '@/src/lib/scanService';
+import { convertCurrency, detectCurrencyFromPriceText, inferCurrencyFromCuisine } from '@/src/utils/currency';
+import type { CurrencyCode } from '@/src/types/spending';
 import { NutritionEditModal } from '@/src/components/modals/NutritionEditModal';
 import { useHistoryStore } from '@/src/stores/historyStore';
 import { useSpendingStore } from '@/src/stores/spendingStore';
@@ -35,7 +37,7 @@ export default function ManualEntryScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { saveScan, logMeal, scans } = useHistoryStore();
-  const { recordSpending } = useSpendingStore();
+  const { currency: homeCurrency, recordSpending } = useSpendingStore();
   const { recordMealDecision } = useStreakStore();
 
   const [step, setStep] = useState<Step>(1);
@@ -84,6 +86,10 @@ export default function ManualEntryScreen() {
       try {
         const restaurantName = restaurant.trim() || 'Manual Entry';
         const parsedPrice = parsePrice(price.trim() || null);
+        const symbolDetection = detectCurrencyFromPriceText(price.trim(), homeCurrency);
+        const cuisineDetection = inferCurrencyFromCuisine(selectedCuisine?.key, homeCurrency);
+        const detectedCurrency: CurrencyCode =
+          symbolDetection.confidence >= cuisineDetection.confidence ? symbolDetection.currency : cuisineDetection.currency;
 
         const manualItem: MenuItem = {
           name: itemName.trim(),
@@ -123,12 +129,23 @@ export default function ManualEntryScreen() {
 
         const mealId = logMeal(scanId, manualItem, restaurantName, {
           userPrice: parsedPrice ?? undefined,
+          userCurrency: detectedCurrency,
           healthyOverride: null,
         });
 
         if (parsedPrice && parsedPrice > 0) {
+          const homePrice = convertCurrency(parsedPrice, detectedCurrency, homeCurrency) ?? parsedPrice;
+          const fxRate = detectedCurrency !== homeCurrency ? Number((homePrice / parsedPrice).toFixed(6)) : undefined;
+
           recordSpending({
-            amount: parsedPrice,
+            amount: homePrice,
+            currency: homeCurrency,
+            originalAmount: parsedPrice,
+            originalCurrency: detectedCurrency,
+            fxRate,
+            fxTimestamp: new Date().toISOString(),
+            currencyConfidence: Math.max(symbolDetection.confidence, cuisineDetection.confidence),
+            currencySignals: [symbolDetection.reason, cuisineDetection.reason],
             restaurant: restaurantName,
             mealName: manualItem.name,
             extractionMethod: 'manual',

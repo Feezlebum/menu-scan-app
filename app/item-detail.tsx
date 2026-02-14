@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { AppText } from '@/src/components/ui/AppText';
+import MichiMoji from '@/src/components/MichiMoji';
 import { Card } from '@/src/components/ui/Card';
 import { useAppTheme } from '@/src/theme/theme';
 import { useScanStore } from '@/src/stores/scanStore';
@@ -336,7 +337,7 @@ export default function ItemDetailScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       const baseMessage = finalHealthy
-        ? `🔥 Streak extended to ${nextStreak}! Great choice.`
+        ? `Streak extended to ${nextStreak}! Great choice.`
         : currentStreak > 0
           ? `Streak reset. You made it ${currentStreak} choices - start fresh!`
           : `${item.name} has been saved to your history.`;
@@ -347,7 +348,7 @@ export default function ItemDetailScreen() {
       const message = `${baseMessage}${fxFallbackNote}`;
 
       if (!isMountedRef.current) return;
-      setStatusDialogTitle('Meal Logged! ✓');
+      setStatusDialogTitle('Meal Logged');
       setStatusDialogMessage(message);
       setStatusDialogVisible(true);
     } catch (error) {
@@ -464,7 +465,7 @@ export default function ItemDetailScreen() {
             {item.name}
           </AppText>
           <View style={styles.priceRow}>
-            <AppText style={[styles.price, { color: theme.colors.brand }]}> 
+            <AppText style={[styles.price, { color: theme.colors.brand }]}>
               {showDualCurrency
                 ? `${formatMoney(displayOriginalPrice, userCurrency)} (~${formatMoney(displayHomePrice, homeCurrency)})`
                 : formatMoney(displayOriginalPrice, homeCurrency)}
@@ -573,12 +574,14 @@ export default function ItemDetailScreen() {
           )}
           {item.isVegan && (
             <View style={[styles.tag, { backgroundColor: theme.colors.trafficGreen + '20' }]}>
-              <AppText style={[styles.tagText, { color: theme.colors.trafficGreen }]}>🌱 Vegan</AppText>
+              <MichiMoji name="cook" size={14} style={{ marginRight: 6 }} />
+              <AppText style={[styles.tagText, { color: theme.colors.trafficGreen }]}>Vegan</AppText>
             </View>
           )}
           {item.isGlutenFree && (
             <View style={[styles.tag, { backgroundColor: theme.colors.trafficAmber + '20' }]}>
-              <AppText style={[styles.tagText, { color: theme.colors.trafficAmber }]}>🌾 Gluten-Free</AppText>
+              <MichiMoji name="think" size={14} style={{ marginRight: 6 }} />
+              <AppText style={[styles.tagText, { color: theme.colors.trafficAmber }]}>Gluten-Free</AppText>
             </View>
           )}
         </View>
@@ -586,9 +589,10 @@ export default function ItemDetailScreen() {
         {/* Modification Tips */}
         {item.modificationTips && item.modificationTips.length > 0 && (
           <Card style={styles.modsCard}>
-            <AppText style={[styles.cardTitle, { color: theme.colors.text }]}>
-              💡 Make it Healthier
-            </AppText>
+            <View style={styles.cardTitleRow}>
+              <MichiMoji name="think" size={18} style={{ marginRight: 8 }} />
+              <AppText style={[styles.cardTitle, { color: theme.colors.text }]}>Make it Healthier</AppText>
+            </View>
             {item.modificationTips.map((tip, i) => (
               <View key={i} style={styles.modRow}>
                 <View style={[styles.modBullet, { backgroundColor: theme.colors.brand }]} />
@@ -688,7 +692,7 @@ export default function ItemDetailScreen() {
 
       <BrandedDialog
         visible={budgetDialogVisible}
-        title="💰 Budget Alert"
+        title="Budget Alert"
         message={dialogMessage}
         michiState="thinking"
         onClose={() => setBudgetDialogVisible(false)}
@@ -1083,6 +1087,11 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
   },
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
@@ -1154,6 +1163,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   tagText: {
     fontSize: 13,

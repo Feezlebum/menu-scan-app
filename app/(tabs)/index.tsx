@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as Haptics from 'expo-haptics';
 import { AppText } from '@/src/components/ui/AppText';
+import MichiMoji from '@/src/components/MichiMoji';
 import { TrafficLightDot } from '@/src/components/ui/TrafficLightDot';
 import { useAppTheme } from '@/src/theme/theme';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
@@ -168,7 +169,10 @@ export default function HomeScreen() {
           <View style={styles.spendingCard}>
             <View style={styles.spendingTopRow}>
               <View style={styles.spendingTitleBlock}>
-                <AppText style={[styles.spendingTitle, { color: theme.colors.text }]}>💰 Weekly Spending</AppText>
+                <View style={styles.inlineTitleRow}>
+                  <MichiMoji name="money" size={18} style={{ marginRight: 6 }} />
+                  <AppText style={[styles.spendingTitle, { color: theme.colors.text }]}>Weekly Spending</AppText>
+                </View>
                 {effectiveWeeklyBudget ? (
                   <AppText style={[styles.spendingAmount, { color: theme.colors.text }]}>{formatMoney(currentWeekSpent, homeCurrency)} / {formatMoney(effectiveWeeklyBudget, homeCurrency)}</AppText>
                 ) : (
@@ -239,7 +243,7 @@ export default function HomeScreen() {
                       key={tag.key}
                       style={[styles.tag, { backgroundColor: '#fff', borderColor: '#6BAF7A' }]}
                     >
-                      <AppText style={styles.tagIcon}>{tag.icon}</AppText>
+                      <MichiMoji emoji={tag.icon} size={14} style={styles.tagIconImage} />
                       <AppText
                         style={[
                           styles.tagText,
@@ -286,9 +290,12 @@ export default function HomeScreen() {
           {lastMeal ? (
             <View style={[styles.lastScanCard, { backgroundColor: '#fff', borderColor: theme.colors.border }]}>
               <View style={styles.lastScanHeader}>
-                <AppText style={[styles.lastScanLabel, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>
-                  📋 Last Logged
-                </AppText>
+                <View style={styles.inlineTitleRow}>
+                  <MichiMoji name="think" size={16} style={{ marginRight: 6 }} />
+                  <AppText style={[styles.lastScanLabel, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}> 
+                    Last Logged
+                  </AppText>
+                </View>
                 <AppText style={[styles.lastScanTime, { color: theme.colors.caption }]}>
                   {formatTimeAgo(lastMeal.loggedAt)}
                 </AppText>
@@ -537,6 +544,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: 10,
   },
+  inlineTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   tagsContainer: {
     gap: 6,
   },
@@ -549,8 +560,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     gap: 4,
   },
-  tagIcon: {
-    fontSize: 12,
+  tagIconImage: {
+    marginRight: 2,
   },
   tagText: {
     fontSize: 12,

@@ -3,6 +3,7 @@ import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 're
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { AppText } from '@/src/components/ui/AppText';
+import MichiMoji from '@/src/components/MichiMoji';
 import { Card } from '@/src/components/ui/Card';
 import { TrafficLightDot } from '@/src/components/ui/TrafficLightDot';
 import { useAppTheme } from '@/src/theme/theme';
@@ -21,7 +22,7 @@ export default function ResultsScreen() {
           <AppText style={[styles.errorText, { color: theme.colors.text }]}>
             No scan results available
           </AppText>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.backButton, { backgroundColor: theme.colors.brand }]}
             onPress={() => router.back()}
           >
@@ -67,9 +68,10 @@ export default function ResultsScreen() {
         {/* Top Picks */}
         {topPicks.length > 0 && (
           <View style={styles.section}>
-            <AppText style={[styles.sectionTitle, { color: theme.colors.text }]}>
-              🏆 Top Picks For You
-            </AppText>
+            <View style={styles.sectionTitleRow}>
+              <MichiMoji name="celebrate" size={22} style={{ marginRight: 8 }} />
+              <AppText style={[styles.sectionTitle, { color: theme.colors.text }]}>Top Picks For You</AppText>
+            </View>
             {topPicks.map((pick) => (
               <TopPickCard key={pick.name} pick={pick} theme={theme} onPress={() => handleItemPress(pick)} />
             ))}
@@ -78,15 +80,16 @@ export default function ResultsScreen() {
 
         {/* Full Menu */}
         <View style={styles.section}>
-          <AppText style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            📋 Full Menu
-          </AppText>
+          <View style={styles.sectionTitleRow}>
+            <MichiMoji name="think" size={22} style={{ marginRight: 8 }} />
+            <AppText style={[styles.sectionTitle, { color: theme.colors.text }]}>Full Menu</AppText>
+          </View>
           {items.map((item, index) => (
-            <MenuItemCard 
-              key={`${item.name}-${index}`} 
-              item={item} 
-              theme={theme} 
-              onPress={() => handleItemPress(item)} 
+            <MenuItemCard
+              key={`${item.name}-${index}`}
+              item={item}
+              theme={theme}
+              onPress={() => handleItemPress(item)}
             />
           ))}
         </View>
@@ -206,10 +209,14 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    marginBottom: 12,
   },
   topPickCard: {
     marginBottom: 12,

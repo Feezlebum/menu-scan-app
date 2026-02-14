@@ -19,9 +19,13 @@ interface RecordSpendingInput {
 }
 
 interface SpendingState extends SpendingTracker {
+  travelModeEnabled: boolean;
+  tripCurrency: CurrencyCode | null;
   setWeeklyBudget: (budget: number | null) => void;
   setCurrency: (currency: CurrencyCode) => void;
   setIncludeTips: (enabled: boolean) => void;
+  setTravelModeEnabled: (enabled: boolean) => void;
+  setTripCurrency: (currency: CurrencyCode | null) => void;
   recordSpending: (entry: RecordSpendingInput) => void;
   getCurrentWeekSpent: () => number;
 }
@@ -41,11 +45,15 @@ export const useSpendingStore = create<SpendingState>()(
       weeklyBudget: null,
       currency: 'USD',
       includeTips: false,
+      travelModeEnabled: true,
+      tripCurrency: null,
       spendingHistory: [],
 
       setWeeklyBudget: (budget) => set({ weeklyBudget: budget }),
       setCurrency: (currency) => set({ currency }),
       setIncludeTips: (enabled) => set({ includeTips: enabled }),
+      setTravelModeEnabled: (enabled) => set({ travelModeEnabled: enabled }),
+      setTripCurrency: (currency) => set({ tripCurrency: currency }),
 
       recordSpending: ({
         amount,

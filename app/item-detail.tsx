@@ -20,6 +20,7 @@ import { parsePrice } from '@/src/lib/scanService';
 import { PriceEditModal } from '@/src/components/modals/PriceEditModal';
 import type { CurrencyCode } from '@/src/types/spending';
 import { convertCurrency, detectCurrencyFromPriceText, formatMoney } from '@/src/utils/currency';
+import { convertWithFx } from '@/src/lib/fxService';
 import { HealthEditModal } from '@/src/components/modals/HealthEditModal';
 import { NutritionEditModal } from '@/src/components/modals/NutritionEditModal';
 
@@ -31,7 +32,15 @@ export default function ItemDetailScreen() {
   const { exportToTrackers, hasEnabledTrackers } = useTrackerExport();
   const { dailyCalorieTarget, dietType, intolerances, dislikes } = useOnboardingStore();
   const { currentStreak, recordMealDecision } = useStreakStore();
-  const { weeklyBudget, currency: homeCurrency, getCurrentWeekSpent, recordSpending } = useSpendingStore();
+  const {
+    weeklyBudget,
+    currency: homeCurrency,
+    travelModeEnabled,
+    tripCurrency,
+    setTripCurrency,
+    getCurrentWeekSpent,
+    recordSpending,
+  } = useSpendingStore();
   const [isLogging, setIsLogging] = useState(false);
   const [streakDialogVisible, setStreakDialogVisible] = useState(false);
   const [budgetDialogVisible, setBudgetDialogVisible] = useState(false);
@@ -58,6 +67,8 @@ export default function ItemDetailScreen() {
   const [statusDialogVisible, setStatusDialogVisible] = useState(false);
   const [statusDialogTitle, setStatusDialogTitle] = useState('');
   const [statusDialogMessage, setStatusDialogMessage] = useState('');
+  const [travelModeDialogVisible, setTravelModeDialogVisible] = useState(false);
+  const [hasReviewedCurrency, setHasReviewedCurrency] = useState(false);
   const [dialogMessage, setDialogMessage] = useState('');
   const [pendingLogArgs, setPendingLogArgs] = useState<{
     overrideHealthyChoice?: boolean;
@@ -82,6 +93,8 @@ export default function ItemDetailScreen() {
 
   const item = selectedItem;
   const detectedCurrency = detectCurrencyFromPriceText(item.price, homeCurrency);
+  const effectiveDetectedCurrency = travelModeEnabled && tripCurrency ? tripCurrency : detectedCurrency.currency;
+  const effectiveCurrencyConfidence = travelModeEnabled && tripCurrency ? 1 : detectedCurrency.confidence;
 
   useEffect(() => {
     setNutritionOverrides({
@@ -105,9 +118,10 @@ export default function ItemDetailScreen() {
         setUserCurrency(meal.userCurrency);
       }
     } else {
-      setUserCurrency(detectedCurrency.currency);
+      setUserCurrency(effectiveDetectedCurrency);
     }
-  }, [item, selectedMealId, loggedMeals, detectedCurrency.currency]);
+    setHasReviewedCurrency(false);
+  }, [item, selectedMealId, loggedMeals, effectiveDetectedCurrency]);
 
   const effectiveItem = {
     ...item,
@@ -116,6 +130,17 @@ export default function ItemDetailScreen() {
     estimatedCarbs: nutritionOverrides?.estimatedCarbs ?? item.estimatedCarbs,
     estimatedFat: nutritionOverrides?.estimatedFat ?? item.estimatedFat,
   };
+
+  useEffect(() => {
+    if (
+      travelModeEnabled &&
+      !tripCurrency &&
+      detectedCurrency.currency !== homeCurrency &&
+      detectedCurrency.confidence >= 0.85
+    ) {
+      setTravelModeDialogVisible(true);
+    }
+  }, [travelModeEnabled, tripCurrency, detectedCurrency.currency, detectedCurrency.confidence, homeCurrency]);
 
   const getScoreColor = (score: number) => {
     if (score >= 70) return theme.colors.trafficGreen;
@@ -178,9 +203,16 @@ export default function ItemDetailScreen() {
     });
 
     const originalPrice = manualPriceOverride ?? userPrice ?? parsePrice(item.price);
-    const originalCurrency = userCurrency || detectedCurrency.currency;
-    const convertedHomePrice = originalPrice ? (convertCurrency(originalPrice, originalCurrency, homeCurrency) ?? originalPrice) : null;
-    const detectedPrice = convertedHomePrice;
+    const originalCurrency = userCurrency || effectiveDetectedCurrency;
+
+    let fxQuote: Awaited<ReturnType<typeof convertWithFx>> | null = null;
+    const detectedPrice = originalPrice
+      ? (originalCurrency === homeCurrency
+          ? originalPrice
+          : ((fxQuote = await convertWithFx(originalPrice, originalCurrency, homeCurrency))?.converted
+            ?? (convertCurrency(originalPrice, originalCurrency, homeCurrency) ?? originalPrice)))
+      : null;
+
     const currentWeekSpent = getCurrentWeekSpent();
     const projectedWeekSpent = currentWeekSpent + (detectedPrice || 0);
 
@@ -188,7 +220,7 @@ export default function ItemDetailScreen() {
       setDialogMessage(
         `This order will put you at ${Math.round((projectedWeekSpent / weeklyBudget) * 100)}% of your weekly budget\n\nCurrent: ${formatMoney(currentWeekSpent, homeCurrency)} / ${formatMoney(weeklyBudget, homeCurrency)}\nAfter this meal: ${formatMoney(projectedWeekSpent, homeCurrency)} / ${formatMoney(weeklyBudget, homeCurrency)}`
       );
-      setPendingLogArgs({ overrideHealthyChoice, skipStreakWarning, skipBudgetWarning: true, manualPriceOverride: detectedPrice, skipDuplicateWarning });
+      setPendingLogArgs({ overrideHealthyChoice, skipStreakWarning, skipBudgetWarning: true, manualPriceOverride: originalPrice || undefined, skipDuplicateWarning });
       setBudgetDialogVisible(true);
       return;
     }
@@ -241,16 +273,18 @@ export default function ItemDetailScreen() {
       });
 
       if (detectedPrice && detectedPrice > 0) {
-        const fxRate = originalPrice && originalCurrency !== homeCurrency ? Number((detectedPrice / originalPrice).toFixed(6)) : undefined;
+        const fxRate = originalPrice && originalCurrency !== homeCurrency
+          ? Number(((fxQuote?.rate ?? (detectedPrice / originalPrice))).toFixed(6))
+          : undefined;
         recordSpending({
           amount: detectedPrice,
           currency: homeCurrency,
           originalAmount: originalPrice || undefined,
           originalCurrency,
           fxRate,
-          fxTimestamp: new Date().toISOString(),
-          currencyConfidence: detectedCurrency.confidence,
-          currencySignals: [detectedCurrency.reason],
+          fxTimestamp: fxQuote?.timestamp ?? new Date().toISOString(),
+          currencyConfidence: effectiveCurrencyConfidence,
+          currencySignals: [detectedCurrency.reason, tripCurrency ? 'trip-currency-default' : 'auto-detected'],
           restaurant: restaurantName || 'Restaurant',
           mealName: item.name,
           extractionMethod: manualPriceOverride !== undefined ? 'manual' : 'ocr',
@@ -318,7 +352,11 @@ export default function ItemDetailScreen() {
         ? `Price: ${formatMoney(originalPrice, homeCurrency)}`
         : `Price: ${formatMoney(originalPrice, userCurrency)} (~${formatMoney(homePrice || originalPrice, homeCurrency)})`;
 
-    const message = `${item.name}\nNutrition: ${effectiveItem.estimatedCalories} cal, ${effectiveItem.estimatedProtein}g protein\n${priceLine}${weeklyBudget && homePrice ? `\nBudget impact: ${formatMoney(currentWeekSpent, homeCurrency)} → ${formatMoney(projected, homeCurrency)} / ${formatMoney(weeklyBudget, homeCurrency)}` : ''}`;
+    const confidenceNote = effectiveCurrencyConfidence < 0.85
+      ? `\nDetected currency: ${userCurrency} (please verify)`
+      : '';
+
+    const message = `${item.name}\nNutrition: ${effectiveItem.estimatedCalories} cal, ${effectiveItem.estimatedProtein}g protein\n${priceLine}${confidenceNote}${weeklyBudget && homePrice ? `\nBudget impact: ${formatMoney(currentWeekSpent, homeCurrency)} → ${formatMoney(projected, homeCurrency)} / ${formatMoney(weeklyBudget, homeCurrency)}` : ''}`;
 
     setConfirmDialogPrice(originalPrice);
     setConfirmDialogMessage(message);
@@ -327,6 +365,14 @@ export default function ItemDetailScreen() {
 
   const handleConfirmOrder = () => {
     const detectedPrice = userPrice ?? parsePrice(item.price);
+
+    if (effectiveCurrencyConfidence < 0.6 && !hasReviewedCurrency) {
+      setStatusDialogTitle('Confirm Currency');
+      setStatusDialogMessage('We could not confidently detect the menu currency. Please confirm the currency before logging.');
+      setStatusDialogVisible(true);
+      setPriceEditModalVisible(true);
+      return;
+    }
 
     if (detectedPrice) {
       openConfirmDialogWithPrice(detectedPrice);
@@ -770,13 +816,33 @@ export default function ItemDetailScreen() {
       />
 
       <BrandedDialog
+        visible={travelModeDialogVisible}
+        title="Travel mode detected"
+        message={`You appear to be ordering in ${detectedCurrency.currency}. Set this as your trip default currency?`}
+        michiState="thinking"
+        onClose={() => setTravelModeDialogVisible(false)}
+        actions={[
+          { text: 'Not now', variant: 'secondary', onPress: () => setTravelModeDialogVisible(false) },
+          {
+            text: 'This trip',
+            variant: 'primary',
+            onPress: () => {
+              setTripCurrency(detectedCurrency.currency);
+              setUserCurrency(detectedCurrency.currency);
+              setTravelModeDialogVisible(false);
+            },
+          },
+        ]}
+      />
+
+      <BrandedDialog
         visible={statusDialogVisible}
         title={statusDialogTitle}
         message={statusDialogMessage}
         michiState={statusDialogTitle === 'Error' ? 'worried' : 'excited'}
         onClose={() => {
           setStatusDialogVisible(false);
-          if (statusDialogTitle !== 'Error') handleClose();
+          if (statusDialogTitle !== 'Error' && statusDialogTitle !== 'Confirm Currency') handleClose();
         }}
         actions={[
           {
@@ -784,7 +850,7 @@ export default function ItemDetailScreen() {
             variant: 'primary',
             onPress: () => {
               setStatusDialogVisible(false);
-              if (statusDialogTitle !== 'Error') handleClose();
+              if (statusDialogTitle !== 'Error' && statusDialogTitle !== 'Confirm Currency') handleClose();
             },
           },
         ]}
@@ -798,6 +864,7 @@ export default function ItemDetailScreen() {
         onSave={(price, currency) => {
           setUserPrice(price);
           setUserCurrency(currency);
+          setHasReviewedCurrency(true);
           if (selectedMealId) {
             updateMealOverrides(selectedMealId, { userPrice: price, userCurrency: currency });
           }

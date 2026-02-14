@@ -73,7 +73,18 @@ export default function ProfileScreen() {
     setWeeklyDiningBudget,
   } = useOnboardingStore();
 
-  const { weeklyBudget, setWeeklyBudget, currency, setCurrency, includeTips, setIncludeTips } = useSpendingStore();
+  const {
+    weeklyBudget,
+    setWeeklyBudget,
+    currency,
+    setCurrency,
+    includeTips,
+    setIncludeTips,
+    travelModeEnabled,
+    setTravelModeEnabled,
+    tripCurrency,
+    setTripCurrency,
+  } = useSpendingStore();
 
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [selectedMichi, setSelectedMichi] = useState<MichiVariant>('avatar');
@@ -346,6 +357,31 @@ export default function ProfileScreen() {
                   </View>
                   <View style={[styles.tipToggle, { backgroundColor: includeTips ? theme.colors.brand : '#ddd' }]}>
                     <View style={[styles.tipToggleKnob, includeTips && styles.tipToggleKnobOn]} />
+                  </View>
+                </TouchableOpacity>
+
+                <Divider theme={theme} />
+
+                <TouchableOpacity
+                  style={styles.preferenceRow}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    const next = !travelModeEnabled;
+                    setTravelModeEnabled(next);
+                    if (!next) setTripCurrency(null);
+                  }}
+                >
+                  <View style={styles.preferenceLeft}>
+                    <FontAwesome name="plane" size={18} color={theme.colors.brand} />
+                    <AppText style={[styles.preferenceLabel, { color: theme.colors.text }]}>Travel Mode</AppText>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <View style={[styles.tipToggle, { backgroundColor: travelModeEnabled ? theme.colors.brand : '#ddd' }]}>
+                      <View style={[styles.tipToggleKnob, travelModeEnabled && styles.tipToggleKnobOn]} />
+                    </View>
+                    {tripCurrency ? (
+                      <AppText style={[styles.preferenceValue, { color: theme.colors.subtext, marginTop: 4 }]}>Trip: {tripCurrency}</AppText>
+                    ) : null}
                   </View>
                 </TouchableOpacity>
               </Card>

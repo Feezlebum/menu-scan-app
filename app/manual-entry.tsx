@@ -11,7 +11,8 @@ import { PrimaryButton } from '@/src/components/ui/PrimaryButton';
 import { OptionCard } from '@/src/components/onboarding/OptionCard';
 import { Card } from '@/src/components/ui/Card';
 import { estimateNutrition, parsePrice, type MenuItem } from '@/src/lib/scanService';
-import { convertCurrency, detectCurrencyFromPriceText, inferCurrencyFromCuisine } from '@/src/utils/currency';
+import { detectCurrencyFromPriceText, inferCurrencyFromCuisine } from '@/src/utils/currency';
+import { convertWithFx } from '@/src/lib/fxService';
 import type { CurrencyCode } from '@/src/types/spending';
 import { NutritionEditModal } from '@/src/components/modals/NutritionEditModal';
 import { useHistoryStore } from '@/src/stores/historyStore';
@@ -134,8 +135,9 @@ export default function ManualEntryScreen() {
         });
 
         if (parsedPrice && parsedPrice > 0) {
-          const homePrice = convertCurrency(parsedPrice, detectedCurrency, homeCurrency) ?? parsedPrice;
-          const fxRate = detectedCurrency !== homeCurrency ? Number((homePrice / parsedPrice).toFixed(6)) : undefined;
+          const fx = await convertWithFx(parsedPrice, detectedCurrency, homeCurrency);
+          const homePrice = fx?.converted ?? parsedPrice;
+          const fxRate = detectedCurrency !== homeCurrency ? Number((fx?.rate ?? (homePrice / parsedPrice)).toFixed(6)) : undefined;
 
           recordSpending({
             amount: homePrice,
@@ -143,7 +145,7 @@ export default function ManualEntryScreen() {
             originalAmount: parsedPrice,
             originalCurrency: detectedCurrency,
             fxRate,
-            fxTimestamp: new Date().toISOString(),
+            fxTimestamp: fx?.timestamp ?? new Date().toISOString(),
             currencyConfidence: Math.max(symbolDetection.confidence, cuisineDetection.confidence),
             currencySignals: [symbolDetection.reason, cuisineDetection.reason],
             restaurant: restaurantName,

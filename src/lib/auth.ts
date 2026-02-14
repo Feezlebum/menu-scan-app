@@ -423,6 +423,48 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
   return { success: true };
 }
 
+export async function requestMagicLinkSignIn(email: string): Promise<{ success: boolean; error?: string }> {
+  const trimmed = email.trim().toLowerCase();
+  if (!trimmed || !trimmed.includes('@')) {
+    return { success: false, error: 'Please enter a valid email address.' };
+  }
+
+  const { error } = await supabase.auth.signInWithOtp({ email: trimmed });
+  if (error) {
+    return { success: false, error: normalizeAuthError(error.message) };
+  }
+
+  return { success: true };
+}
+
+export async function updateAccountEmail(email: string): Promise<{ success: boolean; error?: string }> {
+  const trimmed = email.trim().toLowerCase();
+  if (!trimmed || !trimmed.includes('@')) {
+    return { success: false, error: 'Please enter a valid email address.' };
+  }
+
+  const { error } = await supabase.auth.updateUser({ email: trimmed });
+  if (error) {
+    return { success: false, error: normalizeAuthError(error.message) };
+  }
+
+  return { success: true };
+}
+
+export async function updateAccountPassword(password: string): Promise<{ success: boolean; error?: string }> {
+  const trimmed = password.trim();
+  if (trimmed.length < 8) {
+    return { success: false, error: 'Password must be at least 8 characters.' };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: trimmed });
+  if (error) {
+    return { success: false, error: normalizeAuthError(error.message) };
+  }
+
+  return { success: true };
+}
+
 export async function signOut(): Promise<void> {
   const user = await getCurrentUser();
   if (user) {

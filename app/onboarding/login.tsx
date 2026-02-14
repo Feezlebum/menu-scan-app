@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { AppText } from '@/src/components/ui/AppText';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
 import { useAppTheme } from '@/src/theme/theme';
-import { signIn } from '@/src/lib/auth';
+import { requestMagicLinkSignIn, signIn } from '@/src/lib/auth';
 
 export default function LoginScreen() {
   const theme = useAppTheme();
@@ -12,11 +12,12 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sendingMagicLink, setSendingMagicLink] = useState(false);
 
   const canContinue = /@/.test(email) && password.length >= 6;
 
   const handleLogin = async () => {
-    if (loading) return false;
+    if (loading || sendingMagicLink) return false;
 
     setLoading(true);
     const result = await signIn(email.trim(), password);
@@ -38,6 +39,27 @@ export default function LoginScreen() {
         ? (`/onboarding/forgot-password?email=${encodeURIComponent(candidate)}` as any)
         : ('/onboarding/forgot-password' as any)
     );
+  };
+
+  const handleMagicLink = async () => {
+    if (loading || sendingMagicLink) return;
+
+    const candidate = email.trim();
+    if (!candidate || !candidate.includes('@')) {
+      Alert.alert('Magic Link', 'Enter your account email first, then tap Email me a sign-in link.');
+      return;
+    }
+
+    setSendingMagicLink(true);
+    const result = await requestMagicLinkSignIn(candidate);
+    setSendingMagicLink(false);
+
+    if (result.success) {
+      Alert.alert('Check your email', 'We sent a magic sign-in link. Open it on this device to continue.');
+      return;
+    }
+
+    Alert.alert('Could not send magic link', result.error || 'Please try again.');
   };
 
   const handleAccountHelp = async () => {
@@ -62,9 +84,9 @@ export default function LoginScreen() {
       title="Welcome Back!"
       subtitle="Log in to your account to continue tracking."
       hideProgress
-      canContinue={canContinue && !loading}
+      canContinue={canContinue && !loading && !sendingMagicLink}
       onContinue={handleLogin}
-      buttonText={loading ? 'Signing in...' : 'Log In'}
+      buttonText={loading ? 'Signing in...' : sendingMagicLink ? 'Sending link...' : 'Log In'}
       showBack
     >
       <View style={styles.form}>
@@ -89,18 +111,22 @@ export default function LoginScreen() {
           />
         </Field>
 
-        <TouchableOpacity onPress={handleForgotPassword} disabled={loading}>
-          <AppText style={[styles.linkText, { color: theme.colors.brand, opacity: loading ? 0.6 : 1 }]}>Forgot password?</AppText>
+        <TouchableOpacity onPress={handleMagicLink} disabled={loading || sendingMagicLink}>
+          <AppText style={[styles.linkText, { color: theme.colors.brand, opacity: loading || sendingMagicLink ? 0.6 : 1 }]}>Email me a sign-in link</AppText>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleAccountHelp} disabled={loading}>
-          <AppText style={[styles.helpText, { color: theme.colors.subtext, opacity: loading ? 0.6 : 1 }]}>Need help accessing your account or forgot your email?</AppText>
+        <TouchableOpacity onPress={handleForgotPassword} disabled={loading || sendingMagicLink}>
+          <AppText style={[styles.linkText, { color: theme.colors.brand, opacity: loading || sendingMagicLink ? 0.6 : 1 }]}>Forgot password?</AppText>
         </TouchableOpacity>
 
-        {loading && (
+        <TouchableOpacity onPress={handleAccountHelp} disabled={loading || sendingMagicLink}>
+          <AppText style={[styles.helpText, { color: theme.colors.subtext, opacity: loading || sendingMagicLink ? 0.6 : 1 }]}>Need help accessing your account or forgot your email?</AppText>
+        </TouchableOpacity>
+
+        {(loading || sendingMagicLink) && (
           <View style={styles.loading}>
             <ActivityIndicator color={theme.colors.brand} />
-            <AppText style={[styles.loadingText, { color: theme.colors.subtext }]}>Signing in...</AppText>
+            <AppText style={[styles.loadingText, { color: theme.colors.subtext }]}>{loading ? 'Signing in...' : 'Sending magic link...'}</AppText>
           </View>
         )}
       </View>

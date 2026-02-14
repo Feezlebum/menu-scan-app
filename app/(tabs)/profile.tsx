@@ -11,6 +11,7 @@ import {
   Modal,
   Linking,
   Platform,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -34,7 +35,7 @@ import type { CurrencyCode } from '@/src/types/spending';
 import { formatMoney } from '@/src/utils/currency';
 import { getProfileMichi, type MichiVariant } from '@/src/utils/michiAssets';
 import { BudgetPickerModal } from '@/src/components/profile/BudgetPickerModal';
-import { deleteAccount, getCurrentUser, signOut } from '@/src/lib/auth';
+import { deleteAccount, getCurrentUser, signOut, updateAccountEmail, updateAccountPassword } from '@/src/lib/auth';
 
 const HomeBackground = require('@/assets/botanicals/home-background.png');
 const PROFILE_PHOTO_KEY = '@profile_photo';
@@ -100,6 +101,11 @@ export default function ProfileScreen() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [accountEditModalVisible, setAccountEditModalVisible] = useState(false);
+  const [accountEditMode, setAccountEditMode] = useState<'email' | 'password' | null>(null);
+  const [accountInput, setAccountInput] = useState('');
+  const [accountInputConfirm, setAccountInputConfirm] = useState('');
+  const [accountEditSubmitting, setAccountEditSubmitting] = useState(false);
 
   useEffect(() => {
     loadAvatarSettings();
@@ -208,6 +214,46 @@ export default function ProfileScreen() {
 
   const openCurrencySelector = () => {
     setCurrencyModalVisible(true);
+  };
+
+  const openAccountEdit = (mode: 'email' | 'password') => {
+    setAccountEditMode(mode);
+    setAccountInput(mode === 'email' ? (accountEmail || email || '') : '');
+    setAccountInputConfirm('');
+    setAccountEditModalVisible(true);
+  };
+
+  const submitAccountEdit = async () => {
+    if (!accountEditMode || accountEditSubmitting) return;
+
+    if (accountEditMode === 'password' && accountInput !== accountInputConfirm) {
+      Alert.alert('Password mismatch', 'New password and confirmation must match.');
+      return;
+    }
+
+    setAccountEditSubmitting(true);
+
+    const result =
+      accountEditMode === 'email'
+        ? await updateAccountEmail(accountInput)
+        : await updateAccountPassword(accountInput);
+
+    setAccountEditSubmitting(false);
+
+    if (!result.success) {
+      Alert.alert('Update failed', result.error || 'Please try again.');
+      return;
+    }
+
+    if (accountEditMode === 'email') {
+      setAccountEmail(accountInput.trim());
+      Alert.alert('Check your email', 'We sent a confirmation to your new email address.');
+    } else {
+      Alert.alert('Password updated', 'Your password has been updated successfully.');
+    }
+
+    setAccountEditModalVisible(false);
+    setAccountEditMode(null);
   };
 
   const handleManageSubscription = async () => {
@@ -421,6 +467,26 @@ export default function ProfileScreen() {
 
                 <Divider theme={theme} />
 
+                <TouchableOpacity style={styles.preferenceRow} onPress={() => openAccountEdit('email')} activeOpacity={0.75}>
+                  <View style={styles.preferenceLeft}>
+                    <FontAwesome name="at" size={18} color={theme.colors.brand} />
+                    <AppText style={[styles.preferenceLabel, { color: theme.colors.text }]}>Change Email</AppText>
+                  </View>
+                  <FontAwesome name="chevron-right" size={12} color={theme.colors.subtext} />
+                </TouchableOpacity>
+
+                <Divider theme={theme} />
+
+                <TouchableOpacity style={styles.preferenceRow} onPress={() => openAccountEdit('password')} activeOpacity={0.75}>
+                  <View style={styles.preferenceLeft}>
+                    <FontAwesome name="lock" size={18} color={theme.colors.brand} />
+                    <AppText style={[styles.preferenceLabel, { color: theme.colors.text }]}>Change Password</AppText>
+                  </View>
+                  <FontAwesome name="chevron-right" size={12} color={theme.colors.subtext} />
+                </TouchableOpacity>
+
+                <Divider theme={theme} />
+
                 <TouchableOpacity style={styles.preferenceRow} onPress={handleManageSubscription} activeOpacity={0.75}>
                   <View style={styles.preferenceLeft}>
                     <FontAwesome name="credit-card" size={18} color={theme.colors.brand} />
@@ -505,6 +571,56 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             ))}
             <TouchableOpacity style={styles.cancelLink} onPress={() => setCurrencyModalVisible(false)}>
+              <AppText style={[styles.cancelLinkText, { color: theme.colors.subtext }]}>Cancel</AppText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={accountEditModalVisible} transparent animationType="fade" onRequestClose={() => setAccountEditModalVisible(false)}>
+        <View style={styles.editBackdrop}>
+          <View style={[styles.editCard, { backgroundColor: theme.colors.bg }]}> 
+            <AppText style={[styles.editTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>
+              {accountEditMode === 'email' ? 'Change Email' : 'Change Password'}
+            </AppText>
+
+            <View style={[styles.accountInputWrap, { borderColor: theme.colors.border }]}> 
+              <TextInput
+                value={accountInput}
+                onChangeText={setAccountInput}
+                autoCapitalize="none"
+                keyboardType={accountEditMode === 'email' ? 'email-address' : 'default'}
+                secureTextEntry={accountEditMode === 'password'}
+                placeholder={accountEditMode === 'email' ? 'Enter new email' : 'Enter new password'}
+                placeholderTextColor={theme.colors.subtext}
+                style={[styles.accountInput, { color: theme.colors.text }]}
+                editable={!accountEditSubmitting}
+              />
+            </View>
+
+            {accountEditMode === 'password' ? (
+              <View style={[styles.accountInputWrap, { borderColor: theme.colors.border, marginTop: 10 }]}> 
+                <TextInput
+                  value={accountInputConfirm}
+                  onChangeText={setAccountInputConfirm}
+                  secureTextEntry
+                  placeholder="Confirm new password"
+                  placeholderTextColor={theme.colors.subtext}
+                  style={[styles.accountInput, { color: theme.colors.text }]}
+                  editable={!accountEditSubmitting}
+                />
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={[styles.saveButton, { backgroundColor: theme.colors.brand, marginTop: 12, opacity: accountEditSubmitting ? 0.7 : 1 }]}
+              disabled={accountEditSubmitting}
+              onPress={submitAccountEdit}
+            >
+              <AppText style={styles.saveButtonText}>{accountEditSubmitting ? 'Saving...' : 'Save Changes'}</AppText>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.cancelLink} onPress={() => setAccountEditModalVisible(false)} disabled={accountEditSubmitting}>
               <AppText style={[styles.cancelLinkText, { color: theme.colors.subtext }]}>Cancel</AppText>
             </TouchableOpacity>
           </View>
@@ -1119,6 +1235,15 @@ const styles = StyleSheet.create({
   },
   optionsList: {
     gap: 10,
+  },
+  accountInputWrap: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+  },
+  accountInput: {
+    height: 46,
+    fontSize: 16,
   },
   optionRow: {
     borderWidth: 1,

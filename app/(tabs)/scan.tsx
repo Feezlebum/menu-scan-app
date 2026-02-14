@@ -25,6 +25,7 @@ export default function ScanScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const cameraRef = useRef<CameraView>(null);
+  const isMountedRef = useRef(true);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanState, setScanState] = useState<ScanState>('ready');
   const [errorDialogVisible, setErrorDialogVisible] = useState(false);
@@ -45,6 +46,12 @@ export default function ScanScreen() {
   useEffect(() => {
     initializeUser();
   }, [initializeUser]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (scanState === 'processing') {
@@ -89,6 +96,7 @@ export default function ScanScreen() {
     }
 
     try {
+      if (!isMountedRef.current) return;
       setScanState('capturing');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -102,6 +110,7 @@ export default function ScanScreen() {
         throw new Error('Failed to capture photo');
       }
 
+      if (!isMountedRef.current) return;
       setScanState('ready');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -164,6 +173,7 @@ export default function ScanScreen() {
 
     } catch (error) {
       console.error('Capture error:', error);
+      if (!isMountedRef.current) return;
       setScanState('error');
       setScanError(error instanceof Error ? error.message : 'Unknown error');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

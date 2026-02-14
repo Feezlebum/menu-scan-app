@@ -105,6 +105,7 @@ export default function ProfileScreen() {
   const [accountEditMode, setAccountEditMode] = useState<'email' | 'password' | null>(null);
   const [accountInput, setAccountInput] = useState('');
   const [accountInputConfirm, setAccountInputConfirm] = useState('');
+  const [accountCurrentPassword, setAccountCurrentPassword] = useState('');
   const [accountEditSubmitting, setAccountEditSubmitting] = useState(false);
 
   useEffect(() => {
@@ -220,6 +221,7 @@ export default function ProfileScreen() {
     setAccountEditMode(mode);
     setAccountInput(mode === 'email' ? (accountEmail || email || '') : '');
     setAccountInputConfirm('');
+    setAccountCurrentPassword('');
     setAccountEditModalVisible(true);
   };
 
@@ -231,12 +233,17 @@ export default function ProfileScreen() {
       return;
     }
 
+    if (accountEditMode === 'password' && !accountCurrentPassword.trim()) {
+      Alert.alert('Current password required', 'Please enter your current password to continue.');
+      return;
+    }
+
     setAccountEditSubmitting(true);
 
     const result =
       accountEditMode === 'email'
         ? await updateAccountEmail(accountInput)
-        : await updateAccountPassword(accountInput);
+        : await updateAccountPassword(accountCurrentPassword, accountInput);
 
     setAccountEditSubmitting(false);
 
@@ -553,7 +560,10 @@ export default function ProfileScreen() {
         <View style={styles.editBackdrop}>
           <View style={[styles.editCard, { backgroundColor: theme.colors.bg }]}> 
             <AppText style={[styles.editTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Choose Currency</AppText>
-            {(['USD', 'EUR', 'GBP', 'THB', 'INR', 'JPY', 'CNY', 'AUD', 'CAD', 'SGD', 'MXN'] as CurrencyCode[]).map((code) => (
+            {([
+              'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'HKD', 'SGD',
+              'INR', 'THB', 'KRW', 'NZD', 'SEK', 'NOK', 'DKK', 'PLN', 'BRL', 'MXN',
+            ] as CurrencyCode[]).map((code) => (
               <TouchableOpacity
                 key={code}
                 style={[
@@ -584,7 +594,22 @@ export default function ProfileScreen() {
               {accountEditMode === 'email' ? 'Change Email' : 'Change Password'}
             </AppText>
 
-            <View style={[styles.accountInputWrap, { borderColor: theme.colors.border }]}> 
+            {accountEditMode === 'password' ? (
+              <View style={[styles.accountInputWrap, { borderColor: theme.colors.border }]}> 
+                <TextInput
+                  value={accountCurrentPassword}
+                  onChangeText={setAccountCurrentPassword}
+                  autoCapitalize="none"
+                  secureTextEntry
+                  placeholder="Enter current password"
+                  placeholderTextColor={theme.colors.subtext}
+                  style={[styles.accountInput, { color: theme.colors.text }]}
+                  editable={!accountEditSubmitting}
+                />
+              </View>
+            ) : null}
+
+            <View style={[styles.accountInputWrap, { borderColor: theme.colors.border, marginTop: accountEditMode === 'password' ? 10 : 0 }]}> 
               <TextInput
                 value={accountInput}
                 onChangeText={setAccountInput}
@@ -731,7 +756,7 @@ const AvatarModal: React.FC<{
     { key: 'hero', source: getProfileMichi('hero'), label: 'Chef Michi' },
     { key: 'thinking', source: getProfileMichi('thinking'), label: 'Thinking Michi' },
     { key: 'excited', source: getProfileMichi('excited'), label: 'Excited Michi' },
-    { key: 'sad', source: getProfileMichi('sad'), label: 'Gentle Michi' },
+    { key: 'sad', source: getProfileMichi('sad'), label: 'Sad Michi' },
     { key: 'worried', source: getProfileMichi('worried'), label: 'Concerned Michi' },
     { key: 'confused', source: getProfileMichi('confused'), label: 'Puzzled Michi' },
   ];

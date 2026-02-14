@@ -479,13 +479,36 @@ export async function updateAccountEmail(email: string): Promise<{ success: bool
   return { success: true };
 }
 
-export async function updateAccountPassword(password: string): Promise<{ success: boolean; error?: string }> {
-  const trimmed = password.trim();
-  if (trimmed.length < 8) {
+export async function updateAccountPassword(
+  currentPassword: string,
+  nextPassword: string
+): Promise<{ success: boolean; error?: string }> {
+  const current = currentPassword.trim();
+  const next = nextPassword.trim();
+
+  if (!current) {
+    return { success: false, error: 'Current password is required.' };
+  }
+
+  if (next.length < 8) {
     return { success: false, error: 'Password must be at least 8 characters.' };
   }
 
-  const { error } = await supabase.auth.updateUser({ password: trimmed });
+  const user = await getCurrentUser();
+  if (!user?.email) {
+    return { success: false, error: 'Unable to verify current session.' };
+  }
+
+  const verify = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: current,
+  });
+
+  if (verify.error) {
+    return { success: false, error: 'Current password is incorrect.' };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: next });
   if (error) {
     return { success: false, error: normalizeAuthError(error.message) };
   }

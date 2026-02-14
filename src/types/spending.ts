@@ -9,7 +9,16 @@ export type CurrencyCode =
   | 'AUD'
   | 'CAD'
   | 'SGD'
-  | 'MXN';
+  | 'MXN'
+  | 'CHF'
+  | 'NZD'
+  | 'HKD'
+  | 'KRW'
+  | 'SEK'
+  | 'NOK'
+  | 'DKK'
+  | 'PLN'
+  | 'BRL';
 
 export interface SpendingEntry {
   id: string;

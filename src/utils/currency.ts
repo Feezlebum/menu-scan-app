@@ -9,14 +9,23 @@ export interface CurrencyDetectionResult {
 const SYMBOL_TO_CURRENCY: Array<{ pattern: RegExp; currency: CurrencyCode; reason: string }> = [
   { pattern: /฿|\bTHB\b|baht/i, currency: 'THB', reason: 'thai-baht-symbol-or-code' },
   { pattern: /₹|\bINR\b|rupee/i, currency: 'INR', reason: 'indian-rupee-symbol-or-code' },
+  { pattern: /\bKRW\b|₩|won/i, currency: 'KRW', reason: 'krw-symbol-or-code' },
+  { pattern: /\bHKD\b/i, currency: 'HKD', reason: 'hkd-code' },
   { pattern: /¥|\bJPY\b|yen/i, currency: 'JPY', reason: 'yen-symbol-or-code' },
   { pattern: /\bCNY\b|RMB|yuan/i, currency: 'CNY', reason: 'yuan-code' },
   { pattern: /\bEUR\b|€/i, currency: 'EUR', reason: 'euro-symbol-or-code' },
+  { pattern: /\bCHF\b/i, currency: 'CHF', reason: 'chf-code' },
   { pattern: /\bGBP\b|£/i, currency: 'GBP', reason: 'gbp-symbol-or-code' },
   { pattern: /\bAUD\b/i, currency: 'AUD', reason: 'aud-code' },
   { pattern: /\bCAD\b/i, currency: 'CAD', reason: 'cad-code' },
+  { pattern: /\bNZD\b/i, currency: 'NZD', reason: 'nzd-code' },
   { pattern: /\bSGD\b/i, currency: 'SGD', reason: 'sgd-code' },
   { pattern: /\bMXN\b/i, currency: 'MXN', reason: 'mxn-code' },
+  { pattern: /\bBRL\b|R\$/i, currency: 'BRL', reason: 'brl-symbol-or-code' },
+  { pattern: /\bPLN\b|zł/i, currency: 'PLN', reason: 'pln-symbol-or-code' },
+  { pattern: /\bSEK\b/i, currency: 'SEK', reason: 'sek-code' },
+  { pattern: /\bNOK\b/i, currency: 'NOK', reason: 'nok-code' },
+  { pattern: /\bDKK\b/i, currency: 'DKK', reason: 'dkk-code' },
   { pattern: /\bUSD\b|\$/i, currency: 'USD', reason: 'usd-symbol-or-code' },
 ];
 
@@ -32,6 +41,15 @@ const USD_BASE_RATES: Record<CurrencyCode, number> = {
   CAD: 1.35,
   SGD: 1.35,
   MXN: 17.0,
+  CHF: 0.88,
+  NZD: 1.64,
+  HKD: 7.8,
+  KRW: 1325,
+  SEK: 10.6,
+  NOK: 10.8,
+  DKK: 6.9,
+  PLN: 4.0,
+  BRL: 5.0,
 };
 
 export function detectCurrencyFromPriceText(priceText: string | null | undefined, fallback: CurrencyCode): CurrencyDetectionResult {
@@ -94,6 +112,15 @@ export function getCurrencySymbol(currency: CurrencyCode): string {
     CAD: 'C$',
     SGD: 'S$',
     MXN: 'MX$',
+    CHF: 'CHF',
+    NZD: 'NZ$',
+    HKD: 'HK$',
+    KRW: '₩',
+    SEK: 'kr',
+    NOK: 'kr',
+    DKK: 'kr',
+    PLN: 'zł',
+    BRL: 'R$',
   };
 
   return symbols[currency] || currency;

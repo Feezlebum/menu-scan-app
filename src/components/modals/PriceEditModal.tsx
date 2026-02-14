@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, View, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { Modal, View, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
 import type { CurrencyCode } from '@/src/types/spending';
 
-const SUPPORTED_CURRENCIES: CurrencyCode[] = ['USD', 'EUR', 'GBP', 'THB', 'INR', 'JPY', 'CNY', 'AUD', 'CAD', 'SGD', 'MXN'];
+const SUPPORTED_CURRENCIES: CurrencyCode[] = [
+  'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'HKD', 'SGD',
+  'INR', 'THB', 'KRW', 'NZD', 'SEK', 'NOK', 'DKK', 'PLN', 'BRL', 'MXN',
+];
 
 interface PriceEditModalProps {
   visible: boolean;
@@ -19,6 +22,7 @@ export function PriceEditModal({ visible, initialPrice, initialCurrency, onClose
   const [priceInput, setPriceInput] = useState('');
   const [currency, setCurrency] = useState<CurrencyCode>(initialCurrency);
   const [error, setError] = useState('');
+  const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -59,21 +63,46 @@ export function PriceEditModal({ visible, initialPrice, initialCurrency, onClose
             />
           </View>
 
-          <View style={styles.currencyWrap}>
-            {SUPPORTED_CURRENCIES.map((code) => (
-              <TouchableOpacity
-                key={code}
-                style={[
-                  styles.currencyPill,
-                  { borderColor: theme.colors.border },
-                  currency === code && { borderColor: theme.colors.brand, backgroundColor: `${theme.colors.brand}18` },
-                ]}
-                onPress={() => setCurrency(code)}
-              >
-                <AppText style={[styles.currencyText, { color: theme.colors.text }]}>{code}</AppText>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <TouchableOpacity
+            style={[styles.currencySelector, { borderColor: theme.colors.border }]}
+            onPress={() => setCurrencyPickerVisible(true)}
+          >
+            <AppText style={[styles.currencySelectorLabel, { color: theme.colors.subtext }]}>Currency</AppText>
+            <View style={styles.currencySelectorValueWrap}>
+              <AppText style={[styles.currencySelectorValue, { color: theme.colors.text }]}>{currency}</AppText>
+              <AppText style={[styles.currencySelectorChevron, { color: theme.colors.subtext }]}>▾</AppText>
+            </View>
+          </TouchableOpacity>
+
+          <Modal visible={currencyPickerVisible} transparent animationType="fade" onRequestClose={() => setCurrencyPickerVisible(false)}>
+            <View style={styles.pickerBackdrop}>
+              <View style={[styles.pickerCard, { backgroundColor: theme.colors.bg, borderColor: theme.colors.border }]}> 
+                <AppText style={[styles.pickerTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Select currency</AppText>
+                <ScrollView style={styles.pickerList} contentContainerStyle={styles.pickerListContent}>
+                  {SUPPORTED_CURRENCIES.map((code) => (
+                    <TouchableOpacity
+                      key={code}
+                      style={[
+                        styles.pickerOption,
+                        { borderColor: theme.colors.border },
+                        currency === code && { borderColor: theme.colors.brand, backgroundColor: `${theme.colors.brand}16` },
+                      ]}
+                      onPress={() => {
+                        setCurrency(code);
+                        setCurrencyPickerVisible(false);
+                      }}
+                    >
+                      <AppText style={[styles.pickerOptionText, { color: theme.colors.text }]}>{code}</AppText>
+                      {currency === code ? <AppText style={{ color: theme.colors.brand }}>✓</AppText> : null}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                <TouchableOpacity style={styles.pickerClose} onPress={() => setCurrencyPickerVisible(false)}>
+                  <AppText style={[styles.pickerCloseText, { color: theme.colors.subtext }]}>Close</AppText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
 
           {error ? <AppText style={[styles.error, { color: theme.colors.trafficRed }]}>{error}</AppText> : null}
 
@@ -115,21 +144,72 @@ const styles = StyleSheet.create({
     height: 46,
     fontSize: 17,
   },
-  currencyWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  currencySelector: {
     marginTop: 10,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  currencyPill: {
+  currencySelectorLabel: {
+    fontSize: 13,
+  },
+  currencySelectorValueWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  currencySelectorValue: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  currencySelectorChevron: {
+    fontSize: 14,
+  },
+  pickerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  pickerCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    maxHeight: '70%',
+    padding: 14,
+  },
+  pickerTitle: {
+    fontSize: 18,
+    marginBottom: 10,
+  },
+  pickerList: {
+    maxHeight: 340,
+  },
+  pickerListContent: {
+    gap: 8,
+  },
+  pickerOption: {
     borderWidth: 1,
     borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  currencyText: {
-    fontSize: 12,
+  pickerOptionText: {
+    fontSize: 14,
     fontWeight: '600',
+  },
+  pickerClose: {
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  pickerCloseText: {
+    fontSize: 14,
   },
   error: {
     marginTop: 8,

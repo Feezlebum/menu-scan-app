@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
 import { AppText } from '@/src/components/ui/AppText';
+import MichiMoji from '@/src/components/MichiMoji';
 import { useAppTheme } from '@/src/theme/theme';
 
 const REVIEWS = [
@@ -48,7 +49,7 @@ export default function SocialProofScreen() {
           >
             <View style={styles.stars}>
               {[...Array(review.rating)].map((_, i) => (
-                <AppText key={i} style={styles.star}>⭐</AppText>
+                <MichiMoji key={i} name="celebrate" size={16} style={{ marginRight: 2 }} />
               ))}
             </View>
             <AppText style={[styles.reviewText, { color: theme.colors.text }]}>

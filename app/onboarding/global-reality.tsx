@@ -7,10 +7,10 @@ import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
 
 const DATA_POINTS = [
-  '🌍 40%+ of food budgets go to dining out globally',
-  '💸 $191/month average in US, €180 in Europe, £165 in UK',
-  '📈 People eat out 4-7x per week but feel lost making choices',
-  '⚠️ Restaurant meals cost 5x more than cooking at home',
+  '40%+ of food budgets go to dining out globally',
+  '$191/month average in US, €180 in Europe, £165 in UK',
+  'People eat out 4-7x per week but feel lost making choices',
+  'Restaurant meals cost 5x more than cooking at home',
 ];
 
 export default function GlobalRealityScreen() {

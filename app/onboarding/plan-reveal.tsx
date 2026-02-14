@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
-import Animated, { 
-  useAnimatedStyle, 
+import Animated, {
+  useAnimatedStyle,
   withTiming,
   withDelay,
   useSharedValue,
@@ -12,6 +12,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/src/theme/theme';
 import { AppText } from '@/src/components/ui/AppText';
+import MichiMoji from '@/src/components/MichiMoji';
 import { PrimaryButton } from '@/src/components/ui/PrimaryButton';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 
@@ -69,7 +70,7 @@ export default function PlanRevealScreen() {
         </Animated.View>
 
         {/* Calorie Card */}
-        <Animated.View 
+        <Animated.View
           entering={FadeInUp.delay(400)}
           style={[styles.calorieCard, { backgroundColor: theme.colors.brand }]}
         >
@@ -80,30 +81,30 @@ export default function PlanRevealScreen() {
 
         {/* Plan Details */}
         <Animated.View entering={FadeInUp.delay(600)} style={styles.details}>
-          <PlanItem 
-            label="Goal" 
-            value={getGoalLabel()} 
-            emoji="🎯" 
-            theme={theme} 
+          <PlanItem
+            label="Goal"
+            value={getGoalLabel()}
+            emoji="🎯"
+            theme={theme}
           />
-          <PlanItem 
-            label="Diet Style" 
-            value={getDietLabel()} 
-            emoji="🍽️" 
-            theme={theme} 
+          <PlanItem
+            label="Diet Style"
+            value={getDietLabel()}
+            emoji="🍽️"
+            theme={theme}
           />
-          <PlanItem 
-            label="Priority" 
-            value={getMacroLabel()} 
-            emoji="⚡" 
-            theme={theme} 
+          <PlanItem
+            label="Priority"
+            value={getMacroLabel()}
+            emoji="⚡"
+            theme={theme}
           />
           {goalDate && goalDate !== 'Ongoing' && (
-            <PlanItem 
-              label="Target Date" 
-              value={new Date(goalDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} 
-              emoji="📅" 
-              theme={theme} 
+            <PlanItem
+              label="Target Date"
+              value={new Date(goalDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              emoji="📅"
+              theme={theme}
             />
           )}
         </Animated.View>
@@ -119,8 +120,8 @@ export default function PlanRevealScreen() {
 
 function PlanItem({ label, value, emoji, theme }: { label: string; value: string; emoji: string; theme: any }) {
   return (
-    <View style={[styles.planItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-      <AppText style={styles.planEmoji}>{emoji}</AppText>
+    <View style={[styles.planItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+      <MichiMoji emoji={emoji} size={22} style={styles.planEmojiImage} />
       <View style={styles.planContent}>
         <AppText style={[styles.planLabel, { color: theme.colors.subtext }]}>{label}</AppText>
         <AppText style={[styles.planValue, { color: theme.colors.text }]}>{value}</AppText>
@@ -176,8 +177,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  planEmoji: {
-    fontSize: 24,
+  planEmojiImage: {
     marginRight: 16,
   },
   planContent: {

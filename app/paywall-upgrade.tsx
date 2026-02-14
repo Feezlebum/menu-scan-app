@@ -1,44 +1,75 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+
 import { AppText } from '@/src/components/ui/AppText';
 import { PrimaryButton } from '@/src/components/ui/PrimaryButton';
-import { useAppTheme } from '@/src/theme/theme';
+import MichiMoji from '@/src/components/MichiMoji';
 import { useSubscriptionStore } from '@/src/stores/subscriptionStore';
+import { useAppTheme } from '@/src/theme/theme';
+
+type Plan = 'annual' | 'monthly';
+type Feature = {
+  icon: 'scan' | 'star' | 'dollar' | 'globe';
+  label: string;
+  description: string;
+};
+
+const MichiExcited = require('@/assets/michi-excited.png');
+
+const PLANS = {
+  annual: { price: '$39.99', period: '/year', weekly: '$0.77/week', savings: 'SAVE 58%' },
+  monthly: { price: '$7.99', period: '/month', weekly: '$1.85/week', savings: '' },
+} as const;
+
+const FEATURES: Feature[] = [
+  { icon: 'scan', label: 'Unlimited menu scans', description: 'Snap any menu, get instant nutrition info' },
+  { icon: 'star', label: 'Personalized top picks', description: 'AI recommendations based on your goals' },
+  { icon: 'dollar', label: 'Spending & nutrition tracking', description: 'Track your dining budget alongside health goals' },
+  { icon: 'globe', label: 'Menu translation', description: '50+ languages with pronunciation guides' },
+];
+
+function FeatureIcon({ icon }: { icon: Feature['icon'] }) {
+  if (icon === 'scan') return <MichiMoji name="eyes" size={20} />;
+  if (icon === 'star') return <MichiMoji name="celebrate" size={20} />;
+  if (icon === 'dollar') return <MichiMoji name="money" size={20} />;
+  return <MichiMoji name="wave" size={20} />;
+}
+
+const FEATURE_COLORS = ['#5FA6A6', '#6BAF7A', '#F2B95E', '#E86B50'];
 
 export default function PaywallUpgradeScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { startTrial, subscribe, restore } = useSubscriptionStore();
+  const { subscribe, restore } = useSubscriptionStore();
+
+  const [selectedPlan, setSelectedPlan] = useState<Plan>('annual');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleTrial = async () => {
-    if (loading) return;
-    setError(null);
-    setLoading(true);
-    const ok = await startTrial();
-    setLoading(false);
-    if (ok) {
-      router.replace('/(tabs)/scan');
-    } else {
-      setError('Could not start trial. Please check store setup and try again.');
-    }
+  const handleSelectPlan = (plan: Plan) => {
+    Haptics.selectionAsync();
+    setSelectedPlan(plan);
   };
 
-  const handleSubscribe = async (plan: 'monthly' | 'annual') => {
+  const handleSubscribe = async () => {
     if (loading) return;
     setError(null);
     setLoading(true);
-    const ok = await subscribe(plan);
+    const ok = await subscribe(selectedPlan);
     setLoading(false);
+
     if (ok) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace('/(tabs)/scan');
-    } else {
-      setError('Purchase did not complete. Please try again.');
+      return;
     }
+
+    setError('Purchase did not complete. Please try again.');
   };
 
   const handleRestore = async () => {
@@ -47,58 +78,333 @@ export default function PaywallUpgradeScreen() {
     setLoading(true);
     const ok = await restore();
     setLoading(false);
+
     if (ok) {
       router.replace('/(tabs)/scan');
-    } else {
-      setError('No active subscription found to restore.');
+      return;
     }
+
+    setError('No active subscription found to restore.');
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]}> 
-      <View style={[styles.content, { paddingBottom: Math.max(24, insets.bottom + 12) }]}> 
-        <AppText style={[styles.title, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Go Pro</AppText>
-        <AppText style={[styles.subtitle, { color: theme.colors.subtext }]}>Unlimited scans, advanced insights, and premium translation features.</AppText>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#FFF5E6' }]}> 
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <Animated.View entering={FadeInUp.delay(100)} style={styles.heroSection}>
+          <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
+            <AppText style={styles.closeText}>✕</AppText>
+          </TouchableOpacity>
 
-        <View style={[styles.planCard, { borderColor: theme.colors.border }]}> 
-          <AppText style={[styles.planTitle, { color: theme.colors.text }]}>Annual</AppText>
-          <AppText style={[styles.planPrice, { color: theme.colors.brand }]}>$39.99/year</AppText>
-          <AppText style={[styles.planMeta, { color: theme.colors.subtext }]}>Best value</AppText>
-          <PrimaryButton label={loading ? 'Please wait...' : 'Choose Annual'} onPress={() => handleSubscribe('annual')} disabled={loading} />
-        </View>
+          <View style={[styles.dot, styles.dotCoral]} />
+          <View style={[styles.dot, styles.dotSage]} />
+          <View style={[styles.dot, styles.dotAmber]} />
+          <View style={[styles.dot, styles.dotTeal]} />
 
-        <View style={[styles.planCard, { borderColor: theme.colors.border }]}> 
-          <AppText style={[styles.planTitle, { color: theme.colors.text }]}>Monthly</AppText>
-          <AppText style={[styles.planPrice, { color: theme.colors.brand }]}>$7.99/month</AppText>
-          <PrimaryButton label={loading ? 'Please wait...' : 'Choose Monthly'} onPress={() => handleSubscribe('monthly')} disabled={loading} />
-        </View>
+          <Image source={MichiExcited} style={styles.heroImage} resizeMode="contain" />
+        </Animated.View>
 
-        <TouchableOpacity onPress={handleTrial} disabled={loading} style={styles.trialButton}>
-          <AppText style={[styles.trialText, { color: theme.colors.subtext }]}>Start 7-day free trial</AppText>
-        </TouchableOpacity>
+        <Animated.View entering={FadeInUp.delay(160)} style={styles.pill}>
+          <MichiMoji name="sparkle" size={14} style={{ marginRight: 6 }} />
+          <AppText style={styles.pillText}>Join today, cancel anytime!</AppText>
+        </Animated.View>
 
-        <TouchableOpacity onPress={handleRestore} disabled={loading} style={styles.restoreButton}>
-          <AppText style={[styles.restoreText, { color: theme.colors.brand }]}>Restore Purchases</AppText>
+        <Animated.View entering={FadeInUp.delay(200)} style={styles.titleWrap}>
+          <AppText style={styles.title}>Unlock all the best features</AppText>
+          <AppText style={styles.subtitle}>Your AI-powered dining companion</AppText>
+        </Animated.View>
+
+        <Animated.View entering={FadeInUp.delay(260)} style={styles.featuresWrap}>
+          {FEATURES.map((feature, idx) => (
+            <View key={feature.label} style={styles.featureRow}>
+              <View style={[styles.featureIconBox, { backgroundColor: `${FEATURE_COLORS[idx]}22` }]}>
+                <FeatureIcon icon={feature.icon} />
+              </View>
+              <View style={styles.featureTextWrap}>
+                <AppText style={styles.featureTitle}>{feature.label}</AppText>
+                <AppText style={styles.featureDescription}>{feature.description}</AppText>
+              </View>
+            </View>
+          ))}
+        </Animated.View>
+
+        <Animated.View entering={FadeInUp.delay(320)} style={styles.planRow}>
+          {(['monthly', 'annual'] as Plan[]).map((plan) => {
+            const selected = selectedPlan === plan;
+            const data = PLANS[plan];
+            return (
+              <TouchableOpacity
+                key={plan}
+                activeOpacity={0.9}
+                onPress={() => handleSelectPlan(plan)}
+                style={[
+                  styles.planCard,
+                  {
+                    borderColor: selected ? '#E86B50' : '#F0E6D6',
+                    backgroundColor: '#fff',
+                  },
+                ]}
+              >
+                {data.savings ? (
+                  <View style={styles.savingsBadge}>
+                    <AppText style={styles.savingsBadgeText}>{data.savings}</AppText>
+                  </View>
+                ) : null}
+
+                <View style={styles.planTopRow}>
+                  <View style={[styles.radioOuter, { borderColor: selected ? '#E86B50' : '#C9BAA7' }]}>
+                    {selected ? <View style={styles.radioInner} /> : null}
+                  </View>
+                  <AppText style={styles.planName}>{plan === 'annual' ? 'Annual' : 'Monthly'}</AppText>
+                </View>
+
+                <AppText style={styles.planPrice}>
+                  {data.price}
+                  <AppText style={styles.planPeriod}>{data.period}</AppText>
+                </AppText>
+                <AppText style={styles.planWeekly}>{data.weekly}</AppText>
+              </TouchableOpacity>
+            );
+          })}
+        </Animated.View>
+      </ScrollView>
+
+      <Animated.View entering={FadeIn.delay(360)} style={[styles.footer, { paddingBottom: Math.max(20, insets.bottom + 8) }]}>
+        <PrimaryButton
+          label={loading ? 'Processing…' : 'Start 7-Day Free Trial'}
+          onPress={handleSubscribe}
+          disabled={loading}
+        />
+
+        <TouchableOpacity onPress={() => router.back()} style={styles.skipButton}>
+          <AppText style={styles.skipText}>Continue with limited features</AppText>
         </TouchableOpacity>
 
         {error ? <AppText style={[styles.errorText, { color: theme.colors.trafficRed }]}>{error}</AppText> : null}
-      </View>
+
+        <AppText style={styles.legalText}>Cancel anytime. Subscription renews automatically.</AppText>
+
+        <View style={styles.linkRow}>
+          <TouchableOpacity onPress={handleRestore}>
+            <AppText style={styles.footerLink}>Restore Purchases</AppText>
+          </TouchableOpacity>
+          <AppText style={styles.linkSeparator}>|</AppText>
+          <AppText style={styles.footerLink}>Terms</AppText>
+          <AppText style={styles.linkSeparator}>|</AppText>
+          <AppText style={styles.footerLink}>Privacy</AppText>
+        </View>
+      </Animated.View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flex: 1, padding: 24, justifyContent: 'center', gap: 14 },
-  title: { fontSize: 32, textAlign: 'center' },
-  subtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 8 },
-  planCard: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 8 },
-  planTitle: { fontSize: 18, fontWeight: '700' },
-  planPrice: { fontSize: 20, fontWeight: '700' },
-  planMeta: { fontSize: 13, marginBottom: 4 },
-  trialButton: { alignItems: 'center', marginTop: 4 },
-  trialText: { fontSize: 14 },
-  restoreButton: { alignItems: 'center', marginTop: 2 },
-  restoreText: { fontSize: 14, fontWeight: '600' },
-  errorText: { fontSize: 13, textAlign: 'center' },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 0,
+  },
+  heroSection: {
+    borderRadius: 28,
+    backgroundColor: '#FFE8D6',
+    alignItems: 'center',
+    paddingTop: 18,
+    paddingBottom: 14,
+    marginBottom: 14,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  closeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#6B5B4E',
+  },
+  dot: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    opacity: 0.4,
+  },
+  dotCoral: { backgroundColor: '#E86B50', top: 26, left: 22 },
+  dotSage: { backgroundColor: '#6BAF7A', top: 72, right: 24 },
+  dotAmber: { backgroundColor: '#F2B95E', bottom: 34, left: 34 },
+  dotTeal: { backgroundColor: '#5FA6A6', bottom: 24, right: 46 },
+  heroImage: {
+    width: 130,
+    height: 130,
+  },
+  pill: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6BAF7A',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginBottom: 16,
+  },
+  pillText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  titleWrap: { marginBottom: 14 },
+  title: {
+    fontSize: 28,
+    textAlign: 'center',
+    fontWeight: '700',
+    lineHeight: 34,
+    color: '#2D2418',
+  },
+  subtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 6,
+    color: '#6B5B4E',
+  },
+  featuresWrap: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  featureIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featureTextWrap: { flex: 1 },
+  featureTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#2D2418',
+  },
+  featureDescription: {
+    marginTop: 2,
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#9B8B7E',
+  },
+  planRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  planCard: {
+    flex: 1,
+    borderWidth: 2,
+    borderRadius: 16,
+    padding: 12,
+    position: 'relative',
+  },
+  savingsBadge: {
+    position: 'absolute',
+    right: 8,
+    top: 8,
+    backgroundColor: '#E86B50',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  savingsBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  planTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 7,
+  },
+  radioOuter: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E86B50',
+  },
+  planName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2D2418',
+  },
+  planPrice: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2D2418',
+  },
+  planPeriod: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6B5B4E',
+  },
+  planWeekly: {
+    marginTop: 2,
+    fontSize: 12,
+    color: '#9B8B7E',
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+  },
+  skipButton: {
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  skipText: {
+    fontSize: 14,
+    color: '#6B5B4E',
+  },
+  errorText: {
+    marginTop: 8,
+    textAlign: 'center',
+    fontSize: 12,
+  },
+  legalText: {
+    textAlign: 'center',
+    marginTop: 10,
+    fontSize: 11,
+    color: '#9B8B7E',
+  },
+  linkRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  footerLink: {
+    fontSize: 12,
+    color: '#6B5B4E',
+    fontWeight: '600',
+  },
+  linkSeparator: {
+    marginHorizontal: 8,
+    color: '#9B8B7E',
+    fontSize: 11,
+  },
 });

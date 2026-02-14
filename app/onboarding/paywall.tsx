@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
@@ -35,10 +35,10 @@ const FEATURES: Feature[] = [
 ];
 
 function FeatureIcon({ icon }: { icon: Feature['icon'] }) {
-  if (icon === 'scan') return <MichiMoji name="eyes" size={20} />;
-  if (icon === 'star') return <MichiMoji name="celebrate" size={20} />;
-  if (icon === 'dollar') return <MichiMoji name="money" size={20} />;
-  return <MichiMoji name="wave" size={20} />;
+  if (icon === 'scan') return <MichiMoji name="eyes" size={28} />;
+  if (icon === 'star') return <MichiMoji name="celebrate" size={28} />;
+  if (icon === 'dollar') return <MichiMoji name="money" size={28} />;
+  return <MichiMoji name="cool" size={28} />;
 }
 
 const FEATURE_COLORS = ['#5FA6A6', '#6BAF7A', '#F2B95E', '#E86B50'];
@@ -100,7 +100,7 @@ export default function PaywallScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#FFF5E6' }]}> 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <View style={styles.scrollContent}>
         <Animated.View entering={FadeInUp.delay(100)} style={styles.heroSection}>
           <TouchableOpacity style={styles.closeButton} onPress={handleSkip}>
             <AppText style={styles.closeText}>✕</AppText>
@@ -121,7 +121,7 @@ export default function PaywallScreen() {
 
         <Animated.View entering={FadeInUp.delay(200)} style={styles.titleWrap}>
           <AppText style={[styles.title, { color: '#2D2418' }]}>Unlock all the best features</AppText>
-          <AppText style={[styles.subtitle, { color: '#6B5B4E' }]}>Your AI-powered dining companion</AppText>
+          <AppText style={[styles.subtitle, { color: '#6B5B4E' }]}>Michi is waiting to dine with you wherever you go!</AppText>
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(260)} style={styles.featuresWrap}>
@@ -177,7 +177,7 @@ export default function PaywallScreen() {
             );
           })}
         </Animated.View>
-      </ScrollView>
+      </View>
 
       <Animated.View entering={FadeIn.delay(360)} style={[styles.footer, { paddingBottom: Math.max(20, insets.bottom + 8) }]}>
         <PrimaryButton
@@ -211,9 +211,11 @@ export default function PaywallScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: {
+    flex: 1,
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 0,
+    justifyContent: 'space-between',
   },
   heroSection: {
     borderRadius: 28,

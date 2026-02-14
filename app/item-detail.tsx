@@ -569,7 +569,8 @@ export default function ItemDetailScreen() {
         <View style={styles.tagsRow}>
           {item.isVegetarian && (
             <View style={[styles.tag, { backgroundColor: theme.colors.trafficGreen + '20' }]}>
-              <AppText style={[styles.tagText, { color: theme.colors.trafficGreen }]}>🥬 Vegetarian</AppText>
+              <MichiMoji name="cook" size={14} style={{ marginRight: 6 }} />
+              <AppText style={[styles.tagText, { color: theme.colors.trafficGreen }]}>Vegetarian</AppText>
             </View>
           )}
           {item.isVegan && (
@@ -607,9 +608,12 @@ export default function ItemDetailScreen() {
         {/* What to Say */}
         <Card style={[styles.scriptCard, { backgroundColor: theme.colors.secondary, borderColor: theme.colors.brand }]}>
           <View style={styles.scriptHeader}>
-            <AppText style={[styles.cardTitle, { color: theme.colors.text }]}>
-              🗣️ What to Say
-            </AppText>
+            <View style={styles.cardTitleRow}>
+              <MichiMoji name="thumbsup" size={18} style={{ marginRight: 8 }} />
+              <AppText style={[styles.cardTitle, { color: theme.colors.text }]}> 
+                What to Say
+              </AppText>
+            </View>
           </View>
           <AppText style={[styles.scriptText, { color: theme.colors.text }]}>
             {orderScript}

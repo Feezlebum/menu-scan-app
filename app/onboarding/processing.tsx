@@ -13,6 +13,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/src/theme/theme';
 import { AppText } from '@/src/components/ui/AppText';
+import MichiMoji from '@/src/components/MichiMoji';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 
 const MESSAGES = [
@@ -88,7 +89,7 @@ export default function ProcessingScreen() {
         {/* Mascot placeholder */}
         <View style={[styles.mascotContainer, { backgroundColor: theme.colors.brand + '20' }]}>
           <Animated.View style={spinnerStyle}>
-            <AppText style={styles.mascotEmoji}>🧠</AppText>
+            <MichiMoji name="think" size={52} />
           </Animated.View>
         </View>
 

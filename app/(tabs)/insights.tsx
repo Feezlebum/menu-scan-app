@@ -48,7 +48,7 @@ export default function InsightsScreen() {
   const { loggedMeals, scans } = useHistoryStore();
   const { goal } = useOnboardingStore();
   const { currency: homeCurrency } = useSpendingStore();
-  
+
   const [trendPeriod, setTrendPeriod] = useState<7 | 30>(7);
 
   // Memoized calculations
@@ -285,7 +285,7 @@ function WeeklySpendingCard({
 }) {
   if (!hasData) {
     return (
-      <View style={[styles.card, { backgroundColor: theme.colors.cardCream }]}> 
+      <View style={[styles.card, { backgroundColor: theme.colors.cardCream }]}>
         <AppText style={[styles.sectionHeader, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>
           Weekly Spending
         </AppText>
@@ -297,7 +297,7 @@ function WeeklySpendingCard({
   const avgPerMeal = weekMeals > 0 ? weekSpending / weekMeals : 0;
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.colors.cardCream }]}> 
+    <View style={[styles.card, { backgroundColor: theme.colors.cardCream }]}>
       <AppText style={[styles.sectionHeader, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>Weekly Spending</AppText>
       <View style={styles.spendingRow}>
         <AppText style={[styles.spendingAmount, { color: theme.colors.text }]}>{formatMoney(weekSpending, currency)}</AppText>
@@ -311,7 +311,7 @@ function WeeklySpendingCard({
           )}
         </View>
       </View>
-      <AppText style={[styles.spendingDetail, { color: theme.colors.subtext }]}> 
+      <AppText style={[styles.spendingDetail, { color: theme.colors.subtext }]}>
         {formatMoney(avgPerMeal, currency)} per meal · {mealsWithPrices}/{weekMeals} priced
       </AppText>
     </View>
@@ -331,7 +331,7 @@ function CostBreakdownCard({
 }) {
   if (!hasData) {
     return (
-      <View style={[styles.card, { backgroundColor: theme.colors.cardCream }]}> 
+      <View style={[styles.card, { backgroundColor: theme.colors.cardCream }]}>
         <AppText style={[styles.sectionHeader, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>
           Cost Breakdown
         </AppText>
@@ -341,7 +341,7 @@ function CostBreakdownCard({
   }
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.colors.card }]}> 
+    <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
       <AppText style={[styles.sectionHeader, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>Cost Breakdown</AppText>
       {restaurantSpending.slice(0, 3).map(({ restaurant, amount, meals }) => (
         <View key={restaurant} style={styles.breakdownRow}>
@@ -641,8 +641,8 @@ function RestaurantCard({
       </View>
 
       {restaurants.length === 1 && (
-        <AppText style={[styles.loyalCustomer, { color: theme.colors.caption }]}>
-          Loyal customer! Try scanning somewhere new 😊
+        <AppText style={[styles.loyalCustomer, { color: theme.colors.caption }]}> 
+          Loyal customer! Try scanning somewhere new.
         </AppText>
       )}
     </View>

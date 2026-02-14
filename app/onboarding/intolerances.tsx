@@ -8,7 +8,7 @@ import { useAppTheme } from '@/src/theme/theme';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 
 const INTOLERANCES = [
-  { value: 'gluten', label: 'Gluten', emoji: '🌾' },
+  { value: 'gluten', label: 'Gluten', emoji: '🤔' },
   { value: 'dairy', label: 'Dairy', emoji: '🥛' },
   { value: 'nuts', label: 'Tree Nuts', emoji: '🥜' },
   { value: 'peanuts', label: 'Peanuts', emoji: '🥜' },

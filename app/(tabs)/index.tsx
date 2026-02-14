@@ -86,30 +86,30 @@ export default function HomeScreen() {
       : goal === 'gain'
       ? { label: 'Build Muscle', icon: '💪', key: 'goal' }
       : goal === 'maintain'
-      ? { label: 'Maintain', icon: '⚖️', key: 'goal' }
-      : { label: 'Eat Healthier', icon: '🥬', key: 'goal' };
+      ? { label: 'Maintain', icon: '👍', key: 'goal' }
+      : { label: 'Eat Healthier', icon: '👨‍🍳', key: 'goal' };
 
     const dietTag =
       dietType === 'vegan'
-        ? { label: 'Vegan', icon: '🌱', key: 'diet' }
+        ? { label: 'Vegan', icon: '👨‍🍳', key: 'diet' }
         : dietType === 'keto'
-        ? { label: 'Keto', icon: '🥑', key: 'diet' }
+        ? { label: 'Keto', icon: '✨', key: 'diet' }
         : dietType === 'lowcarb'
-        ? { label: 'Low Carb Diet', icon: '🥗', key: 'diet' }
+        ? { label: 'Low Carb Diet', icon: '👀', key: 'diet' }
         : dietType === 'mediterranean'
-        ? { label: 'Mediterranean', icon: '🫒', key: 'diet' }
+        ? { label: 'Mediterranean', icon: '😎', key: 'diet' }
         : dietType === 'cico'
-        ? { label: 'Calorie Focus', icon: '🎯', key: 'diet' }
-        : { label: 'No Diet Restriction', icon: '🍽️', key: 'diet' };
+        ? { label: 'Calorie Focus', icon: '🤔', key: 'diet' }
+        : { label: 'No Diet Restriction', icon: '👍', key: 'diet' };
 
     const macroTag =
       macroPriority === 'highprotein'
-        ? { label: 'High Protein', icon: '🥩', key: 'macro' }
+        ? { label: 'High Protein', icon: '💪', key: 'macro' }
         : macroPriority === 'lowcarb'
-        ? { label: 'Low Carb', icon: '🥗', key: 'macro' }
+        ? { label: 'Low Carb', icon: '👀', key: 'macro' }
         : macroPriority === 'lowcal'
-        ? { label: 'Low Calorie', icon: '📉', key: 'macro' }
-        : { label: 'Balanced Macros', icon: '⚖️', key: 'macro' };
+        ? { label: 'Low Calorie', icon: '🤔', key: 'macro' }
+        : { label: 'Balanced Macros', icon: '👍', key: 'macro' };
 
     tags.push(goalTag, dietTag, macroTag);
 
@@ -117,7 +117,7 @@ export default function HomeScreen() {
       dietType === 'none' &&
       (intolerances?.includes('gluten') || intolerances?.includes('Gluten'))
     ) {
-      tags[1] = { label: 'Gluten-Free', icon: '🌾', key: 'diet' };
+      tags[1] = { label: 'Gluten-Free', icon: '🤔', key: 'diet' };
     }
 
     return tags;

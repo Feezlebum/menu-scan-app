@@ -84,14 +84,14 @@ export default function PlanRevealScreen() {
           <PlanItem
             label="Goal"
             value={getGoalLabel()}
-            emoji="🎯"
+            emoji="🤔"
             theme={theme}
           />
-          <PlanItem
-            label="Diet Style"
-            value={getDietLabel()}
-            emoji="🍽️"
-            theme={theme}
+          <PlanItem 
+            label="Diet Style" 
+            value={getDietLabel()} 
+            emoji="👨‍🍳" 
+            theme={theme} 
           />
           <PlanItem
             label="Priority"
@@ -120,7 +120,7 @@ export default function PlanRevealScreen() {
 
 function PlanItem({ label, value, emoji, theme }: { label: string; value: string; emoji: string; theme: any }) {
   return (
-    <View style={[styles.planItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+    <View style={[styles.planItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
       <MichiMoji emoji={emoji} size={22} style={styles.planEmojiImage} />
       <View style={styles.planContent}>
         <AppText style={[styles.planLabel, { color: theme.colors.subtext }]}>{label}</AppText>

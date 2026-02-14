@@ -4,23 +4,24 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 import { AppText } from '@/src/components/ui/AppText';
+import MichiMoji from '@/src/components/MichiMoji';
 import { Card } from '@/src/components/ui/Card';
 import { BrandedDialog } from '@/src/components/dialogs/BrandedDialog';
 import { useAppTheme } from '@/src/theme/theme';
 import { useTranslationStore } from '@/src/stores/translationStore';
 import type { TranslationResult, TranslatedMenuItem, OrderingPhrase } from '@/src/lib/translationService';
 
-const FLAG_MAP: Record<string, string> = {
-  th: '🇹🇭',
-  ja: '🇯🇵',
-  ko: '🇰🇷',
-  zh: '🇨🇳',
-  es: '🇪🇸',
-  fr: '🇫🇷',
-  it: '🇮🇹',
-  de: '🇩🇪',
-  ar: '🇸🇦',
-  hi: '🇮🇳',
+const LANGUAGE_ICON_MAP: Record<string, string> = {
+  th: '🔥',
+  ja: '🤔',
+  ko: '✨',
+  zh: '👀',
+  es: '😎',
+  fr: '❤️',
+  it: '👨‍🍳',
+  de: '👍',
+  ar: '🙏',
+  hi: '🔥',
 };
 
 function parseParamResult(raw?: string | string[]): TranslationResult | null {
@@ -47,7 +48,7 @@ export default function TranslationResultsScreen() {
 
   if (!translationData) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]}> 
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]}>
         <View style={styles.centered}>
           <AppText style={[styles.emptyTitle, { color: theme.colors.text }]}>No translation results available</AppText>
           <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.colors.brand }]} onPress={() => router.back()}>
@@ -58,10 +59,10 @@ export default function TranslationResultsScreen() {
     );
   }
 
-  const flag = FLAG_MAP[translationData.languageCode] ?? '🌍';
+  const languageIcon = LANGUAGE_ICON_MAP[translationData.languageCode] ?? '👋';
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]}> 
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]}>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => {
@@ -74,9 +75,12 @@ export default function TranslationResultsScreen() {
         </TouchableOpacity>
 
         <View style={styles.headerTextWrap}>
-          <AppText style={[styles.headerTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>
-            {flag} {translationData.detectedLanguage} → English
-          </AppText>
+          <View style={styles.headerTitleRow}>
+            <MichiMoji emoji={languageIcon} size={20} style={{ marginRight: 8 }} />
+            <AppText style={[styles.headerTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}> 
+              {translationData.detectedLanguage} → English
+            </AppText>
+          </View>
           <AppText style={[styles.headerSubtitle, { color: theme.colors.subtext }]}>Michi translation + pronunciation guide</AppText>
         </View>
       </View>
@@ -173,7 +177,7 @@ function TranslatedItemCard({ item, onPlay }: { item: TranslatedMenuItem; onPlay
 function PhraseRow({ phrase, isLast }: { phrase: OrderingPhrase; isLast?: boolean }) {
   const theme = useAppTheme();
   return (
-    <View style={[styles.phraseRow, !isLast && { borderBottomWidth: 1, borderBottomColor: theme.colors.border }]}> 
+    <View style={[styles.phraseRow, !isLast && { borderBottomWidth: 1, borderBottomColor: theme.colors.border }]}>
       <AppText style={[styles.phraseEnglish, { color: theme.colors.text, fontFamily: theme.fonts.body.semiBold }]}>{phrase.english}</AppText>
       <AppText style={[styles.phraseOriginal, { color: theme.colors.brand }]}>{phrase.original}</AppText>
       {!!phrase.phonetic && <AppText style={[styles.phrasePhonetic, { color: theme.colors.subtext }]}>/{phrase.phonetic}/</AppText>}
@@ -198,6 +202,7 @@ const styles = StyleSheet.create({
   },
   closeButton: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   headerTextWrap: { flex: 1 },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
   headerTitle: { fontSize: 20 },
   headerSubtitle: { fontSize: 13, marginTop: 2 },
   content: { padding: 16, paddingBottom: 28, gap: 18 },

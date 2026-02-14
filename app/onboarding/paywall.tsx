@@ -20,7 +20,7 @@ const PLANS = {
 
 const FEATURES = [
   { emoji: '👀', label: 'Unlimited menu scans' },
-  { emoji: '🎯', label: 'Personalized Top 3 picks' },
+  { emoji: '🤔', label: 'Personalized Top 3 picks' },
   { emoji: '✨', label: 'Full nutrition breakdown' },
   { emoji: '🤔', label: 'Modification suggestions' },
   { emoji: '👍', label: '"What to say" scripts' },

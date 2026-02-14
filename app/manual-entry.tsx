@@ -20,16 +20,16 @@ import { useSpendingStore } from '@/src/stores/spendingStore';
 import { useStreakStore } from '@/src/stores/streakStore';
 
 const CUISINE_TYPES = [
-  { key: 'american', label: 'American', emoji: '🇺🇸' },
-  { key: 'italian', label: 'Italian', emoji: '🇮🇹' },
-  { key: 'mexican', label: 'Mexican', emoji: '🇲🇽' },
-  { key: 'chinese', label: 'Chinese', emoji: '🇨🇳' },
-  { key: 'japanese', label: 'Japanese', emoji: '🇯🇵' },
-  { key: 'thai', label: 'Thai', emoji: '🇹🇭' },
-  { key: 'indian', label: 'Indian', emoji: '🇮🇳' },
-  { key: 'mediterranean', label: 'Mediterranean', emoji: '🇬🇷' },
-  { key: 'french', label: 'French', emoji: '🇫🇷' },
-  { key: 'other', label: 'Other', emoji: '🌍' },
+  { key: 'american', label: 'American', emoji: '😎' },
+  { key: 'italian', label: 'Italian', emoji: '👨‍🍳' },
+  { key: 'mexican', label: 'Mexican', emoji: '🔥' },
+  { key: 'chinese', label: 'Chinese', emoji: '✨' },
+  { key: 'japanese', label: 'Japanese', emoji: '🤔' },
+  { key: 'thai', label: 'Thai', emoji: '🔥' },
+  { key: 'indian', label: 'Indian', emoji: '🔥' },
+  { key: 'mediterranean', label: 'Mediterranean', emoji: '👀' },
+  { key: 'french', label: 'French', emoji: '❤️' },
+  { key: 'other', label: 'Other', emoji: '👋' },
 ] as const;
 
 type Step = 1 | 2 | 3;

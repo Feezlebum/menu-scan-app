@@ -9,7 +9,7 @@ const GOALS: { value: Goal; label: string; emoji: string; description: string }[
   { value: 'lose', label: 'Lose Weight', emoji: '📉', description: 'Reduce body fat and get leaner' },
   { value: 'maintain', label: 'Maintain Weight', emoji: '⚖️', description: 'Keep your current weight' },
   { value: 'gain', label: 'Build Muscle', emoji: '💪', description: 'Gain muscle and strength' },
-  { value: 'health', label: 'Eat Healthier', emoji: '🥗', description: 'Focus on nutritious choices' },
+  { value: 'health', label: 'Eat Healthier', emoji: '👨‍🍳', description: 'Focus on nutritious choices' },
 ];
 
 export default function GoalScreen() {

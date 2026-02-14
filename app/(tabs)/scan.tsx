@@ -155,7 +155,14 @@ export default function ScanScreen() {
         }
 
         // Fallback to standard nutrition scan flow
-        const result = await parseMenu(imageUrl);
+        let result;
+        try {
+          result = await parseMenu(imageUrl);
+        } catch (firstParseError) {
+          // One extra client retry for transient network/edge hiccups.
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          result = await parseMenu(imageUrl);
+        }
 
         if (!result.success) {
           throw new Error(result.error || 'Failed to parse menu');

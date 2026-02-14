@@ -317,7 +317,7 @@ export default function HomeScreen() {
             <View style={[styles.welcomeCard, { backgroundColor: '#FFF0D4' }]}>
               <AppText style={[styles.welcomeEmoji]}>👋</AppText>
               <AppText style={[styles.welcomeTitle, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>
-                Welcome to MenuScan!
+                Welcome to Michi: Menu Helper!
               </AppText>
               <AppText style={[styles.welcomeText, { fontFamily: theme.fonts.body.regular, color: theme.colors.subtext }]}>
                 Scan your first restaurant menu to get personalized healthy recommendations.

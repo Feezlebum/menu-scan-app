@@ -35,7 +35,7 @@ export default function SocialProofScreen() {
   return (
     <OnboardingScreen
       title="Join 50,000+ healthy eaters"
-      subtitle="See why people love MenuScan"
+      subtitle="See why people love Michi: Menu Helper"
       onContinue={handleContinue}
       hideProgress
     >

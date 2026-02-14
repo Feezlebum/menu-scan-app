@@ -192,7 +192,7 @@ export default function ScanScreen() {
             Camera Access Required
           </AppText>
           <AppText style={[styles.permissionText, { color: theme.colors.subtext }]}>
-            MenuScan needs camera access to scan restaurant menus and provide personalized recommendations.
+            Michi needs camera access to scan restaurant menus and provide personalized recommendations.
           </AppText>
           <TouchableOpacity 
             style={[styles.permissionButton, { backgroundColor: theme.colors.brand }]}

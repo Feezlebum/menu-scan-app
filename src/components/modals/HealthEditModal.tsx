@@ -14,7 +14,7 @@ interface HealthEditModalProps {
 
 const OPTIONS: Array<{ key: OverrideValue; label: string }> = [
   { key: 'healthy', label: 'This was a healthy choice for me' },
-  { key: 'ai', label: 'Let MenuScan decide' },
+  { key: 'ai', label: 'Let Michi decide' },
   { key: 'unhealthy', label: "This was a treat - don't count it" },
 ];
 

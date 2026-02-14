@@ -209,7 +209,7 @@ export default function MenuAnalysisLoading({
             color: theme.colors.text,
             fontFamily: theme.fonts.heading.bold
           }]}>
-            MenuScan
+            Michi: Menu Helper
           </AppText>
         </View>
 

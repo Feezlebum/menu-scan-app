@@ -70,7 +70,7 @@ export default function LoginScreen() {
 
   const handleAccountHelp = async () => {
     const support = 'support@menuscan.app';
-    const mailto = `mailto:${support}?subject=${encodeURIComponent('Need help accessing my MenuScan account')}`;
+    const mailto = `mailto:${support}?subject=${encodeURIComponent('Need help accessing my Michi account')}`;
 
     try {
       const canOpen = await Linking.canOpenURL(mailto);

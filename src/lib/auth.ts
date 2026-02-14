@@ -158,6 +158,11 @@ function hydrateOnboardingStoreFromProfile(user: User, profile: UserProfileRow |
   const reset = useOnboardingStore.getState().reset;
   reset();
 
+  useSpendingStore.setState((state) => ({
+    ...state,
+    weeklyBudget: profile?.weekly_dining_budget ?? state.weeklyBudget,
+  }));
+
   useOnboardingStore.setState({
     completed: true,
     firstName: profile?.first_name ?? (user.user_metadata?.first_name as string | undefined) ?? '',

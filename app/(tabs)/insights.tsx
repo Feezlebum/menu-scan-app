@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as Haptics from 'expo-haptics';
 import { AppText } from '@/src/components/ui/AppText';
@@ -654,6 +655,8 @@ function ProLockedCard({
   title,
   previewContent,
 }: CardProps & { title: string; previewContent: React.ReactNode }) {
+  const router = useRouter();
+
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
       <View style={styles.proHeader}>
@@ -674,7 +677,8 @@ function ProLockedCard({
             <TouchableOpacity
               style={[styles.proUnlockButton, { backgroundColor: theme.colors.brand }]}
               onPress={() => {
-                // TODO: Navigate to paywall
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/paywall-upgrade' as any);
               }}
             >
               <AppText style={styles.proUnlockText}>Unlock with Pro</AppText>

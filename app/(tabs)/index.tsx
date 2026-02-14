@@ -43,13 +43,14 @@ const getMichiTip = () => {
 export default function HomeScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { goal, macroPriority, dietType, intolerances, spendingGoals } = useOnboardingStore();
+  const { goal, macroPriority, dietType, intolerances, spendingGoals, weeklyDiningBudget } = useOnboardingStore();
   const { loggedMeals } = useHistoryStore();
   const { currentStreak, lastChoice } = useStreakStore();
   const { weeklyBudget, currency: homeCurrency, getCurrentWeekSpent } = useSpendingStore();
 
+  const effectiveWeeklyBudget = weeklyBudget ?? weeklyDiningBudget;
   const currentWeekSpent = getCurrentWeekSpent();
-  const budgetPercent = weeklyBudget && weeklyBudget > 0 ? (currentWeekSpent / weeklyBudget) * 100 : 0;
+  const budgetPercent = effectiveWeeklyBudget && effectiveWeeklyBudget > 0 ? (currentWeekSpent / effectiveWeeklyBudget) * 100 : 0;
 
   const lastMeal = loggedMeals[0];
 
@@ -168,16 +169,16 @@ export default function HomeScreen() {
             <View style={styles.spendingTopRow}>
               <View style={styles.spendingTitleBlock}>
                 <AppText style={[styles.spendingTitle, { color: theme.colors.text }]}>💰 Weekly Spending</AppText>
-                {weeklyBudget ? (
-                  <AppText style={[styles.spendingAmount, { color: theme.colors.text }]}>{formatMoney(currentWeekSpent, homeCurrency)} / {formatMoney(weeklyBudget, homeCurrency)}</AppText>
+                {effectiveWeeklyBudget ? (
+                  <AppText style={[styles.spendingAmount, { color: theme.colors.text }]}>{formatMoney(currentWeekSpent, homeCurrency)} / {formatMoney(effectiveWeeklyBudget, homeCurrency)}</AppText>
                 ) : (
                   <AppText style={[styles.spendingUnset, { color: theme.colors.subtext }]}>Set a budget in onboarding/profile</AppText>
                 )}
               </View>
-              <Image source={weeklyBudget && budgetPercent >= 100 ? MichiConfused : MichiSpending} style={styles.spendingMichi} resizeMode="contain" />
+              <Image source={effectiveWeeklyBudget && budgetPercent >= 100 ? MichiConfused : MichiSpending} style={styles.spendingMichi} resizeMode="contain" />
             </View>
 
-            {weeklyBudget ? (
+            {effectiveWeeklyBudget ? (
               <>
                 <View style={[styles.progressTrack, { backgroundColor: '#F0E6D6' }]}>
                   <View

@@ -35,6 +35,7 @@ import type { CurrencyCode } from '@/src/types/spending';
 import { formatMoney } from '@/src/utils/currency';
 import { getProfileMichi, type MichiVariant } from '@/src/utils/michiAssets';
 import { BudgetPickerModal } from '@/src/components/profile/BudgetPickerModal';
+import { BrandedDialog } from '@/src/components/dialogs/BrandedDialog';
 import { deleteAccount, getCurrentUser, signOut, updateAccountEmail, updateAccountPassword } from '@/src/lib/auth';
 
 const HomeBackground = require('@/assets/botanicals/home-background.png');
@@ -107,6 +108,9 @@ export default function ProfileScreen() {
   const [accountInputConfirm, setAccountInputConfirm] = useState('');
   const [accountCurrentPassword, setAccountCurrentPassword] = useState('');
   const [accountEditSubmitting, setAccountEditSubmitting] = useState(false);
+  const [statusDialogVisible, setStatusDialogVisible] = useState(false);
+  const [statusDialogTitle, setStatusDialogTitle] = useState('');
+  const [statusDialogMessage, setStatusDialogMessage] = useState('');
 
   useEffect(() => {
     loadAvatarSettings();
@@ -229,12 +233,16 @@ export default function ProfileScreen() {
     if (!accountEditMode || accountEditSubmitting) return;
 
     if (accountEditMode === 'password' && accountInput !== accountInputConfirm) {
-      Alert.alert('Password mismatch', 'New password and confirmation must match.');
+      setStatusDialogTitle('Password mismatch');
+      setStatusDialogMessage('New password and confirmation must match.');
+      setStatusDialogVisible(true);
       return;
     }
 
     if (accountEditMode === 'password' && !accountCurrentPassword.trim()) {
-      Alert.alert('Current password required', 'Please enter your current password to continue.');
+      setStatusDialogTitle('Current password required');
+      setStatusDialogMessage('Please enter your current password to continue.');
+      setStatusDialogVisible(true);
       return;
     }
 
@@ -248,17 +256,22 @@ export default function ProfileScreen() {
     setAccountEditSubmitting(false);
 
     if (!result.success) {
-      Alert.alert('Update failed', result.error || 'Please try again.');
+      setStatusDialogTitle('Update failed');
+      setStatusDialogMessage(result.error || 'Please try again.');
+      setStatusDialogVisible(true);
       return;
     }
 
     if (accountEditMode === 'email') {
       setAccountEmail(accountInput.trim());
-      Alert.alert('Check your email', 'We sent a confirmation to your new email address.');
+      setStatusDialogTitle('Check your email');
+      setStatusDialogMessage('We sent a confirmation to your new email address.');
     } else {
-      Alert.alert('Password updated', 'Your password has been updated successfully.');
+      setStatusDialogTitle('Password updated');
+      setStatusDialogMessage('Your password has been updated successfully.');
     }
 
+    setStatusDialogVisible(true);
     setAccountEditModalVisible(false);
     setAccountEditMode(null);
   };
@@ -458,6 +471,7 @@ export default function ProfileScreen() {
                     ) : null}
                   </View>
                 </TouchableOpacity>
+                <AppText style={[styles.travelModeHelpText, { color: theme.colors.subtext }]}>When enabled, Michi will suggest and remember local trip currency for menu prices.</AppText>
               </Card>
             </View>
 
@@ -526,7 +540,7 @@ export default function ProfileScreen() {
 
             <View style={styles.section}>
               <Card style={[styles.infoCard, { backgroundColor: theme.colors.cardCream }]}> 
-                <AppText style={[styles.infoTitle, { color: theme.colors.text, fontFamily: theme.fonts.body.semiBold }]}>MenuScan v1.0.0</AppText>
+                <AppText style={[styles.infoTitle, { color: theme.colors.text, fontFamily: theme.fonts.body.semiBold }]}>Michi: Menu Helper v1.0.0</AppText>
                 <AppText style={[styles.infoSubtitle, { color: theme.colors.subtext }]}>Built to make healthier menu choices easier.</AppText>
                 <AppText style={[styles.infoSubtitle, { color: theme.colors.subtext, marginTop: 6 }]}>Subscriptions are billed and managed by Apple App Store / Google Play.</AppText>
               </Card>
@@ -678,6 +692,21 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      <BrandedDialog
+        visible={statusDialogVisible}
+        title={statusDialogTitle || 'Notice'}
+        message={statusDialogMessage}
+        michiState={statusDialogTitle.toLowerCase().includes('failed') ? 'worried' : 'thinking'}
+        onClose={() => setStatusDialogVisible(false)}
+        actions={[
+          {
+            text: 'OK',
+            variant: 'primary',
+            onPress: () => setStatusDialogVisible(false),
+          },
+        ]}
+      />
 
       <EditPreferenceModal
         visible={editModalVisible}
@@ -1157,6 +1186,12 @@ const styles = StyleSheet.create({
   preferenceValue: {
     fontSize: 16,
     textAlign: 'right',
+  },
+  travelModeHelpText: {
+    fontSize: 12,
+    lineHeight: 18,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
   },
   divider: {
     height: 1,

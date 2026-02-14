@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TextInput, Alert, ActivityIndicator, TouchableOpacity, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppText } from '@/src/components/ui/AppText';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
 import { useAppTheme } from '@/src/theme/theme';
-import { signIn } from '@/src/lib/auth';
+import { requestPasswordReset, signIn } from '@/src/lib/auth';
 
 export default function LoginScreen() {
   const theme = useAppTheme();
@@ -12,11 +12,12 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   const canContinue = /@/.test(email) && password.length >= 6;
 
   const handleLogin = async () => {
-    if (loading) return false;
+    if (loading || resettingPassword) return false;
 
     setLoading(true);
     const result = await signIn(email.trim(), password);
@@ -31,14 +32,52 @@ export default function LoginScreen() {
     return false;
   };
 
+  const handleForgotPassword = async () => {
+    if (loading || resettingPassword) return;
+
+    const candidate = email.trim();
+    if (!candidate || !candidate.includes('@')) {
+      Alert.alert('Reset password', 'Enter your account email first, then tap Forgot password.');
+      return;
+    }
+
+    setResettingPassword(true);
+    const result = await requestPasswordReset(candidate);
+    setResettingPassword(false);
+
+    if (result.success) {
+      Alert.alert('Check your email', 'If this account exists, a password reset link has been sent.');
+      return;
+    }
+
+    Alert.alert('Could not send reset email', result.error || 'Please try again.');
+  };
+
+  const handleAccountHelp = async () => {
+    const support = 'support@menuscan.app';
+    const mailto = `mailto:${support}?subject=${encodeURIComponent('Need help accessing my MenuScan account')}`;
+
+    try {
+      const canOpen = await Linking.canOpenURL(mailto);
+      if (canOpen) {
+        await Linking.openURL(mailto);
+        return;
+      }
+    } catch {
+      // fallback alert below
+    }
+
+    Alert.alert('Need help?', `Please contact ${support} and include any prior receipt/subscription details so we can help find your account email.`);
+  };
+
   return (
     <OnboardingScreen
       title="Welcome Back!"
       subtitle="Log in to your account to continue tracking."
       hideProgress
-      canContinue={canContinue && !loading}
+      canContinue={canContinue && !loading && !resettingPassword}
       onContinue={handleLogin}
-      buttonText={loading ? 'Signing in...' : 'Log In'}
+      buttonText={loading ? 'Signing in...' : resettingPassword ? 'Sending reset...' : 'Log In'}
       showBack
     >
       <View style={styles.form}>
@@ -63,10 +102,18 @@ export default function LoginScreen() {
           />
         </Field>
 
-        {loading && (
+        <TouchableOpacity onPress={handleForgotPassword} disabled={loading || resettingPassword}>
+          <AppText style={[styles.linkText, { color: theme.colors.brand, opacity: loading || resettingPassword ? 0.6 : 1 }]}>Forgot password?</AppText>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={handleAccountHelp} disabled={loading || resettingPassword}>
+          <AppText style={[styles.helpText, { color: theme.colors.subtext, opacity: loading || resettingPassword ? 0.6 : 1 }]}>Need help accessing your account or forgot your email?</AppText>
+        </TouchableOpacity>
+
+        {(loading || resettingPassword) && (
           <View style={styles.loading}>
             <ActivityIndicator color={theme.colors.brand} />
-            <AppText style={[styles.loadingText, { color: theme.colors.subtext }]}>Signing in...</AppText>
+            <AppText style={[styles.loadingText, { color: theme.colors.subtext }]}>{loading ? 'Signing in...' : 'Sending reset email...'}</AppText>
           </View>
         )}
       </View>
@@ -88,6 +135,14 @@ const styles = StyleSheet.create({
   form: { gap: 20 },
   field: { gap: 6 },
   fieldLabel: { fontSize: 14, marginBottom: 4 },
+  linkText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  helpText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
   input: {
     borderWidth: 1,
     borderRadius: 10,

@@ -409,6 +409,20 @@ export async function signIn(email: string, password: string): Promise<AuthResul
   return { success: true, user: data.user };
 }
 
+export async function requestPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+  const trimmed = email.trim().toLowerCase();
+  if (!trimmed || !trimmed.includes('@')) {
+    return { success: false, error: 'Please enter a valid email address.' };
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(trimmed);
+  if (error) {
+    return { success: false, error: normalizeAuthError(error.message) };
+  }
+
+  return { success: true };
+}
+
 export async function signOut(): Promise<void> {
   const user = await getCurrentUser();
   if (user) {

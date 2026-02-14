@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { AppText } from '@/src/components/ui/AppText';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
 import { useAppTheme } from '@/src/theme/theme';
-import { requestMagicLinkSignIn, signIn } from '@/src/lib/auth';
+import { getAuthDiagnostics, requestMagicLinkSignIn, signIn } from '@/src/lib/auth';
 
 export default function LoginScreen() {
   const theme = useAppTheme();
@@ -28,7 +28,13 @@ export default function LoginScreen() {
       return true;
     }
 
-    Alert.alert('Login Failed', result.error || 'Please check your credentials');
+    let message = result.error || 'Please check your credentials';
+    if (__DEV__ && message.toLowerCase().includes('network request failed')) {
+      const diag = await getAuthDiagnostics();
+      message = `${message}\n\n${diag}`;
+    }
+
+    Alert.alert('Login Failed', message);
     return false;
   };
 

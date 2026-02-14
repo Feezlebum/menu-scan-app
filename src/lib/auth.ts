@@ -102,6 +102,29 @@ function normalizeAuthError(message?: string): string {
   return message;
 }
 
+export async function getAuthDiagnostics(): Promise<string> {
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+  const urlPresent = !!url && !url.includes('placeholder');
+  const anonPresent = !!anon && !anon.includes('placeholder');
+
+  let ping = 'not-run';
+  if (urlPresent) {
+    try {
+      const res = await fetch(`${url}/auth/v1/settings`, {
+        method: 'GET',
+        headers: anonPresent ? { apikey: anon! } : undefined,
+      });
+      ping = `ok:${res.status}`;
+    } catch (e: any) {
+      ping = `failed:${e?.message || 'unknown'}`;
+    }
+  }
+
+  return `diag => url:${urlPresent ? 'set' : 'missing'}, anon:${anonPresent ? 'set' : 'missing'}, ping:${ping}`;
+}
+
 function mapProfileToRow(userId: string, userData: Partial<UserProfile>, fallbackEmail?: string, fallbackFirstName?: string) {
   return {
     id: userId,

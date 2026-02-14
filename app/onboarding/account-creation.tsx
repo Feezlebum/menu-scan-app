@@ -5,7 +5,7 @@ import { AppText } from '@/src/components/ui/AppText';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
 import { useAppTheme } from '@/src/theme/theme';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
-import { signUp } from '@/src/lib/auth';
+import { getAuthDiagnostics, signUp } from '@/src/lib/auth';
 
 export default function AccountCreationScreen(){
  const theme=useAppTheme(); const router=useRouter();
@@ -29,7 +29,13 @@ export default function AccountCreationScreen(){
      return true;
    }
 
-   Alert.alert('Account Creation Failed', result.error || 'Please try again');
+   let message = result.error || 'Please try again';
+   if (__DEV__ && message.toLowerCase().includes('network request failed')) {
+     const diag = await getAuthDiagnostics();
+     message = `${message}\n\n${diag}`;
+   }
+
+   Alert.alert('Account Creation Failed', message);
    return false;
  };
 

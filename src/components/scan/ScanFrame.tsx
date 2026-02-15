@@ -114,13 +114,13 @@ const styles = StyleSheet.create({
   cornerHorizontal: {
     width: CORNER_SIZE,
     height: CORNER_THICKNESS,
-    backgroundColor: '#34C759',
+    backgroundColor: '#5ABAB7',
     position: 'absolute',
   },
   cornerVertical: {
     width: CORNER_THICKNESS,
     height: CORNER_SIZE,
-    backgroundColor: '#34C759',
+    backgroundColor: '#5ABAB7',
     position: 'absolute',
   },
   scanLine: {

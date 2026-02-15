@@ -97,8 +97,8 @@ export default function LoginScreen() {
 
   return (
     <OnboardingScreen
-      title="Welcome Back!"
-      subtitle="Log in to your account to continue tracking."
+      title="Welcome back!"
+      subtitle="Yay, you're back! I missed you~ Let's pick up where we left off 🫶"
       hideProgress
       canContinue={canContinue && !loading && !sendingMagicLink}
       onContinue={handleLogin}

@@ -40,8 +40,8 @@ export default function SpendingGoalsBudgetScreen() {
 
   return (
     <OnboardingScreen
-      title="Your Spending Goals & Budget"
-      subtitle="Set your weekly target and tell Michi what success looks like."
+      title="Let's talk money!"
+      subtitle="Set your weekly budget and I'll help you stick to it! No more surprise bills 💰"
       hideProgress
       canContinue={canContinue}
       buttonText="Continue"

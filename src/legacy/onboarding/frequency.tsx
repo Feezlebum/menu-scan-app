@@ -22,7 +22,7 @@ export default function FrequencyScreen() {
   return (
     <OnboardingScreen
       title="How often do you eat out?"
-      subtitle="This helps us tailor the app experience for you."
+      subtitle="Just curious! This helps me know how much I'll be helping you~ 🍽️"
       canContinue={!!eatingFrequency}
       onContinue={handleContinue}
     >

@@ -12,7 +12,7 @@ const challenges: DiningChallenge[]=['calories','social','willpower','overwhelm'
 export default function DiningHabitsScreen(){
  const router=useRouter(); const theme=useAppTheme();
  const {eatingFrequency,setEatingFrequency,diningChallenge,setDiningChallenge}=useOnboardingStore();
- return <OnboardingScreen title="Dining Habits" subtitle="Tell us how often you dine out and what gets in the way." hideProgress canContinue={!!eatingFrequency&&!!diningChallenge} onContinue={()=>router.push('/onboarding/account-creation' as any)}>
+ return <OnboardingScreen title="Dining habits" subtitle="How often do you eat out, and what usually trips you up? 🍽️" hideProgress canContinue={!!eatingFrequency&&!!diningChallenge} onContinue={()=>router.push('/onboarding/account-creation' as any)}>
   <View style={styles.wrap}><Badge step={12} total={14}/>
     <AppText style={[styles.label,{color:theme.colors.subtext}]}>Dining frequency</AppText>
     <View style={styles.row}>{freqs.map(f=><Chip key={f} text={f} active={eatingFrequency===f} onPress={()=>setEatingFrequency(f)} />)}</View>

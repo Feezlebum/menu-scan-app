@@ -17,7 +17,7 @@ export default function SuccessVisionScreen(){
     router.replace('/(tabs)');
   }
 
-  return <OnboardingScreen title="Your Success Vision" subtitle="Choose your path. You can always upgrade later." hideProgress showBack={false} buttonText="Continue with Freemium" onContinue={()=>finish('freemium')}>
+  return <OnboardingScreen title="You're all set!" subtitle="Woohoo! 🎊 Pick how you want to roll — you can always change your mind later!" hideProgress showBack={false} buttonText="Start Free" onContinue={()=>finish('freemium')}>
     <View style={styles.wrap}><Badge step={14} total={14}/>
       <View style={[styles.card,{borderColor:theme.colors.border,backgroundColor:'#fff'}]}>
         <AppText style={[styles.h,{color:theme.colors.text}]}>Projected first-month outcome</AppText>
@@ -25,7 +25,7 @@ export default function SuccessVisionScreen(){
         <AppText style={{color:theme.colors.subtext,fontSize:13}}>Weekly budget target: ${weeklyDiningBudget?.toFixed(0) || '100'}</AppText>
       </View>
       <TouchableOpacity style={[styles.cta,{backgroundColor:theme.colors.brand}]} onPress={()=>finish('trial')}><AppText style={styles.ctaText}>Start Free Trial</AppText></TouchableOpacity>
-      <TouchableOpacity style={[styles.cta,{borderColor:theme.colors.border,borderWidth:1,backgroundColor:'#fff'}]} onPress={()=>finish('freemium')}><AppText style={[styles.ctaText,{color:theme.colors.text}]}>Continue with Freemium</AppText></TouchableOpacity>
+      <TouchableOpacity style={[styles.cta,{borderColor:theme.colors.border,borderWidth:1,backgroundColor:'#fff'}]} onPress={()=>finish('freemium')}><AppText style={[styles.ctaText,{color:theme.colors.text}]}>Start Free</AppText></TouchableOpacity>
     </View>
   </OnboardingScreen>
 }

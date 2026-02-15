@@ -39,8 +39,8 @@ export default function ForgotPasswordScreen() {
 
   return (
     <OnboardingScreen
-      title="Reset Password"
-      subtitle="Enter your account email and we’ll send a password reset link."
+      title="Forgot your password?"
+      subtitle="No worries! Pop in your email and I'll send you a reset link ✨"
       hideProgress
       canContinue={canContinue}
       onContinue={handleSendReset}

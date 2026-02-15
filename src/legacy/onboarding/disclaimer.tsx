@@ -17,8 +17,8 @@ export default function DisclaimerScreen() {
 
   return (
     <OnboardingScreen
-      title="Before You Start"
-      subtitle="A quick note about our recommendations"
+      title="Quick heads up!"
+      subtitle="Just a tiny note from me before we dive in~ 💚"
       buttonText="I Understand"
       onContinue={handleContinue}
     >

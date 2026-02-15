@@ -32,8 +32,8 @@ export default function ProfileSetupScreen() {
 
   return (
     <OnboardingScreen
-      title="Pick your Michi"
-      subtitle="Choose the profile style you want to see across the app."
+      title="Pick your Michi!"
+      subtitle="Which version of me do you like best? I have outfits! :3 ✨"
       buttonText="Continue"
       onContinue={continueNext}
     >

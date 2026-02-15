@@ -23,7 +23,7 @@ export default function GoalScreen() {
   return (
     <OnboardingScreen
       title="What's your goal?"
-      subtitle="This helps us personalize your menu recommendations."
+      subtitle="Tell me what you're working toward and I'll personalize everything for you! ✨"
       canContinue={!!goal}
       onContinue={handleContinue}
     >

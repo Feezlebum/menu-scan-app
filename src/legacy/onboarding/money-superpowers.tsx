@@ -11,8 +11,8 @@ export default function MoneySuperpowersScreen() {
 
   return (
     <OnboardingScreen
-      title="Michi's Money-Saving Superpowers"
-      subtitle="See how Michi helps you avoid hidden costs and find the best-value options fast."
+      title="My money superpowers!"
+      subtitle="I spot hidden costs and find the best-value dishes before you even order~ 💰✨"
       hideProgress
       buttonText="Show Me More"
       onContinue={() => router.push('/onboarding/decision-anxiety' as any)}

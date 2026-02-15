@@ -26,6 +26,7 @@ export interface OnboardingData {
   goal: Goal | null;
   age: number | null;
   gender: Gender | null;
+  unitSystem: 'metric' | 'imperial';
   heightCm: number | null;
   currentWeightKg: number | null;
   goalWeightKg: number | null;
@@ -34,6 +35,7 @@ export interface OnboardingData {
   macroPriority: MacroPriority | null;
   weeklyDiningBudget: number | null;
   intolerances: string[];
+  customIntolerances: string[];
   dislikes: string[];
   favoriteCuisines: string[];
   eatingFrequency: EatingFrequency | null;
@@ -55,6 +57,7 @@ interface OnboardingStore extends OnboardingData {
   setGoal: (goal: Goal) => void;
   setAge: (age: number) => void;
   setGender: (gender: Gender) => void;
+  setUnitSystem: (value: 'metric' | 'imperial') => void;
   setHeight: (cm: number) => void;
   setCurrentWeight: (kg: number) => void;
   setGoalWeight: (kg: number) => void;
@@ -63,6 +66,8 @@ interface OnboardingStore extends OnboardingData {
   setMacroPriority: (priority: MacroPriority) => void;
   setWeeklyDiningBudget: (budget: number | null) => void;
   toggleIntolerance: (item: string) => void;
+  addCustomIntolerance: (item: string) => void;
+  removeCustomIntolerance: (item: string) => void;
   toggleDislike: (item: string) => void;
   toggleCuisine: (cuisine: string) => void;
   setEatingFrequency: (freq: EatingFrequency) => void;
@@ -84,6 +89,7 @@ const initialState: OnboardingData = {
   goal: null,
   age: null,
   gender: null,
+  unitSystem: 'metric',
   heightCm: null,
   currentWeightKg: null,
   goalWeightKg: null,
@@ -92,6 +98,7 @@ const initialState: OnboardingData = {
   macroPriority: null,
   weeklyDiningBudget: null,
   intolerances: [],
+  customIntolerances: [],
   dislikes: [],
   favoriteCuisines: [],
   eatingFrequency: null,
@@ -164,6 +171,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
       setGoal: (goal) => set({ goal }),
       setAge: (age) => set({ age }),
       setGender: (gender) => set({ gender }),
+      setUnitSystem: (value) => set({ unitSystem: value }),
       setHeight: (cm) => set({ heightCm: cm }),
       setCurrentWeight: (kg) => set({ currentWeightKg: kg }),
       setGoalWeight: (kg) => set({ goalWeightKg: kg }),
@@ -177,6 +185,16 @@ export const useOnboardingStore = create<OnboardingStore>()(
           ? s.intolerances.filter((i) => i !== item)
           : [...s.intolerances, item],
       })),
+      addCustomIntolerance: (item) =>
+        set((s) => ({
+          customIntolerances: s.customIntolerances.includes(item)
+            ? s.customIntolerances
+            : [...s.customIntolerances, item],
+        })),
+      removeCustomIntolerance: (item) =>
+        set((s) => ({
+          customIntolerances: s.customIntolerances.filter((i) => i !== item),
+        })),
       
       toggleDislike: (item) => set((s) => ({
         dislikes: s.dislikes.includes(item)

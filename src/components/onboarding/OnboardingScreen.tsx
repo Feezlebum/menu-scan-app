@@ -1,15 +1,28 @@
 import React, { ReactNode } from 'react';
-import { View, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  ImageSourcePropType,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppTheme } from '@/src/theme/theme';
 import { AppText } from '@/src/components/ui/AppText';
 import { PrimaryButton } from '@/src/components/ui/PrimaryButton';
 import { ProgressBar } from './ProgressBar';
+import { MichiHero } from './MichiHero';
+import { MichiDialogue } from './MichiDialogue';
 import { useOnboardingStore, TOTAL_ONBOARDING_STEPS } from '@/src/stores/onboardingStore';
 
 interface Props {
-  title: string;
+  title?: string;
   subtitle?: string;
+  dialogueText?: string;
+  michiSource?: ImageSourcePropType;
   children: ReactNode;
   canContinue?: boolean;
   onContinue?: () => void | boolean | Promise<void | boolean>;
@@ -21,6 +34,8 @@ interface Props {
 export function OnboardingScreen({
   title,
   subtitle,
+  dialogueText,
+  michiSource,
   children,
   canContinue = true,
   onContinue,
@@ -42,88 +57,104 @@ export function OnboardingScreen({
   const handleContinue = async () => {
     if (onContinue) {
       const result = await onContinue();
-      if (result === false) {
-        return;
-      }
+      if (result === false) return;
     }
     nextStep();
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        {showBack && currentStep > 0 ? (
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <AppText style={[styles.backText, { color: theme.colors.subtext }]}>
-              ← Back
-            </AppText>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.backButton} />
-        )}
-        
-        {!hideProgress && (
-          <View style={styles.progressContainer}>
-            <ProgressBar current={currentStep + 1} total={TOTAL_ONBOARDING_STEPS} />
-          </View>
-        )}
-        
-        <View style={styles.backButton} />
-      </View>
-
-      {/* Content */}
-      <View style={styles.content}>
-        <AppText style={[styles.title, { color: theme.colors.text }]}>
-          {title}
-        </AppText>
-        {subtitle && (
-          <AppText style={[styles.subtitle, { color: theme.colors.subtext }]}>
-            {subtitle}
-          </AppText>
-        )}
-        
-        <View style={styles.body}>
-          {children}
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.bg }]}> 
+      {!hideProgress ? (
+        <View style={styles.progressTop}>
+          <ProgressBar current={currentStep + 1} total={TOTAL_ONBOARDING_STEPS} />
         </View>
-      </View>
+      ) : null}
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        <PrimaryButton
-          label={buttonText}
-          onPress={handleContinue}
-          disabled={!canContinue}
-        />
-      </View>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.topBar}>
+          {showBack && currentStep > 0 ? (
+            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+              <AppText style={[styles.backText, { color: theme.colors.subtext }]}>←</AppText>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.backButton} />
+          )}
+        </View>
+
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {michiSource ? (
+            <View style={styles.heroWrap}>
+              <MichiHero source={michiSource} />
+            </View>
+          ) : null}
+
+          {dialogueText ? (
+            <MichiDialogue text={dialogueText} />
+          ) : title ? (
+            <View style={styles.legacyTitleWrap}>
+              <AppText style={[styles.title, { color: theme.colors.text }]}>{title}</AppText>
+              {subtitle ? (
+                <AppText style={[styles.subtitle, { color: theme.colors.subtext }]}>{subtitle}</AppText>
+              ) : null}
+            </View>
+          ) : null}
+
+          <View style={styles.body}>{children}</View>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <PrimaryButton label={buttonText} onPress={handleContinue} disabled={!canContinue} />
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  progressTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  topBar: {
+    height: 48,
+    justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
+    marginTop: 8,
   },
   backButton: {
-    width: 60,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backText: {
-    fontSize: 16,
+    fontSize: 24,
+    fontWeight: '700',
+    lineHeight: 24,
   },
-  progressContainer: {
-    flex: 1,
-    paddingHorizontal: 8,
+  scroll: { flex: 1 },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
+  heroWrap: {
+    minHeight: 220,
+    justifyContent: 'center',
+  },
+  legacyTitleWrap: {
+    marginTop: 8,
   },
   title: {
     fontSize: 28,
@@ -133,14 +164,13 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     lineHeight: 22,
-    marginBottom: 24,
   },
   body: {
-    flex: 1,
+    marginTop: 16,
   },
   footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    paddingTop: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 8,
   },
 });

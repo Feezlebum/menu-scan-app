@@ -13,6 +13,17 @@ export const MichiAssets = {
   worried: require('@/assets/michi-worried.png'),
   hero: require('@/assets/michi-hero.png'), // Chef/confident
   spending: require('@/assets/michi-spending.png'),
+
+  // Onboarding v2 variants (fallback to existing assets until new PNGs are added)
+  onboardingWave: require('@/assets/michi-avatar.png'),
+  onboardingCurious: require('@/assets/michi-confused.png'),
+  onboardingEmpathetic: require('@/assets/michi-sad.png'),
+  onboardingNervous: require('@/assets/michi-worried.png'),
+  onboardingBuff: require('@/assets/michi-hero.png'),
+  onboardingClipboard: require('@/assets/michi-magnifying-glass.png'),
+  onboardingMoney: require('@/assets/michi-spending.png'),
+  onboardingMeasure: require('@/assets/michi-hero.png'),
+  onboardingCelebrate: require('@/assets/michi-excited.png'),
 } as const;
 
 export type MichiMood = keyof typeof MichiAssets;

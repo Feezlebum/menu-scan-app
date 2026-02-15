@@ -120,8 +120,8 @@ export default function PaywallScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(200)} style={styles.titleWrap}>
-          <AppText style={[styles.title, { color: '#2D2418' }]}>Unlock all the best features</AppText>
-          <AppText style={[styles.subtitle, { color: '#6B5B4E' }]}>Michi is waiting to dine with you wherever you go!</AppText>
+          <AppText style={[styles.title, { color: '#2D2418' }]}>You're all set! 🎊 Here’s what you get with Michi Pro</AppText>
+          <AppText style={[styles.subtitle, { color: '#6B5B4E' }]}>Pick a plan, or start with free and upgrade whenever you want.</AppText>
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(260)} style={styles.featuresWrap}>
@@ -136,6 +136,21 @@ export default function PaywallScreen() {
               </View>
             </View>
           ))}
+        </Animated.View>
+
+        <Animated.View entering={FadeInUp.delay(300)} style={styles.compareWrap}>
+          <View style={styles.compareCol}>
+            <AppText style={styles.compareTitle}>Free</AppText>
+            <AppText style={styles.compareLine}>• 2 menu scans per week</AppText>
+            <AppText style={styles.compareLine}>• Basic nutrition info</AppText>
+            <AppText style={styles.compareLine}>• Manual entry</AppText>
+          </View>
+          <View style={styles.compareCol}>
+            <AppText style={styles.compareTitle}>Pro</AppText>
+            <AppText style={styles.compareLine}>• Unlimited scans</AppText>
+            <AppText style={styles.compareLine}>• AI detailed analysis</AppText>
+            <AppText style={styles.compareLine}>• Budget tracking + priority support</AppText>
+          </View>
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(320)} style={styles.planRow}>
@@ -181,13 +196,13 @@ export default function PaywallScreen() {
 
       <Animated.View entering={FadeIn.delay(360)} style={[styles.footer, { paddingBottom: Math.max(20, insets.bottom + 8) }]}>
         <PrimaryButton
-          label={loading ? 'Processing…' : 'Start 7-Day Free Trial'}
+          label={loading ? 'Processing…' : 'Start Pro Free Trial'}
           onPress={handleSubscribe}
           disabled={loading}
         />
 
         <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
-          <AppText style={[styles.skipText, { color: '#6B5B4E' }]}>Continue with limited features</AppText>
+          <AppText style={[styles.skipText, { color: '#6B5B4E' }]}>Start with Free</AppText>
         </TouchableOpacity>
 
         {error ? <AppText style={[styles.errorText, { color: theme.colors.trafficRed }]}>{error}</AppText> : null}
@@ -311,6 +326,30 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 13,
     lineHeight: 18,
+  },
+  compareWrap: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  compareCol: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F0E6D6',
+    borderRadius: 12,
+    padding: 10,
+  },
+  compareTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2D2418',
+    marginBottom: 6,
+  },
+  compareLine: {
+    fontSize: 12,
+    color: '#6B5B4E',
+    marginBottom: 2,
   },
   planRow: {
     flexDirection: 'row',

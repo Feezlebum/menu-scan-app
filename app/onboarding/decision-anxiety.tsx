@@ -1,52 +1,55 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
-import { AppText } from '@/src/components/ui/AppText';
-import { useAppTheme } from '@/src/theme/theme';
+import { OptionCard } from '@/src/components/onboarding/OptionCard';
+import { DiningChallenge, useOnboardingStore } from '@/src/stores/onboardingStore';
+import MichiAssets from '@/src/utils/michiAssets';
+
+const OPTIONS: Array<{ value: DiningChallenge; label: string; emoji: string }> = [
+  { value: 'calories', label: 'figuring out the calories and nutrition', emoji: '🔢' },
+  { value: 'social', label: 'dealing with social pressure to eat certain things', emoji: '👫' },
+  { value: 'willpower', label: 'sticking to my goals when everything looks good', emoji: '🧠' },
+  { value: 'overwhelm', label: "the menu is too big and i can't decide", emoji: '📖' },
+];
 
 export default function DecisionAnxietyScreen() {
   const router = useRouter();
-  const theme = useAppTheme();
+  const { diningChallenge, setDiningChallenge } = useOnboardingStore();
+  const [selected, setSelected] = useState<DiningChallenge | null>(diningChallenge);
+
+  const choose = (value: DiningChallenge) => {
+    Haptics.selectionAsync();
+    setSelected(value);
+    setDiningChallenge(value);
+  };
 
   return (
     <OnboardingScreen
-      title="The Decision Anxiety Epidemic"
-      subtitle="86% of people report menu anxiety at least occasionally. You're not alone."
-      hideProgress
+      michiSource={MichiAssets.onboardingCurious}
+      dialogueText="One more thing! When you're at a restaurant, what's the hardest part?"
+      canContinue={!!selected}
       buttonText="Continue"
-      onContinue={() => router.push('/onboarding/health-revolution' as any)}
+      onContinue={() => router.push('/onboarding/account-creation' as never)}
     >
       <View style={styles.content}>
-        <ProgressBadge step={5} total={14} />
-        <View style={[styles.placeholder, { borderColor: theme.colors.border, backgroundColor: theme.colors.cardCream }]}>
-          <AppText style={[styles.title, { color: theme.colors.subtext }]}>PLACEHOLDER: Decision Anxiety Demo</AppText>
-          <AppText style={[styles.sub, { color: theme.colors.subtext }]}>Stressed Michi ➜ calm confident Michi</AppText>
-        </View>
+        {OPTIONS.map((option) => (
+          <OptionCard
+            key={option.value}
+            label={option.label}
+            emoji={option.emoji}
+            selected={selected === option.value}
+            onPress={() => choose(option.value)}
+          />
+        ))}
       </View>
     </OnboardingScreen>
   );
 }
 
-function ProgressBadge({ step, total }: { step: number; total: number }) {
-  const theme = useAppTheme();
-  return (
-    <View style={[styles.progressWrap, { borderColor: theme.colors.border }]}>
-      <AppText style={[styles.progressText, { color: theme.colors.subtext }]}>Step {step}/{total}</AppText>
-      <View style={[styles.track, { backgroundColor: theme.colors.cardSage }]}>
-        <View style={[styles.fill, { width: `${(step / total) * 100}%`, backgroundColor: theme.colors.brand }]} />
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  content: { gap: 14 },
-  progressWrap: { borderWidth: 1, borderRadius: 12, padding: 10, gap: 8 },
-  progressText: { fontSize: 13 },
-  track: { height: 8, borderRadius: 999, overflow: 'hidden' },
-  fill: { height: '100%' },
-  placeholder: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 12, minHeight: 130, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
-  title: { fontSize: 13, fontWeight: '700', textAlign: 'center' },
-  sub: { marginTop: 6, fontSize: 11, textAlign: 'center' },
+  content: {
+    marginTop: 8,
+  },
 });

@@ -1,32 +1,33 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
 import { AppText } from '@/src/components/ui/AppText';
-import MichiMoji from '@/src/components/MichiMoji';
-import { useAppTheme } from '@/src/theme/theme';
+import MichiAssets from '@/src/utils/michiAssets';
+
+const FEATURES = [
+  '📸 Instant menu scanning',
+  '🧠 AI-powered nutrition analysis',
+  '💰 Budget tracking built in',
+  '⚠️ Allergy and diet alerts',
+];
 
 export default function TranslationIntroScreen() {
-  const theme = useAppTheme();
   const router = useRouter();
 
   return (
     <OnboardingScreen
-      title="Michi Goes Global"
-      subtitle="Traveling? Michi can translate menus and help you order like a local."
-      hideProgress
-      showBack
-      buttonText="Continue"
-      onContinue={() => router.push('/onboarding/biggest-challenge' as any)}
+      michiSource={MichiAssets.hero}
+      dialogueText="Here's my superpower — just point your camera at any menu and I'll instantly tell you the calories, nutrients, AND price of every dish! 📸✨"
+      buttonText="That's Amazing!"
+      onContinue={() => router.push('/onboarding/social-proof' as never)}
     >
       <View style={styles.content}>
-        <View style={[styles.card, { borderColor: theme.colors.border, backgroundColor: theme.colors.cardCream }]}> 
-          <View style={styles.titleRow}>
-            <MichiMoji name="wave" size={20} style={{ marginRight: 8 }} />
-            <AppText style={[styles.cardTitle, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Translation + Pronunciation</AppText>
+        {FEATURES.map((feature) => (
+          <View key={feature} style={styles.bulletCard}>
+            <AppText style={styles.bulletText}>{feature}</AppText>
           </View>
-          <AppText style={[styles.cardText, { color: theme.colors.subtext }]}>Scan non-English menus and get translated dishes, phonetic pronunciation, and quick ordering phrases.</AppText>
-        </View>
+        ))}
       </View>
     </OnboardingScreen>
   );
@@ -34,24 +35,20 @@ export default function TranslationIntroScreen() {
 
 const styles = StyleSheet.create({
   content: {
-    gap: 14,
-    paddingTop: 10,
+    marginTop: 8,
+    gap: 8,
   },
-  card: {
+  bulletCard: {
     borderWidth: 1,
-    borderRadius: 14,
-    padding: 14,
+    borderColor: '#F0E6D6',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  cardTitle: {
-    fontSize: 18,
-  },
-  cardText: {
+  bulletText: {
     fontSize: 15,
-    lineHeight: 21,
+    fontWeight: '600',
+    color: '#2D2418',
   },
 });

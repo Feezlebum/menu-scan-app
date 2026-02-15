@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
@@ -89,7 +89,7 @@ export default function PaywallUpgradeScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#FFF5E6' }]}> 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <View style={styles.scrollContent}>
         <Animated.View entering={FadeInUp.delay(100)} style={styles.heroSection}>
           <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
             <AppText style={styles.closeText}>✕</AppText>
@@ -166,7 +166,7 @@ export default function PaywallUpgradeScreen() {
             );
           })}
         </Animated.View>
-      </ScrollView>
+      </View>
 
       <Animated.View entering={FadeIn.delay(360)} style={[styles.footer, { paddingBottom: Math.max(20, insets.bottom + 8) }]}>
         <PrimaryButton
@@ -200,9 +200,11 @@ export default function PaywallUpgradeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: {
+    flex: 1,
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 0,
+    justifyContent: 'space-between',
   },
   heroSection: {
     borderRadius: 28,

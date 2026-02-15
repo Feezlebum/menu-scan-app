@@ -11,8 +11,8 @@ import Animated, {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const FRAME_SIZE = SCREEN_WIDTH * 0.85;
-const CORNER_SIZE = 48;
-const CORNER_THICKNESS = 6;
+const CORNER_SIZE = 40;
+const CORNER_THICKNESS = 4;
 
 interface Props {
   isScanning?: boolean;
@@ -95,43 +95,41 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
+    width: CORNER_SIZE,
+    height: CORNER_SIZE,
   },
   cornerTopRight: {
     position: 'absolute',
     top: 0,
     right: 0,
+    width: CORNER_SIZE,
+    height: CORNER_SIZE,
   },
   cornerBottomLeft: {
     position: 'absolute',
     bottom: 0,
     left: 0,
+    width: CORNER_SIZE,
+    height: CORNER_SIZE,
   },
   cornerBottomRight: {
     position: 'absolute',
     bottom: 0,
     right: 0,
+    width: CORNER_SIZE,
+    height: CORNER_SIZE,
   },
   cornerHorizontal: {
     width: CORNER_SIZE,
     height: CORNER_THICKNESS,
     backgroundColor: '#5ABAB7',
     position: 'absolute',
-    shadowColor: '#5ABAB7',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 6,
-    elevation: 4,
   },
   cornerVertical: {
     width: CORNER_THICKNESS,
     height: CORNER_SIZE,
     backgroundColor: '#5ABAB7',
     position: 'absolute',
-    shadowColor: '#5ABAB7',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 6,
-    elevation: 4,
   },
   scanLine: {
     position: 'absolute',

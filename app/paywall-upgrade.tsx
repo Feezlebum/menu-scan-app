@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Linking } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Image, Linking, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
+import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 
 import { AppText } from '@/src/components/ui/AppText';
@@ -47,6 +48,9 @@ export default function PaywallUpgradeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { subscribe, restore } = useSubscriptionStore();
+  const { height } = useWindowDimensions();
+  const compact = height < 780;
+  const visibleFeatures = useMemo(() => (compact ? FEATURES.slice(0, 2) : FEATURES), [compact]);
 
   const [selectedPlan, setSelectedPlan] = useState<Plan>('annual');
   const [loading, setLoading] = useState(false);
@@ -90,8 +94,9 @@ export default function PaywallUpgradeScreen() {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: '#FFF5E6' }]}> 
+      <StatusBar style="dark" translucent={false} backgroundColor="#FFF5E6" />
       <View style={[styles.scrollContent, { paddingTop: Math.max(insets.top, 10) }]}>
-        <Animated.View entering={FadeInUp.delay(100)} style={styles.heroSection}>
+        <Animated.View entering={FadeInUp.delay(100)} style={[styles.heroSection, compact && styles.heroSectionCompact]}>
           <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
             <AppText style={styles.closeText}>✕</AppText>
           </TouchableOpacity>
@@ -101,7 +106,7 @@ export default function PaywallUpgradeScreen() {
           <View style={[styles.dot, styles.dotAmber]} />
           <View style={[styles.dot, styles.dotTeal]} />
 
-          <Image source={MichiExcited} style={styles.heroImage} resizeMode="contain" />
+          <Image source={MichiExcited} style={[styles.heroImage, compact && styles.heroImageCompact]} resizeMode="contain" />
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(160)} style={styles.pill}>
@@ -109,20 +114,20 @@ export default function PaywallUpgradeScreen() {
           <AppText style={styles.pillText}>Join today, cancel anytime!</AppText>
         </Animated.View>
 
-        <Animated.View entering={FadeInUp.delay(200)} style={styles.titleWrap}>
-          <AppText style={styles.title}>Unlock all the best features</AppText>
-          <AppText style={styles.subtitle}>Your AI-powered dining companion</AppText>
+        <Animated.View entering={FadeInUp.delay(200)} style={[styles.titleWrap, compact && styles.titleWrapCompact]}>
+          <AppText style={[styles.title, compact && styles.titleCompact]}>Unlock all the best features</AppText>
+          <AppText style={[styles.subtitle, compact && styles.subtitleCompact]}>Your AI-powered dining companion</AppText>
         </Animated.View>
 
-        <Animated.View entering={FadeInUp.delay(260)} style={styles.featuresWrap}>
-          {FEATURES.map((feature, idx) => (
-            <View key={feature.label} style={styles.featureRow}>
-              <View style={[styles.featureIconBox, { backgroundColor: `${FEATURE_COLORS[idx]}22` }]}>
+        <Animated.View entering={FadeInUp.delay(260)} style={[styles.featuresWrap, compact && styles.featuresWrapCompact]}>
+          {visibleFeatures.map((feature, idx) => (
+            <View key={feature.label} style={[styles.featureRow, compact && styles.featureRowCompact]}>
+              <View style={[styles.featureIconBox, compact && styles.featureIconBoxCompact, { backgroundColor: `${FEATURE_COLORS[idx]}22` }]}>
                 <FeatureIcon icon={feature.icon} />
               </View>
               <View style={styles.featureTextWrap}>
-                <AppText style={styles.featureTitle}>{feature.label}</AppText>
-                <AppText style={styles.featureDescription}>{feature.description}</AppText>
+                <AppText style={[styles.featureTitle, compact && styles.featureTitleCompact]}>{feature.label}</AppText>
+                <AppText style={[styles.featureDescription, compact && styles.featureDescriptionCompact]}>{feature.description}</AppText>
               </View>
             </View>
           ))}
@@ -206,10 +211,11 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: {
     flex: 1,
+    minHeight: 0,
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 0,
-    justifyContent: 'space-between',
+    paddingBottom: 8,
+    justifyContent: 'flex-start',
   },
   heroSection: {
     borderRadius: 28,
@@ -220,6 +226,11 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     position: 'relative',
     overflow: 'hidden',
+  },
+  heroSectionCompact: {
+    paddingTop: 12,
+    paddingBottom: 8,
+    marginBottom: 10,
   },
   closeButton: {
     position: 'absolute',
@@ -253,6 +264,10 @@ const styles = StyleSheet.create({
     width: 130,
     height: 130,
   },
+  heroImageCompact: {
+    width: 96,
+    height: 96,
+  },
   pill: {
     alignSelf: 'center',
     flexDirection: 'row',
@@ -269,6 +284,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   titleWrap: { marginBottom: 14 },
+  titleWrapCompact: { marginBottom: 8 },
   title: {
     fontSize: 28,
     textAlign: 'center',
@@ -276,20 +292,35 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     color: '#2D2418',
   },
+  titleCompact: {
+    fontSize: 22,
+    lineHeight: 28,
+  },
   subtitle: {
     fontSize: 14,
     textAlign: 'center',
     marginTop: 6,
     color: '#6B5B4E',
   },
+  subtitleCompact: {
+    marginTop: 2,
+    fontSize: 13,
+  },
   featuresWrap: {
     gap: 10,
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  featuresWrapCompact: {
+    gap: 8,
+    marginBottom: 8,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  featureRowCompact: {
+    gap: 10,
   },
   featureIconBox: {
     width: 44,
@@ -298,17 +329,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  featureIconBoxCompact: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+  },
   featureTextWrap: { flex: 1 },
   featureTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: '#2D2418',
   },
+  featureTitleCompact: {
+    fontSize: 14,
+  },
   featureDescription: {
     marginTop: 2,
     fontSize: 13,
     lineHeight: 18,
     color: '#9B8B7E',
+  },
+  featureDescriptionCompact: {
+    fontSize: 12,
+    lineHeight: 16,
   },
   planRow: {
     flexDirection: 'row',

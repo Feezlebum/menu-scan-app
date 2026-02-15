@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Linking } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Image, Linking, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
+import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 
 import { useAppTheme } from '@/src/theme/theme';
@@ -51,6 +52,9 @@ export default function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const { completeOnboarding } = useOnboardingStore();
   const { subscribe, restore } = useSubscriptionStore();
+  const { height } = useWindowDimensions();
+  const compact = height < 780;
+  const visibleFeatures = useMemo(() => (compact ? FEATURES.slice(0, 3) : FEATURES), [compact]);
 
   const [selectedPlan, setSelectedPlan] = useState<Plan>('annual');
   const [loading, setLoading] = useState(false);
@@ -102,6 +106,7 @@ export default function PaywallScreen() {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: '#FFF5E6' }]}> 
+      <StatusBar style="dark" translucent={false} backgroundColor="#FFF5E6" />
       <View style={[styles.scrollContent, { paddingTop: Math.max(insets.top, 10) }]}>
         <Animated.View entering={FadeInUp.delay(100)} style={styles.heroSection}>
           <TouchableOpacity style={styles.closeButton} onPress={handleSkip}>
@@ -126,8 +131,8 @@ export default function PaywallScreen() {
           <AppText style={[styles.subtitle, { color: '#6B5B4E' }]}>Pick a plan, or start with free and upgrade whenever you want.</AppText>
         </Animated.View>
 
-        <Animated.View entering={FadeInUp.delay(260)} style={styles.featuresWrap}>
-          {FEATURES.map((feature, idx) => (
+        <Animated.View entering={FadeInUp.delay(260)} style={[styles.featuresWrap, compact && styles.featuresWrapCompact]}>
+          {visibleFeatures.map((feature, idx) => (
             <View key={feature.label} style={styles.featureRow}>
               <View style={[styles.featureIconBox, { backgroundColor: `${FEATURE_COLORS[idx]}22` }]}>
                 <FeatureIcon icon={feature.icon} />
@@ -310,6 +315,10 @@ const styles = StyleSheet.create({
   featuresWrap: {
     gap: 10,
     marginBottom: 16,
+  },
+  featuresWrapCompact: {
+    gap: 8,
+    marginBottom: 10,
   },
   featureRow: {
     flexDirection: 'row',

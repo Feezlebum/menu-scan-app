@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { View, StyleSheet, Platform } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/src/theme/theme';
@@ -10,7 +11,9 @@ export default function TabLayout() {
   const bottomInset = Platform.OS === 'android' ? Math.max(insets.bottom, 8) : insets.bottom;
 
   return (
-    <Tabs
+    <>
+      <StatusBar style="dark" translucent={false} backgroundColor="#FFFFFF" />
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.colors.brand, // Coral #E86B50
@@ -79,6 +82,7 @@ export default function TabLayout() {
         }} 
       />
     </Tabs>
+    </>
   );
 }
 

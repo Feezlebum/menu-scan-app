@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Image, Linking } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
@@ -39,6 +39,8 @@ function FeatureIcon({ icon }: { icon: Feature['icon'] }) {
 }
 
 const FEATURE_COLORS = ['#5FA6A6', '#6BAF7A', '#F2B95E', '#E86B50'];
+const TERMS_URL = 'https://www.heymichi.com/terms';
+const PRIVACY_URL = 'https://www.heymichi.com/privacy';
 
 export default function PaywallUpgradeScreen() {
   const theme = useAppTheme();
@@ -187,9 +189,13 @@ export default function PaywallUpgradeScreen() {
             <AppText style={styles.footerLink}>Restore Purchases</AppText>
           </TouchableOpacity>
           <AppText style={styles.linkSeparator}>|</AppText>
-          <AppText style={styles.footerLink}>Terms</AppText>
+          <TouchableOpacity onPress={() => Linking.openURL(TERMS_URL)}>
+            <AppText style={styles.footerLink}>Terms</AppText>
+          </TouchableOpacity>
           <AppText style={styles.linkSeparator}>|</AppText>
-          <AppText style={styles.footerLink}>Privacy</AppText>
+          <TouchableOpacity onPress={() => Linking.openURL(PRIVACY_URL)}>
+            <AppText style={styles.footerLink}>Privacy</AppText>
+          </TouchableOpacity>
         </View>
       </Animated.View>
     </SafeAreaView>

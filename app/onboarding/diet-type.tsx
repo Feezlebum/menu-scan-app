@@ -4,30 +4,28 @@ import { useRouter } from 'expo-router';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
 import { OptionCard } from '@/src/components/onboarding/OptionCard';
 import { useOnboardingStore, DietType } from '@/src/stores/onboardingStore';
+import MichiAssets from '@/src/utils/michiAssets';
 
 const DIET_TYPES: { value: DietType; label: string; emoji: string; description: string }[] = [
-  { value: 'cico', label: 'Calorie Counting', emoji: '🔢', description: 'Focus on calories in vs out' },
-  { value: 'keto', label: 'Keto / Low Carb', emoji: '🥑', description: 'High fat, very low carbs' },
-  { value: 'vegan', label: 'Vegan', emoji: '👨‍🍳', description: 'No animal products' },
-  { value: 'lowcarb', label: 'Low Carb', emoji: '🥩', description: 'Reduced carbohydrate intake' },
-  { value: 'mediterranean', label: 'Mediterranean', emoji: '🫒', description: 'Whole foods, healthy fats' },
-  { value: 'none', label: 'No Specific Diet', emoji: '👨‍🍳', description: 'Just eating healthier' },
+  { value: 'cico', label: 'calorie counting (cico)', emoji: '🔥', description: 'I can help you stay right on target.' },
+  { value: 'keto', label: 'keto / low carb', emoji: '🥑', description: 'I will prioritize lower-carb picks.' },
+  { value: 'vegan', label: 'vegan / plant-based', emoji: '🌱', description: 'I will flag fully plant-based dishes.' },
+  { value: 'mediterranean', label: 'mediterranean', emoji: '🫒', description: 'Whole foods and balanced choices first.' },
+  { value: 'lowcarb', label: 'balanced / no specific diet', emoji: '🥗', description: 'I will keep recommendations flexible.' },
+  { value: 'none', label: 'other', emoji: '✏️', description: 'You can refine this in preferences next.' },
 ];
 
 export default function DietTypeScreen() {
   const router = useRouter();
   const { dietType, setDietType } = useOnboardingStore();
 
-  const handleContinue = () => {
-    router.push('/onboarding/macro-priority');
-  };
-
   return (
     <OnboardingScreen
-      title="What's your eating style?"
-      subtitle="We'll filter recommendations to match your diet."
+      michiSource={MichiAssets.onboardingClipboard}
+      dialogueText="Got it! Now, are you following any specific diet? No judgment — I just want to give you the best recommendations!"
       canContinue={!!dietType}
-      onContinue={handleContinue}
+      onContinue={() => router.push('/onboarding/weekly-budget' as never)}
+      buttonText="Continue"
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {DIET_TYPES.map((item) => (

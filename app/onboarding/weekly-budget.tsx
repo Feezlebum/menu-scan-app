@@ -1,138 +1,57 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
-import { AppText } from '@/src/components/ui/AppText';
-import { useAppTheme } from '@/src/theme/theme';
+import { OptionCard } from '@/src/components/onboarding/OptionCard';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
-import { useSpendingStore } from '@/src/stores/spendingStore';
-import { formatMoney } from '@/src/utils/currency';
+import MichiAssets from '@/src/utils/michiAssets';
 
-const MichiSpending = require('@/assets/michi-spending.png');
-
-const PRESETS = [
-  { value: 50 },
-  { value: 100 },
-  { value: 200 },
-  { value: 250 },
+const BUDGET_OPTIONS: Array<{ label: string; value: number | null; emoji: string }> = [
+  { label: 'under $25', value: 25, emoji: '💸' },
+  { label: '$25 - $50', value: 50, emoji: '💵' },
+  { label: '$50 - $100', value: 100, emoji: '💰' },
+  { label: '$100 - $200', value: 200, emoji: '🧾' },
+  { label: '$200+', value: 250, emoji: '💳' },
+  { label: "i don't track this", value: null, emoji: '🤷' },
 ];
 
 export default function WeeklyBudgetScreen() {
-  const theme = useAppTheme();
   const router = useRouter();
   const { weeklyDiningBudget, setWeeklyDiningBudget } = useOnboardingStore();
-  const { currency: homeCurrency, setWeeklyBudget } = useSpendingStore();
-
-  const [inputValue, setInputValue] = useState(
-    weeklyDiningBudget !== null ? String(weeklyDiningBudget) : ''
+  const [selected, setSelected] = useState<number | null | 'unset'>(
+    weeklyDiningBudget === null ? 'unset' : weeklyDiningBudget
   );
 
-  const parsed = inputValue.trim() === '' ? null : Number.parseFloat(inputValue);
-  const isValid = parsed === null || (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 1000);
+  const canContinue = selected !== 'unset';
 
-  const continueNext = () => {
-    const budget = parsed === null || Number.isNaN(parsed) ? null : parsed;
-    setWeeklyDiningBudget(budget);
-    setWeeklyBudget(budget);
-    router.push('/onboarding/intolerances');
-  };
-
-  const choosePreset = (value: number) => {
-    setInputValue(String(value));
+  const choose = (value: number | null) => {
+    setSelected(value);
+    setWeeklyDiningBudget(value);
   };
 
   return (
     <OnboardingScreen
-      title="Weekly Dining Budget"
-      subtitle="How much do you typically spend eating out per week?"
-      canContinue={isValid}
-      onContinue={continueNext}
-      buttonText={parsed === null ? 'Skip for now' : 'Continue'}
+      michiSource={MichiAssets.onboardingMoney}
+      dialogueText="Let's talk money! 💰 How much do you usually spend eating out each week?"
+      canContinue={canContinue}
+      onContinue={() => router.push('/onboarding/age-gender' as never)}
+      buttonText="Continue"
     >
-      <View style={styles.content}>
-        <Image source={MichiSpending} style={styles.heroImage} resizeMode="contain" />
-        <View style={[styles.inputWrap, { borderColor: theme.colors.border, backgroundColor: '#fff' }]}>
-          <AppText style={[styles.currency, { color: theme.colors.text }]}>{homeCurrency}</AppText>
-          <TextInput
-            value={inputValue}
-            onChangeText={(t) => setInputValue(t.replace(/[^0-9.]/g, ''))}
-            keyboardType="decimal-pad"
-            placeholder="100"
-            placeholderTextColor={theme.colors.caption}
-            style={[styles.input, { color: theme.colors.text }]}
+      <View style={styles.wrap}>
+        {BUDGET_OPTIONS.map((option) => (
+          <OptionCard
+            key={option.label}
+            label={option.label}
+            emoji={option.emoji}
+            selected={selected !== 'unset' && selected === option.value}
+            onPress={() => choose(option.value)}
           />
-        </View>
-
-        <View style={styles.presets}>
-          {PRESETS.map((preset) => (
-            <TouchableOpacity
-              key={preset.value}
-              style={[styles.presetBtn, { borderColor: theme.colors.border, backgroundColor: '#fff' }]}
-              onPress={() => choosePreset(preset.value)}
-            >
-              <AppText style={[styles.presetText, { color: theme.colors.text }]}>{formatMoney(preset.value, homeCurrency)}</AppText>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {parsed !== null && parsed > 500 && (
-          <AppText style={[styles.warning, { color: theme.colors.trafficAmber }]}>That’s on the higher side — just making sure this is intentional.</AppText>
-        )}
-
-        <AppText style={[styles.helper, { color: theme.colors.subtext }]}>
-          This helps track spending alongside your health goals.
-        </AppText>
+        ))}
       </View>
     </OnboardingScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    paddingTop: 8,
-    gap: 14,
-  },
-  heroImage: {
-    width: 140,
-    height: 140,
-    alignSelf: 'center',
-    marginBottom: 4,
-  },
-  inputWrap: {
-    borderWidth: 1,
-    borderRadius: 14,
-    height: 56,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  currency: {
-    fontSize: 24,
-    marginRight: 8,
-  },
-  input: {
-    flex: 1,
-    fontSize: 24,
-  },
-  presets: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  presetBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  presetText: {
-    fontSize: 14,
-  },
-  warning: {
-    fontSize: 13,
-  },
-  helper: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  wrap: { marginTop: 8 },
 });

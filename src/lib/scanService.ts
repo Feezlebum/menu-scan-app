@@ -68,18 +68,26 @@ export async function estimateNutrition(
   cuisineKey: string,
   restaurantName?: string
 ): Promise<NutritionEstimate> {
+  console.log('[estimateNutrition] Calling Edge Function with:', { itemName, cuisineKey, restaurantName });
+  
   try {
     const { data, error } = await supabase.functions.invoke('estimate-nutrition', {
       body: { itemName, cuisineKey, restaurantName: restaurantName?.trim() || null },
     });
 
+    console.log('[estimateNutrition] Edge Function response:', { data, error });
+
     if (!error && data?.success && data?.estimate) {
+      console.log('[estimateNutrition] Using AI estimate:', data.estimate);
       return data.estimate as NutritionEstimate;
     }
-  } catch {
-    // Fall through to local heuristic estimator when edge function is unavailable.
+    
+    console.warn('[estimateNutrition] Edge Function failed, using fallback:', { error, dataSuccess: data?.success, hasEstimate: !!data?.estimate });
+  } catch (catchError) {
+    console.error('[estimateNutrition] Exception calling Edge Function:', catchError);
   }
 
+  console.log('[estimateNutrition] Using local heuristic fallback');
   return estimateManualNutrition(itemName, cuisineKey);
 }
 

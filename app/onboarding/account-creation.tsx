@@ -65,7 +65,7 @@ export default function AccountCreationScreen() {
     }
 
     let message = result.error || 'Please try again';
-    if (__DEV__ && message.toLowerCase().includes('network request failed')) {
+    if (message.toLowerCase().includes('network request failed')) {
       const diag = await getAuthDiagnostics();
       message = `${message}\n\n${diag}`;
     }

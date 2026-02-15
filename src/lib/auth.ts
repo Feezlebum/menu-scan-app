@@ -361,54 +361,62 @@ export async function syncUserProfile(userData: Partial<UserProfile>): Promise<v
 }
 
 export async function signUp(email: string, password: string, firstName: string): Promise<AuthResult> {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { first_name: firstName },
-    },
-  });
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { first_name: firstName },
+      },
+    });
 
-  if (error) {
-    return { success: false, error: normalizeAuthError(error.message) };
+    if (error) {
+      return { success: false, error: normalizeAuthError(error.message) };
+    }
+
+    const user = data.user;
+    if (!user) {
+      return { success: false, error: 'Unable to create account. Please try again.' };
+    }
+
+    const onboarding = useOnboardingStore.getState();
+
+    await clearUserScopedLocalData();
+    await loadUserScopedSnapshots(user.id);
+
+    try {
+      await syncUserProfile({
+        firstName,
+        email,
+        goal: onboarding.goal,
+        dietType: onboarding.dietType,
+        macroPriority: onboarding.macroPriority,
+        activityLevel: onboarding.activityLevel,
+        age: onboarding.age,
+        gender: onboarding.gender,
+        heightCm: onboarding.heightCm,
+        currentWeightKg: onboarding.currentWeightKg,
+        goalWeightKg: onboarding.goalWeightKg,
+        weeklyDiningBudget: onboarding.weeklyDiningBudget,
+        intolerances: onboarding.intolerances,
+        dislikes: onboarding.dislikes,
+        favoriteCuisines: onboarding.favoriteCuisines,
+        eatingFrequency: onboarding.eatingFrequency,
+        diningChallenge: onboarding.diningChallenge,
+        dailyCalorieTarget: onboarding.dailyCalorieTarget,
+        goalDate: onboarding.goalDate,
+        profileMichi: onboarding.profileMichi,
+        healthGoalV2: onboarding.healthGoalV2,
+        spendingGoals: onboarding.spendingGoals,
+      });
+    } catch (e: any) {
+      console.warn('Profile sync skipped after sign-up:', e?.message || e);
+    }
+
+    return { success: true, user };
+  } catch (e: any) {
+    return { success: false, error: normalizeAuthError(e?.message || 'Network request failed') };
   }
-
-  const user = data.user;
-  if (!user) {
-    return { success: false, error: 'Unable to create account. Please try again.' };
-  }
-
-  const onboarding = useOnboardingStore.getState();
-
-  await clearUserScopedLocalData();
-  await loadUserScopedSnapshots(user.id);
-
-  await syncUserProfile({
-    firstName,
-    email,
-    goal: onboarding.goal,
-    dietType: onboarding.dietType,
-    macroPriority: onboarding.macroPriority,
-    activityLevel: onboarding.activityLevel,
-    age: onboarding.age,
-    gender: onboarding.gender,
-    heightCm: onboarding.heightCm,
-    currentWeightKg: onboarding.currentWeightKg,
-    goalWeightKg: onboarding.goalWeightKg,
-    weeklyDiningBudget: onboarding.weeklyDiningBudget,
-    intolerances: onboarding.intolerances,
-    dislikes: onboarding.dislikes,
-    favoriteCuisines: onboarding.favoriteCuisines,
-    eatingFrequency: onboarding.eatingFrequency,
-    diningChallenge: onboarding.diningChallenge,
-    dailyCalorieTarget: onboarding.dailyCalorieTarget,
-    goalDate: onboarding.goalDate,
-    profileMichi: onboarding.profileMichi,
-    healthGoalV2: onboarding.healthGoalV2,
-    spendingGoals: onboarding.spendingGoals,
-  });
-
-  return { success: true, user };
 }
 
 export async function signIn(email: string, password: string): Promise<AuthResult> {

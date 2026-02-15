@@ -225,6 +225,7 @@ export default function MenuAnalysisLoading({
               isLooping
               isMuted
               resizeMode={ResizeMode.CONTAIN}
+              useNativeControls={false}
             />
           </Animated.View>
 

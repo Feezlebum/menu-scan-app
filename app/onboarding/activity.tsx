@@ -24,7 +24,7 @@ export default function ActivityScreen() {
   return (
     <OnboardingScreen
       title="How active are you?"
-      subtitle="This affects your daily calorie needs."
+      subtitle="This helps me figure out your perfect calorie range! Be honest~ :3"
       canContinue={!!activityLevel}
       onContinue={handleContinue}
     >

@@ -12,7 +12,7 @@ const intolerances = ['nuts','dairy','shellfish','eggs','soy','gluten'];
 export default function DietaryPreferencesScreen(){
   const router=useRouter(); const theme=useAppTheme();
   const {dietType,intolerances:sel,toggleIntolerance,setDietType}=useOnboardingStore();
-  return <OnboardingScreen title="Dietary Preferences" subtitle="Set diet type and intolerances/allergies." hideProgress onContinue={()=>router.push('/onboarding/food-preferences' as any)}>
+  return <OnboardingScreen title="Your food profile" subtitle="Tell me about your diet and any allergies — I'll remember everything! 📋" hideProgress onContinue={()=>router.push('/onboarding/food-preferences' as any)}>
     <View style={styles.wrap}><Badge step={10} total={14} />
       <AppText style={[styles.label,{color:theme.colors.subtext}]}>Diet Type</AppText>
       <View style={styles.row}>{diets.map(d=><Chip key={d} text={d} active={dietType===d} onPress={()=>setDietType(d)} />)}</View>

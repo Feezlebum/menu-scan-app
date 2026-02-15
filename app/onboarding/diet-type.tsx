@@ -24,8 +24,8 @@ export default function DietTypeScreen() {
 
   return (
     <OnboardingScreen
-      title="What's your eating style?"
-      subtitle="We'll filter recommendations to match your diet."
+      title="Your eating style"
+      subtitle="Got it! Are you following any specific diet? No judgment — I just want to give you the best picks! 💚"
       canContinue={!!dietType}
       onContinue={handleContinue}
     >

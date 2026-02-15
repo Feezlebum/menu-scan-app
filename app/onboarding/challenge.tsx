@@ -22,8 +22,8 @@ export default function ChallengeScreen() {
 
   return (
     <OnboardingScreen
-      title="Your biggest challenge?"
-      subtitle="When eating out, what makes it hardest to stay on track?"
+      title="The tricky part"
+      subtitle="Okay so— when you're at a restaurant, what makes it hardest? 🤔"
       canContinue={!!diningChallenge}
       onContinue={handleContinue}
     >

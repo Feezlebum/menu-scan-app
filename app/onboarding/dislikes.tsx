@@ -28,8 +28,8 @@ export default function DislikesScreen() {
 
   return (
     <OnboardingScreen
-      title="Foods you'd skip?"
-      subtitle="We'll rank these lower in your recommendations. Select all that apply."
+      title="Any no-gos?"
+      subtitle="Anything you just really don't like? I'll make sure to steer you away from those~ 🙅"
       canContinue={true}
       onContinue={handleContinue}
       buttonText={dislikes.length > 0 ? 'Continue' : "I'll eat anything!"}

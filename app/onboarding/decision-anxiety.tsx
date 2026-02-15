@@ -11,8 +11,8 @@ export default function DecisionAnxietyScreen() {
 
   return (
     <OnboardingScreen
-      title="The Decision Anxiety Epidemic"
-      subtitle="86% of people report menu anxiety at least occasionally. You're not alone."
+      title="You're not alone!"
+      subtitle="Fun fact: 86% of people feel overwhelmed by menus. See?! That's why you need me! 😅✨"
       hideProgress
       buttonText="Continue"
       onContinue={() => router.push('/onboarding/health-revolution' as any)}

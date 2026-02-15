@@ -43,8 +43,8 @@ export default function WeeklyBudgetScreen() {
 
   return (
     <OnboardingScreen
-      title="Weekly Dining Budget"
-      subtitle="How much do you typically spend eating out per week?"
+      title="Weekly budget"
+      subtitle="How much do you usually spend eating out each week? I'll keep you on track~ 💸"
       canContinue={isValid}
       onContinue={continueNext}
       buttonText={parsed === null ? 'Skip for now' : 'Continue'}

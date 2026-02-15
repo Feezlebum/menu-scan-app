@@ -35,8 +35,8 @@ export default function BiggestChallengeScreen() {
 
   return (
     <OnboardingScreen
-      title="Your Biggest Challenge"
-      subtitle="Let's personalize your journey. Pick the one that feels most true today."
+      title="What's tough for you?"
+      subtitle="Ooh, tell me — what's your biggest struggle when eating out? I wanna help! 💚"
       hideProgress
       canContinue={!!selected}
       buttonText="Continue"

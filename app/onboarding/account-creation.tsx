@@ -39,7 +39,7 @@ export default function AccountCreationScreen(){
    return false;
  };
 
- return <OnboardingScreen title="Account Creation" subtitle="Create your account to save progress and sync recommendations." hideProgress canContinue={canContinue && !loading} onContinue={handleCreateAccount} buttonText={loading ? 'Creating account...' : 'Continue'}>
+ return <OnboardingScreen title="Almost there!" subtitle="Let's save your progress! Create an account so I can remember everything about you :3 🎉" hideProgress canContinue={canContinue && !loading} onContinue={handleCreateAccount} buttonText={loading ? 'Setting things up...' : 'Create Account'}>
    <View style={styles.wrap}><Badge step={13} total={14}/>
      <Field label="First name"><TextInput value={name} onChangeText={setName} style={[styles.input,{borderColor:theme.colors.border,color:theme.colors.text}]} editable={!loading} /></Field>
      <Field label="Email"><TextInput value={mail} onChangeText={setMail} autoCapitalize="none" keyboardType="email-address" style={[styles.input,{borderColor:theme.colors.border,color:theme.colors.text}]} editable={!loading} /></Field>

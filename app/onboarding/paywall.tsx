@@ -120,8 +120,8 @@ export default function PaywallScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(200)} style={styles.titleWrap}>
-          <AppText style={[styles.title, { color: '#2D2418' }]}>Unlock all the best features</AppText>
-          <AppText style={[styles.subtitle, { color: '#6B5B4E' }]}>Michi is waiting to dine with you wherever you go!</AppText>
+          <AppText style={[styles.title, { color: '#2D2418' }]}>Unlock my full powers!</AppText>
+          <AppText style={[styles.subtitle, { color: '#6B5B4E' }]}>I can do SO much more with Pro~ Let me show you! ✨</AppText>
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(260)} style={styles.featuresWrap}>

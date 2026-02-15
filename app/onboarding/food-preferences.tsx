@@ -13,7 +13,7 @@ const macros: MacroPriority[]=['highprotein','balanced','lowcarb','lowcal'];
 export default function FoodPreferencesScreen(){
  const router=useRouter(); const theme=useAppTheme();
  const {favoriteCuisines,toggleCuisine,dislikes:selDislikes,toggleDislike,macroPriority,setMacroPriority}=useOnboardingStore();
- return <OnboardingScreen title="Food Preferences & Dislikes" subtitle="Choose cuisines, dislikes, and macro focus." hideProgress onContinue={()=>router.push('/onboarding/dining-habits' as any)}>
+ return <OnboardingScreen title="Your food faves" subtitle="Let me know what you love and what you'd rather skip~ 😋" hideProgress onContinue={()=>router.push('/onboarding/dining-habits' as any)}>
   <View style={styles.wrap}><Badge step={11} total={14}/>
     <AppText style={[styles.label,{color:theme.colors.subtext}]}>Favorite cuisines</AppText>
     <View style={styles.row}>{cuisines.map(c=><Chip key={c} text={c} active={favoriteCuisines.includes(c)} onPress={()=>toggleCuisine(c)} />)}</View>

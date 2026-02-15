@@ -23,7 +23,7 @@ export default function MacroPriorityScreen() {
   return (
     <OnboardingScreen
       title="What matters most?"
-      subtitle="We'll rank menu items based on this priority."
+      subtitle="I'll rank every dish based on this — pick what's most important to you! ✨"
       canContinue={!!macroPriority}
       onContinue={handleContinue}
     >

@@ -12,8 +12,8 @@ export default function TranslationIntroScreen() {
 
   return (
     <OnboardingScreen
-      title="Michi Goes Global"
-      subtitle="Traveling? Michi can translate menus and help you order like a local."
+      title="I go everywhere!"
+      subtitle="Traveling? I can translate menus and help you order like a local~ 🌍✨"
       hideProgress
       showBack
       buttonText="Continue"

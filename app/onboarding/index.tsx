@@ -25,10 +25,10 @@ export default function MeetMichiScreen() {
   return (
     <OnboardingScreen
       title="Meet Michi"
-      subtitle="Hey there! I'm Michi, your personal restaurant guide. I help people like you make confident choices that feel amazing AND save money. Ready to never stress about menus again?"
+      subtitle="Hiii! 👋 I'm Michi — your personal menu buddy! I scan restaurant menus and find the perfect dishes for YOUR goals. No more guessing, no more stress~ :3"
       showBack={false}
       hideProgress
-      buttonText="I'm Ready"
+      buttonText="Let's Go!"
       onContinue={handleContinue}
     >
       <View style={styles.content}>

@@ -29,8 +29,8 @@ export default function IntolerancesScreen() {
 
   return (
     <OnboardingScreen
-      title="Any food allergies?"
-      subtitle="We'll filter these out completely. Select all that apply."
+      title="Any allergies?"
+      subtitle="Super important! 🚨 I'll always flag these for you so you can eat worry-free~"
       canContinue={true} // Can skip
       onContinue={handleContinue}
       buttonText={intolerances.length > 0 ? 'Continue' : 'None of these'}

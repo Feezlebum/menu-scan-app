@@ -35,8 +35,8 @@ export default function AgeGenderScreen() {
 
   return (
     <OnboardingScreen
-      title="Tell us about yourself"
-      subtitle="We'll use this to calculate your daily calorie needs."
+      title="A little about you!"
+      subtitle="I need a few details to get your nutrition just right~ Don't worry, this stays between us! 🤫"
       canContinue={canContinue}
       onContinue={handleContinue}
     >

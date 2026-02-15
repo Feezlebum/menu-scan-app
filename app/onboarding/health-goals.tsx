@@ -35,7 +35,7 @@ export default function HealthGoalsScreen() {
   return (
     <OnboardingScreen
       title="Your Health Goals"
-      subtitle="Choose your primary goal. We'll personalize every recommendation around it."
+      subtitle="Time to get serious! 💪 What's your main goal right now? I'll build everything around it!"
       hideProgress
       canContinue={!!selected}
       buttonText="Continue"

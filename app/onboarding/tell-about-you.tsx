@@ -20,7 +20,7 @@ export default function TellAboutYouScreen() {
   const canContinue = !!ageInput && !!heightInput && !!weightInput && !!gender && !!activityLevel;
 
   return (
-    <OnboardingScreen title="Tell Michi About You" subtitle="These details help personalize nutrition scoring and projections." hideProgress canContinue={canContinue} onContinue={() => {
+    <OnboardingScreen title="Tell me about you!" subtitle="These details help me personalize your nutrition scores and goals~ ✨" hideProgress canContinue={canContinue} onContinue={() => {
       setAge(Math.max(12, Math.min(100, Number(ageInput) || 25)));
       setHeight(Math.max(120, Math.min(230, Number(heightInput) || 170)));
       setCurrentWeight(Math.max(30, Math.min(300, Number(weightInput) || 70)));

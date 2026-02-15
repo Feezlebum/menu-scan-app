@@ -28,8 +28,8 @@ export default function CuisinesScreen() {
 
   return (
     <OnboardingScreen
-      title="Favorite cuisines?"
-      subtitle="Help us understand your dining preferences. Select all you enjoy."
+      title="What do you love?"
+      subtitle="Ooh, the fun part! What kinds of food make you happy? Pick all your faves~ 😋"
       canContinue={true}
       onContinue={handleContinue}
       buttonText={favoriteCuisines.length > 0 ? 'Continue' : 'I like variety!'}

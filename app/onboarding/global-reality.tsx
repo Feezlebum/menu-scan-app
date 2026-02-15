@@ -23,8 +23,8 @@ export default function GlobalRealityScreen() {
 
   return (
     <OnboardingScreen
-      title="The Global Restaurant Reality"
-      subtitle="You're not the problem. The system makes good decisions harder than they should be."
+      title="It's not your fault"
+      subtitle="Menus are designed to confuse you. Seriously! But that's exactly why I'm here 🫶"
       hideProgress
       buttonText="Continue"
       onContinue={() => router.push('/onboarding/money-superpowers' as any)}

@@ -40,8 +40,8 @@ export default function HeightWeightScreen() {
 
   return (
     <OnboardingScreen
-      title="Height & current weight"
-      subtitle="This helps calculate your daily calorie needs."
+      title="Height & weight"
+      subtitle="Almost there! I need these to calculate your perfect targets. This stays between us 🤫"
       canContinue={!!canContinue}
       onContinue={handleContinue}
     >

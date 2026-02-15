@@ -11,8 +11,8 @@ export default function HealthRevolutionScreen() {
 
   return (
     <OnboardingScreen
-      title="Health Revolution"
-      subtitle="Michi helps you decode nutrition quickly so your choices support your long-term goals."
+      title="Your secret weapon"
+      subtitle="I decode nutrition in seconds so every choice supports your goals. Pretty cool, right? 😋✨"
       hideProgress
       buttonText="Set My Goals"
       onContinue={() => router.push('/onboarding/health-goals' as any)}

@@ -12,13 +12,17 @@ import Animated, {
 import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
 import { useScanStore } from '@/src/stores/scanStore';
-import { Image } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import MichiMoji from '@/src/components/MichiMoji';
 import type { MichiMojiName } from '@/assets/michimojis/michiMojiMap';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const michiProcessingImage = require('@/assets/michi-magnifying-glass.png');
+const michiAnimation = Platform.select({
+  ios: require('@/assets/animations/michi-magnifying-scanner.mp4'),
+  android: require('@/assets/animations/michi-magnifying-scanner.webm'),
+  default: require('@/assets/animations/michi-magnifying-scanner.mp4'),
+});
 
 interface MenuAnalysisLoadingProps {
   onComplete?: () => void;
@@ -88,7 +92,6 @@ export default function MenuAnalysisLoading({
   // Animation values
   const progressWidth = useSharedValue(0);
   const michiScale = useSharedValue(1);
-  const michiRotate = useSharedValue(0);
   const textOpacity = useSharedValue(1);
 
   // Check for completion (results available). Keep user on loading if still processing.
@@ -120,22 +123,16 @@ export default function MenuAnalysisLoading({
       }
     );
 
-    // Michi animated researching - scale + rotation
-    const researchAnimation = () => {
+    // Subtle breathing animation to complement the video
+    const breathingAnimation = () => {
       michiScale.value = withSequence(
-        withTiming(1.08, { duration: 800, easing: Easing.bezier(0.4, 0.0, 0.6, 1) }),
-        withTiming(1, { duration: 800, easing: Easing.bezier(0.4, 0.0, 0.6, 1) })
-      );
-      
-      michiRotate.value = withSequence(
-        withTiming(5, { duration: 600, easing: Easing.bezier(0.25, 0.46, 0.45, 0.94) }),
-        withTiming(-3, { duration: 800, easing: Easing.bezier(0.25, 0.46, 0.45, 0.94) }),
-        withTiming(0, { duration: 600, easing: Easing.bezier(0.25, 0.46, 0.45, 0.94) })
+        withTiming(1.05, { duration: 1500, easing: Easing.bezier(0.4, 0.0, 0.6, 1) }),
+        withTiming(1, { duration: 1500, easing: Easing.bezier(0.4, 0.0, 0.6, 1) })
       );
     };
 
-    researchAnimation();
-    const researchInterval = setInterval(researchAnimation, 2000);
+    breathingAnimation();
+    const breathingInterval = setInterval(breathingAnimation, 3000);
 
     // Phase and text progression
     let phaseTimeout: ReturnType<typeof setTimeout>;
@@ -175,7 +172,7 @@ export default function MenuAnalysisLoading({
     return () => {
       clearTimeout(phaseTimeout);
       clearInterval(textInterval);
-      clearInterval(researchInterval);
+      clearInterval(breathingInterval);
     };
   }, [estimatedDurationMs]);
 
@@ -184,10 +181,7 @@ export default function MenuAnalysisLoading({
   }));
 
   const michiStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: michiScale.value },
-      { rotate: `${michiRotate.value}deg` }
-    ],
+    transform: [{ scale: michiScale.value }],
   }));
 
   const textStyle = useAnimatedStyle(() => ({
@@ -224,10 +218,13 @@ export default function MenuAnalysisLoading({
 
           {/* Animated Michi */}
           <Animated.View style={[styles.michiContainer, michiStyle]}>
-            <Image
-              source={michiProcessingImage}
-              style={styles.michiImage}
-              resizeMode="contain"
+            <Video
+              source={michiAnimation}
+              style={styles.michiVideo}
+              shouldPlay
+              isLooping
+              isMuted
+              resizeMode={ResizeMode.CONTAIN}
             />
           </Animated.View>
 
@@ -308,7 +305,7 @@ const styles = StyleSheet.create({
   michiContainer: {
     marginBottom: 60,
   },
-  michiImage: {
+  michiVideo: {
     width: 180,
     height: 180,
   },

@@ -1,10 +1,13 @@
 import { Tabs } from 'expo-router';
 import { View, StyleSheet, Platform } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/src/theme/theme';
 
 export default function TabLayout() {
   const theme = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const bottomInset = Platform.OS === 'android' ? Math.max(insets.bottom, 8) : insets.bottom;
 
   return (
     <Tabs
@@ -12,9 +15,10 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: theme.colors.brand, // Coral #E86B50
         tabBarInactiveTintColor: theme.colors.caption, // #9B8B7E
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
-          height: Platform.OS === 'ios' ? 85 : 65,
-          paddingBottom: Platform.OS === 'ios' ? 25 : 8,
+          height: 56 + bottomInset,
+          paddingBottom: bottomInset,
           paddingTop: 8,
           backgroundColor: '#FFFFFF',
           borderTopColor: theme.colors.border, // #F0E6D6

@@ -99,8 +99,8 @@ export default function PaywallScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: '#FFF5E6' }]}> 
-      <View style={styles.scrollContent}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: '#FFF5E6' }]}> 
+      <View style={[styles.scrollContent, { paddingTop: Math.max(insets.top, 10) }]}>
         <Animated.View entering={FadeInUp.delay(100)} style={styles.heroSection}>
           <TouchableOpacity style={styles.closeButton} onPress={handleSkip}>
             <AppText style={styles.closeText}>✕</AppText>

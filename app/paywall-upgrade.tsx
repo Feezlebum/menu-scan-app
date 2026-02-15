@@ -29,7 +29,6 @@ const FEATURES: Feature[] = [
   { icon: 'scan', label: 'Unlimited menu scans', description: 'Snap any menu, get instant nutrition info' },
   { icon: 'star', label: 'Personalized top picks', description: 'AI recommendations based on your goals' },
   { icon: 'dollar', label: 'Spending & nutrition tracking', description: 'Track your dining budget alongside health goals' },
-  { icon: 'globe', label: 'Menu translation', description: '50+ languages with pronunciation guides' },
 ];
 
 function FeatureIcon({ icon }: { icon: Feature['icon'] }) {
@@ -88,8 +87,8 @@ export default function PaywallUpgradeScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: '#FFF5E6' }]}> 
-      <View style={styles.scrollContent}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: '#FFF5E6' }]}> 
+      <View style={[styles.scrollContent, { paddingTop: Math.max(insets.top, 10) }]}>
         <Animated.View entering={FadeInUp.delay(100)} style={styles.heroSection}>
           <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
             <AppText style={styles.closeText}>✕</AppText>
@@ -127,7 +126,10 @@ export default function PaywallUpgradeScreen() {
           ))}
         </Animated.View>
 
-        <Animated.View entering={FadeInUp.delay(320)} style={styles.planRow}>
+      </View>
+
+      <Animated.View entering={FadeIn.delay(360)} style={[styles.footer, { paddingBottom: Math.max(20, insets.bottom + 8) }]}>
+        <View style={styles.planRow}>
           {(['monthly', 'annual'] as Plan[]).map((plan) => {
             const selected = selectedPlan === plan;
             const data = PLANS[plan];
@@ -165,10 +167,7 @@ export default function PaywallUpgradeScreen() {
               </TouchableOpacity>
             );
           })}
-        </Animated.View>
-      </View>
-
-      <Animated.View entering={FadeIn.delay(360)} style={[styles.footer, { paddingBottom: Math.max(20, insets.bottom + 8) }]}>
+        </View>
         <PrimaryButton
           label={loading ? 'Processing…' : 'Start 7-Day Free Trial'}
           onPress={handleSubscribe}
@@ -308,6 +307,7 @@ const styles = StyleSheet.create({
   planRow: {
     flexDirection: 'row',
     gap: 10,
+    marginBottom: 12,
   },
   planCard: {
     flex: 1,

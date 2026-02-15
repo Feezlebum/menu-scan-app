@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Image, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as Haptics from 'expo-haptics';
 import { AppText } from '@/src/components/ui/AppText';
@@ -44,6 +44,7 @@ const getMichiTip = () => {
 export default function HomeScreen() {
   const theme = useAppTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { goal, macroPriority, dietType, intolerances, spendingGoals, weeklyDiningBudget } = useOnboardingStore();
   const { loggedMeals } = useHistoryStore();
   const { currentStreak, lastChoice } = useStreakStore();
@@ -134,7 +135,10 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            { paddingTop: Math.max(insets.top, 12) },
+          ]}
         >
           {/* Michi Hero - NO card border, sits on background */}
           <View style={styles.michiHero}>
@@ -392,7 +396,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 8,
     paddingBottom: 24,
   },
   // Header

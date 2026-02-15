@@ -34,6 +34,7 @@ export default function ScanScreen() {
   const [errorDialogMessage, setErrorDialogMessage] = useState('');
   const processingPulse = useRef(new Animated.Value(1)).current;
   const processingRotate = useRef(new Animated.Value(0)).current;
+  const processingFloat = useRef(new Animated.Value(0)).current;
   const { startScan, setScanResult, setScanError } = useScanStore();
   const { setTranslating, setTranslationResult, setTranslationError, clearTranslation } = useTranslationStore();
   const { initializeUser, incrementScanCount, checkScanLimit, isProUser, isTrialActive } = useSubscriptionStore();
@@ -59,26 +60,61 @@ export default function ScanScreen() {
     if (scanState === 'processing') {
       const pulse = Animated.loop(
         Animated.sequence([
-          Animated.timing(processingPulse, { toValue: 1.08, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(processingPulse, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(processingPulse, { 
+            toValue: 1.12, 
+            duration: 800, 
+            easing: Easing.bezier(0.4, 0.0, 0.6, 1), 
+            useNativeDriver: true 
+          }),
+          Animated.timing(processingPulse, { 
+            toValue: 1, 
+            duration: 800, 
+            easing: Easing.bezier(0.4, 0.0, 0.6, 1), 
+            useNativeDriver: true 
+          }),
         ])
       );
 
       const spin = Animated.loop(
-        Animated.timing(processingRotate, { toValue: 1, duration: 2800, easing: Easing.linear, useNativeDriver: true })
+        Animated.timing(processingRotate, { 
+          toValue: 1, 
+          duration: 3200, 
+          easing: Easing.linear, 
+          useNativeDriver: true 
+        })
+      );
+
+      const float = Animated.loop(
+        Animated.sequence([
+          Animated.timing(processingFloat, { 
+            toValue: 1, 
+            duration: 2000, 
+            easing: Easing.bezier(0.45, 0.05, 0.55, 0.95), 
+            useNativeDriver: true 
+          }),
+          Animated.timing(processingFloat, { 
+            toValue: 0, 
+            duration: 2000, 
+            easing: Easing.bezier(0.45, 0.05, 0.55, 0.95), 
+            useNativeDriver: true 
+          }),
+        ])
       );
 
       pulse.start();
       spin.start();
+      float.start();
 
       return () => {
         pulse.stop();
         spin.stop();
+        float.stop();
         processingPulse.setValue(1);
         processingRotate.setValue(0);
+        processingFloat.setValue(0);
       };
     }
-  }, [scanState, processingPulse, processingRotate]);
+  }, [scanState, processingPulse, processingRotate, processingFloat]);
 
   const handleCapture = async () => {
     if (!cameraRef.current || scanState !== 'ready') return;
@@ -262,6 +298,12 @@ export default function ScanScreen() {
                       rotate: processingRotate.interpolate({
                         inputRange: [0, 1],
                         outputRange: ['0deg', '360deg'],
+                      }),
+                    },
+                    {
+                      translateY: processingFloat.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -12],
                       }),
                     },
                   ],

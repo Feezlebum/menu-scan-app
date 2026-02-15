@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Image, Linking, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -54,7 +54,6 @@ export default function PaywallScreen() {
   const { subscribe, restore } = useSubscriptionStore();
   const { height } = useWindowDimensions();
   const compact = height < 780;
-  const visibleFeatures = useMemo(() => (compact ? FEATURES.slice(0, 3) : FEATURES), [compact]);
 
   const [selectedPlan, setSelectedPlan] = useState<Plan>('annual');
   const [loading, setLoading] = useState(false);
@@ -132,7 +131,7 @@ export default function PaywallScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(260)} style={[styles.featuresWrap, compact && styles.featuresWrapCompact]}>
-          {visibleFeatures.map((feature, idx) => (
+          {FEATURES.map((feature, idx) => (
             <View key={feature.label} style={styles.featureRow}>
               <View style={[styles.featureIconBox, { backgroundColor: `${FEATURE_COLORS[idx]}22` }]}>
                 <FeatureIcon icon={feature.icon} />

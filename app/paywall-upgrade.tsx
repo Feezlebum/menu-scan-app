@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Linking, useWindowDimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Image, Linking, useWindowDimensions, ScrollView } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
@@ -50,7 +50,6 @@ export default function PaywallUpgradeScreen() {
   const { subscribe, restore } = useSubscriptionStore();
   const { height } = useWindowDimensions();
   const compact = height < 780;
-  const visibleFeatures = useMemo(() => (compact ? FEATURES.slice(0, 2) : FEATURES), [compact]);
 
   const [selectedPlan, setSelectedPlan] = useState<Plan>('annual');
   const [loading, setLoading] = useState(false);
@@ -95,7 +94,10 @@ export default function PaywallUpgradeScreen() {
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: '#FFF5E6' }]}> 
       <StatusBar style="dark" translucent={false} backgroundColor="#FFF5E6" />
-      <View style={[styles.scrollContent, { paddingTop: Math.max(insets.top, 10) }]}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top, 10) }]}
+      >
         <Animated.View entering={FadeInUp.delay(100)} style={[styles.heroSection, compact && styles.heroSectionCompact]}>
           <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
             <AppText style={styles.closeText}>✕</AppText>
@@ -120,7 +122,7 @@ export default function PaywallUpgradeScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(260)} style={[styles.featuresWrap, compact && styles.featuresWrapCompact]}>
-          {visibleFeatures.map((feature, idx) => (
+          {FEATURES.map((feature, idx) => (
             <View key={feature.label} style={[styles.featureRow, compact && styles.featureRowCompact]}>
               <View style={[styles.featureIconBox, compact && styles.featureIconBoxCompact, { backgroundColor: `${FEATURE_COLORS[idx]}22` }]}>
                 <FeatureIcon icon={feature.icon} />
@@ -133,7 +135,7 @@ export default function PaywallUpgradeScreen() {
           ))}
         </Animated.View>
 
-      </View>
+      </ScrollView>
 
       <Animated.View entering={FadeIn.delay(360)} style={[styles.footer, { paddingBottom: Math.max(20, insets.bottom + 8) }]}>
         <View style={styles.planRow}>
@@ -210,12 +212,9 @@ export default function PaywallUpgradeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: {
-    flex: 1,
-    minHeight: 0,
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 8,
-    justifyContent: 'flex-start',
+    paddingBottom: 16,
   },
   heroSection: {
     borderRadius: 28,

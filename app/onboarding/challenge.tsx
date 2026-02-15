@@ -8,7 +8,7 @@ import { useOnboardingStore, DiningChallenge } from '@/src/stores/onboardingStor
 const CHALLENGES: { value: DiningChallenge; label: string; emoji: string; description: string }[] = [
   { value: 'calories', label: 'Calorie Uncertainty', emoji: '🤷', description: "Not knowing what's healthy" },
   { value: 'social', label: 'Social Pressure', emoji: '👥', description: 'Others influencing my choices' },
-  { value: 'willpower', label: 'Willpower', emoji: '😩', description: 'Cravings and temptation' },
+  { value: 'willpower', label: 'Willpower', emoji: '😢', description: 'Cravings and temptation' },
   { value: 'overwhelm', label: 'Menu Overwhelm', emoji: '🤔', description: 'Too many options to choose from' },
 ];
 

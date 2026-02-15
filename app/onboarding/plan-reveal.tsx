@@ -96,14 +96,14 @@ export default function PlanRevealScreen() {
           <PlanItem
             label="Priority"
             value={getMacroLabel()}
-            emoji="⚡"
+            emoji="✨"
             theme={theme}
           />
           {goalDate && goalDate !== 'Ongoing' && (
             <PlanItem
               label="Target Date"
               value={new Date(goalDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              emoji="📅"
+              emoji="🤔"
               theme={theme}
             />
           )}

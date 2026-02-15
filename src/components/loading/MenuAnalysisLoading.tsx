@@ -12,17 +12,13 @@ import Animated, {
 import { AppText } from '@/src/components/ui/AppText';
 import { useAppTheme } from '@/src/theme/theme';
 import { useScanStore } from '@/src/stores/scanStore';
-import { Video, ResizeMode } from 'expo-av';
+import { Image } from 'react-native';
 import MichiMoji from '@/src/components/MichiMoji';
 import type { MichiMojiName } from '@/assets/michimojis/michiMojiMap';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const processingVideo = Platform.select({
-  ios: require('@/assets/animations/michi-processing.mp4'),
-  android: require('@/assets/animations/michi-processing.webm'),
-  default: require('@/assets/animations/michi-processing.mp4'),
-});
+const michiProcessingImage = require('@/assets/michi-magnifying-glass.png');
 
 interface MenuAnalysisLoadingProps {
   onComplete?: () => void;
@@ -37,7 +33,7 @@ const ANALYSIS_PHASES = [
     texts: [
       "Optimizing image for super-fast processing...",
       "Compressing and preparing in parallel!",
-      "Using smart algorithms for speed!",
+      "Michi is researching!",
     ]
   },
   {
@@ -92,6 +88,7 @@ export default function MenuAnalysisLoading({
   // Animation values
   const progressWidth = useSharedValue(0);
   const michiScale = useSharedValue(1);
+  const michiRotate = useSharedValue(0);
   const textOpacity = useSharedValue(1);
 
   // Check for completion (results available). Keep user on loading if still processing.
@@ -123,16 +120,22 @@ export default function MenuAnalysisLoading({
       }
     );
 
-    // Michi subtle breathing animation
-    const breathingAnimation = () => {
+    // Michi animated researching - scale + rotation
+    const researchAnimation = () => {
       michiScale.value = withSequence(
-        withTiming(1.05, { duration: 1500 }),
-        withTiming(1, { duration: 1500 })
+        withTiming(1.08, { duration: 800, easing: Easing.bezier(0.4, 0.0, 0.6, 1) }),
+        withTiming(1, { duration: 800, easing: Easing.bezier(0.4, 0.0, 0.6, 1) })
+      );
+      
+      michiRotate.value = withSequence(
+        withTiming(5, { duration: 600, easing: Easing.bezier(0.25, 0.46, 0.45, 0.94) }),
+        withTiming(-3, { duration: 800, easing: Easing.bezier(0.25, 0.46, 0.45, 0.94) }),
+        withTiming(0, { duration: 600, easing: Easing.bezier(0.25, 0.46, 0.45, 0.94) })
       );
     };
 
-    breathingAnimation();
-    const breathingInterval = setInterval(breathingAnimation, 3000);
+    researchAnimation();
+    const researchInterval = setInterval(researchAnimation, 2000);
 
     // Phase and text progression
     let phaseTimeout: ReturnType<typeof setTimeout>;
@@ -172,7 +175,7 @@ export default function MenuAnalysisLoading({
     return () => {
       clearTimeout(phaseTimeout);
       clearInterval(textInterval);
-      clearInterval(breathingInterval);
+      clearInterval(researchInterval);
     };
   }, [estimatedDurationMs]);
 
@@ -181,7 +184,10 @@ export default function MenuAnalysisLoading({
   }));
 
   const michiStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: michiScale.value }],
+    transform: [
+      { scale: michiScale.value },
+      { rotate: `${michiRotate.value}deg` }
+    ],
   }));
 
   const textStyle = useAnimatedStyle(() => ({
@@ -218,13 +224,10 @@ export default function MenuAnalysisLoading({
 
           {/* Animated Michi */}
           <Animated.View style={[styles.michiContainer, michiStyle]}>
-            <Video
-              source={processingVideo}
-              style={styles.michiVideo}
-              shouldPlay
-              isLooping
-              isMuted
-              resizeMode={ResizeMode.CONTAIN}
+            <Image
+              source={michiProcessingImage}
+              style={styles.michiImage}
+              resizeMode="contain"
             />
           </Animated.View>
 
@@ -305,9 +308,9 @@ const styles = StyleSheet.create({
   michiContainer: {
     marginBottom: 60,
   },
-  michiVideo: {
-    width: 160,
-    height: 160,
+  michiImage: {
+    width: 180,
+    height: 180,
   },
   progressContainer: {
     width: '100%',

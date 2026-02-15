@@ -80,36 +80,36 @@ export default function HomeScreen() {
       spendingGoals?.includes('cut_costs');
 
     const goalTag = hasMoneyGoal
-      ? { label: 'Save Money', icon: '💰', key: 'goal' }
+      ? { label: 'Save Money', icon: 'money', key: 'goal' }
       : goal === 'lose'
-      ? { label: 'Lose Weight', icon: '🔥', key: 'goal' }
+      ? { label: 'Lose Weight', icon: 'fire', key: 'goal' }
       : goal === 'gain'
-      ? { label: 'Build Muscle', icon: '💪', key: 'goal' }
+      ? { label: 'Build Muscle', icon: 'workout', key: 'goal' }
       : goal === 'maintain'
-      ? { label: 'Maintain', icon: '👍', key: 'goal' }
-      : { label: 'Eat Healthier', icon: '👨‍🍳', key: 'goal' };
+      ? { label: 'Maintain', icon: 'thumbsup', key: 'goal' }
+      : { label: 'Eat Healthier', icon: 'cook', key: 'goal' };
 
     const dietTag =
       dietType === 'vegan'
-        ? { label: 'Vegan', icon: '👨‍🍳', key: 'diet' }
+        ? { label: 'Vegan', icon: 'cook', key: 'diet' }
         : dietType === 'keto'
-        ? { label: 'Keto', icon: '✨', key: 'diet' }
+        ? { label: 'Keto', icon: 'sparkle', key: 'diet' }
         : dietType === 'lowcarb'
-        ? { label: 'Low Carb Diet', icon: '👀', key: 'diet' }
+        ? { label: 'Low Carb Diet', icon: 'eyes', key: 'diet' }
         : dietType === 'mediterranean'
-        ? { label: 'Mediterranean', icon: '😎', key: 'diet' }
+        ? { label: 'Mediterranean', icon: 'cool', key: 'diet' }
         : dietType === 'cico'
-        ? { label: 'Calorie Focus', icon: '🤔', key: 'diet' }
-        : { label: 'No Diet Restriction', icon: '👍', key: 'diet' };
+        ? { label: 'Calorie Focus', icon: 'think', key: 'diet' }
+        : { label: 'No Diet Restriction', icon: 'thumbsup', key: 'diet' };
 
     const macroTag =
       macroPriority === 'highprotein'
-        ? { label: 'High Protein', icon: '💪', key: 'macro' }
+        ? { label: 'High Protein', icon: 'workout', key: 'macro' }
         : macroPriority === 'lowcarb'
-        ? { label: 'Low Carb', icon: '👀', key: 'macro' }
+        ? { label: 'Low Carb', icon: 'eyes', key: 'macro' }
         : macroPriority === 'lowcal'
-        ? { label: 'Low Calorie', icon: '🤔', key: 'macro' }
-        : { label: 'Balanced Macros', icon: '👍', key: 'macro' };
+        ? { label: 'Low Calorie', icon: 'think', key: 'macro' }
+        : { label: 'Balanced Macros', icon: 'thumbsup', key: 'macro' };
 
     tags.push(goalTag, dietTag, macroTag);
 
@@ -117,7 +117,7 @@ export default function HomeScreen() {
       dietType === 'none' &&
       (intolerances?.includes('gluten') || intolerances?.includes('Gluten'))
     ) {
-      tags[1] = { label: 'Gluten-Free', icon: '🤔', key: 'diet' };
+      tags[1] = { label: 'Gluten-Free', icon: 'think', key: 'diet' };
     }
 
     return tags;
@@ -243,7 +243,7 @@ export default function HomeScreen() {
                       key={tag.key}
                       style={[styles.tag, { backgroundColor: '#fff', borderColor: '#6BAF7A' }]}
                     >
-                      <MichiMoji emoji={tag.icon} size={14} style={styles.tagIconImage} />
+                      <MichiMoji name={tag.icon as any} size={14} style={styles.tagIconImage} />
                       <AppText
                         style={[
                           styles.tagText,
@@ -322,7 +322,7 @@ export default function HomeScreen() {
             </View>
           ) : (
             <View style={[styles.welcomeCard, { backgroundColor: '#FFF0D4' }]}>
-              <AppText style={[styles.welcomeEmoji]}>👋</AppText>
+              <MichiMoji name="wave" size={40} style={{ marginBottom: 12 }} />
               <AppText style={[styles.welcomeTitle, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>
                 Welcome to Michi: Menu Helper!
               </AppText>
@@ -637,10 +637,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 1,
   },
-  welcomeEmoji: {
-    fontSize: 40,
-    marginBottom: 12,
-  },
+  // welcomeEmoji style removed - now using MichiMoji component
   welcomeTitle: {
     fontSize: 18,
     marginBottom: 8,

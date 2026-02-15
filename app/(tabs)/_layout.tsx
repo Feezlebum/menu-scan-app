@@ -12,7 +12,19 @@ export default function TabLayout() {
 
   return (
     <>
-      <StatusBar style="dark" translucent={false} backgroundColor="#FFFFFF" />
+      <StatusBar style="dark" translucent={false} backgroundColor="#FFF5E6" />
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top,
+          backgroundColor: '#FFF5E6',
+          zIndex: 1000,
+        }}
+      />
       <Tabs
       screenOptions={{
         headerShown: false,

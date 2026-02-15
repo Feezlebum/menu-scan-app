@@ -11,8 +11,8 @@ import Animated, {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const FRAME_SIZE = SCREEN_WIDTH * 0.85;
-const CORNER_SIZE = 40;
-const CORNER_THICKNESS = 4;
+const CORNER_SIZE = 48;
+const CORNER_THICKNESS = 6;
 
 interface Props {
   isScanning?: boolean;
@@ -116,20 +116,30 @@ const styles = StyleSheet.create({
     height: CORNER_THICKNESS,
     backgroundColor: '#5ABAB7',
     position: 'absolute',
+    shadowColor: '#5ABAB7',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 6,
+    elevation: 4,
   },
   cornerVertical: {
     width: CORNER_THICKNESS,
     height: CORNER_SIZE,
     backgroundColor: '#5ABAB7',
     position: 'absolute',
+    shadowColor: '#5ABAB7',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 6,
+    elevation: 4,
   },
   scanLine: {
     position: 'absolute',
     left: 10,
     right: 10,
     height: 2,
-    backgroundColor: '#34C759',
-    shadowColor: '#34C759',
+    backgroundColor: '#5ABAB7',
+    shadowColor: '#5ABAB7',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 10,

@@ -1,23 +1,22 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { OnboardingScreen } from '@/src/components/onboarding/OnboardingScreen';
-import { AppText } from '@/src/components/ui/AppText';
-import { useAppTheme } from '@/src/theme/theme';
+import { OptionCard } from '@/src/components/onboarding/OptionCard';
 import { useOnboardingStore, HealthGoalV2 } from '@/src/stores/onboardingStore';
+import MichiAssets from '@/src/utils/michiAssets';
 
-const OPTIONS: Array<{ key: HealthGoalV2; label: string }> = [
-  { key: 'lose_weight', label: 'Lose weight' },
-  { key: 'build_muscle', label: 'Build muscle' },
-  { key: 'maintain_weight', label: 'Maintain weight' },
-  { key: 'eat_healthier', label: 'Eat healthier' },
-  { key: 'athletic_performance', label: 'Athletic performance' },
-  { key: 'manage_health_conditions', label: 'Manage health conditions' },
+const OPTIONS: Array<{ key: HealthGoalV2; label: string; emoji: string }> = [
+  { key: 'lose_weight', label: 'lose weight', emoji: '🏋️' },
+  { key: 'build_muscle', label: 'build muscle', emoji: '💪' },
+  { key: 'maintain_weight', label: 'maintain my weight', emoji: '⚖️' },
+  { key: 'eat_healthier', label: 'just eat healthier', emoji: '🥗' },
+  { key: 'athletic_performance', label: 'athletic performance', emoji: '🏃' },
+  { key: 'manage_health_conditions', label: 'manage a health condition', emoji: '🏥' },
 ];
 
 export default function HealthGoalsScreen() {
-  const theme = useAppTheme();
   const router = useRouter();
   const { healthGoalV2, setHealthGoalV2, setGoal } = useOnboardingStore();
   const [selected, setSelected] = useState<HealthGoalV2 | null>(healthGoalV2);
@@ -34,53 +33,27 @@ export default function HealthGoalsScreen() {
 
   return (
     <OnboardingScreen
-      title="Your Health Goals"
-      subtitle="Choose your primary goal. We'll personalize every recommendation around it."
-      hideProgress
       canContinue={!!selected}
       buttonText="Continue"
-      onContinue={() => router.push('/onboarding/spending-goals-budget' as any)}
+      onContinue={() => router.push('/onboarding/diet-type' as never)}
+      michiSource={MichiAssets.onboardingBuff}
+      dialogueText="Time to get serious! 💪 What's your main goal right now?"
     >
       <View style={styles.content}>
-        <ProgressBadge step={7} total={14} />
         {OPTIONS.map((opt) => (
-          <TouchableOpacity
+          <OptionCard
             key={opt.key}
-            style={[
-              styles.option,
-              { borderColor: theme.colors.border, backgroundColor: '#fff' },
-              selected === opt.key && { borderColor: theme.colors.brand, backgroundColor: theme.colors.brand + '14' },
-            ]}
+            label={opt.label}
+            emoji={opt.emoji}
+            selected={selected === opt.key}
             onPress={() => choose(opt.key)}
-          >
-            <View style={[styles.dot, { borderColor: theme.colors.brand }, selected === opt.key && { backgroundColor: theme.colors.brand }]} />
-            <AppText style={[styles.optionText, { color: theme.colors.text }]}>{opt.label}</AppText>
-          </TouchableOpacity>
+          />
         ))}
       </View>
     </OnboardingScreen>
   );
 }
 
-function ProgressBadge({ step, total }: { step: number; total: number }) {
-  const theme = useAppTheme();
-  return (
-    <View style={[styles.progressWrap, { borderColor: theme.colors.border }]}>
-      <AppText style={[styles.progressText, { color: theme.colors.subtext }]}>Step {step}/{total}</AppText>
-      <View style={[styles.track, { backgroundColor: theme.colors.cardSage }]}>
-        <View style={[styles.fill, { width: `${(step / total) * 100}%`, backgroundColor: theme.colors.brand }]} />
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  content: { gap: 10 },
-  progressWrap: { borderWidth: 1, borderRadius: 12, padding: 10, gap: 8, marginBottom: 4 },
-  progressText: { fontSize: 13 },
-  track: { height: 8, borderRadius: 999, overflow: 'hidden' },
-  fill: { height: '100%' },
-  option: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  dot: { width: 16, height: 16, borderRadius: 8, borderWidth: 2 },
-  optionText: { fontSize: 14, flex: 1 },
+  content: { marginTop: 8 },
 });

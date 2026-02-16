@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Image, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -14,6 +14,7 @@ import { useHistoryStore } from '@/src/stores/historyStore';
 import { useStreakStore } from '@/src/stores/streakStore';
 import { useSpendingStore } from '@/src/stores/spendingStore';
 import { formatMoney } from '@/src/utils/currency';
+import { BrandedDialog } from '@/src/components/dialogs/BrandedDialog';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -296,7 +297,7 @@ export default function HomeScreen() {
               <View style={styles.lastScanHeader}>
                 <View style={styles.inlineTitleRow}>
                   <MichiMoji name="think" size={16} style={{ marginRight: 6 }} />
-                  <AppText style={[styles.lastScanLabel, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}> 
+                  <AppText style={[styles.lastScanLabel, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>
                     Last Logged
                   </AppText>
                 </View>
@@ -351,6 +352,7 @@ function getStreakBackgroundConfig(streak: number) {
 function StreakContent({ currentStreak, lastChoice }: { currentStreak: number; lastChoice: any }) {
   const theme = useAppTheme();
   const milestone = [7, 14, 30].includes(currentStreak);
+  const [infoVisible, setInfoVisible] = useState(false);
 
   return (
     <View style={styles.streakContainer}>
@@ -358,15 +360,46 @@ function StreakContent({ currentStreak, lastChoice }: { currentStreak: number; l
         {milestone && <View style={[styles.progressRing, { borderColor: theme.colors.brand + '33' }]} />}
         <AppText style={[styles.streakNumber, { color: theme.colors.text }]}>{Math.max(0, currentStreak)}</AppText>
       </View>
-      <AppText style={[styles.streakLabel, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Day Streak</AppText>
+
+      <View style={styles.streakLabelRow}>
+        <AppText style={[styles.streakLabel, { color: theme.colors.text, fontFamily: theme.fonts.heading.semiBold }]}>Day Streak</AppText>
+        <TouchableOpacity
+          onPress={() => {
+            Haptics.selectionAsync();
+            setInfoVisible(true);
+          }}
+          style={[styles.streakInfoButton, { borderColor: theme.colors.border, backgroundColor: '#fff' }]}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <AppText style={[styles.streakInfoButtonText, { color: theme.colors.subtext }]}>i</AppText>
+        </TouchableOpacity>
+      </View>
+
       <AppText style={[styles.streakExplanation, { color: theme.colors.subtext }]}>Keep making healthy choices to improve your streak!</AppText>
       {lastChoice ? (
-        <AppText style={[styles.streakLastChoice, { color: theme.colors.subtext }]}>
+        <AppText style={[styles.streakLastChoice, { color: theme.colors.subtext }]}> 
           Last choice: {lastChoice.mealName} ({formatTimeAgo(lastChoice.loggedAt)})
         </AppText>
       ) : (
         <AppText style={[styles.streakLastChoice, { color: theme.colors.subtext }]}>No choices logged yet.</AppText>
       )}
+
+      <BrandedDialog
+        visible={infoVisible}
+        title="How streak days count"
+        message={
+          "Counts toward your streak:\n• Logging a healthy meal choice\n• Choosing healthier override when prompted\n\nDoesn't count:\n• Indulgent / unhealthy choices\n• Skipped logging\n\nIf you log an unhealthy choice, your current streak resets to 0."
+        }
+        michiState="thinking"
+        onClose={() => setInfoVisible(false)}
+        actions={[
+          {
+            text: 'Got it',
+            variant: 'primary',
+            onPress: () => setInfoVisible(false),
+          },
+        ]}
+      />
     </View>
   );
 }
@@ -447,10 +480,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
+  streakLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
   streakLabel: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 8,
+  },
+  streakInfoButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  streakInfoButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 14,
   },
   streakExplanation: {
     fontSize: 13,

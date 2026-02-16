@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -49,6 +49,7 @@ export default function ManualEntryScreen() {
   const [nutrition, setNutrition] = useState<Awaited<ReturnType<typeof estimateNutrition>> | null>(null);
   const [nutritionModalVisible, setNutritionModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [estimating, setEstimating] = useState(false);
 
   const canContinue =
     step === 1 ? itemName.trim().length > 2 : step === 2 ? !!selectedCuisine : !!nutrition;
@@ -75,9 +76,15 @@ export default function ManualEntryScreen() {
     }
 
     if (step === 2 && selectedCuisine) {
-      const estimate = await estimateNutrition(itemName.trim(), selectedCuisine.key, restaurant.trim());
-      setNutrition(estimate);
-      setStep(3);
+      if (estimating) return;
+      setEstimating(true);
+      try {
+        const estimate = await estimateNutrition(itemName.trim(), selectedCuisine.key, restaurant.trim());
+        setNutrition(estimate);
+        setStep(3);
+      } finally {
+        setEstimating(false);
+      }
       return;
     }
 
@@ -307,6 +314,16 @@ export default function ManualEntryScreen() {
         />
       ) : null}
 
+      {estimating ? (
+        <View style={styles.estimatingOverlay}>
+          <View style={[styles.estimatingCard, { backgroundColor: theme.colors.card }]}> 
+            <ActivityIndicator size="small" color={theme.colors.brand} />
+            <AppText style={[styles.estimatingTitle, { color: theme.colors.text }]}>Michi is estimating nutrition…</AppText>
+            <AppText style={[styles.estimatingSubtext, { color: theme.colors.subtext }]}>Analyzing item + cuisine to estimate calories and macros.</AppText>
+          </View>
+        </View>
+      ) : null}
+
       <View style={styles.footer}>
         <PrimaryButton
           label={
@@ -315,11 +332,13 @@ export default function ManualEntryScreen() {
                 ? 'Saving...'
                 : 'Add to History'
               : step === 2
-                ? 'Estimate with AI'
+                ? estimating
+                  ? 'Michi is estimating...'
+                  : 'Estimate with AI'
                 : 'Continue'
           }
           onPress={handleContinue}
-          disabled={!canContinue || saving}
+          disabled={!canContinue || saving || estimating}
         />
       </View>
     </SafeAreaView>
@@ -404,5 +423,30 @@ const styles = StyleSheet.create({
   metricValue: { fontSize: 16 },
   metricLabel: { fontSize: 12, marginTop: 2 },
   reasonText: { fontSize: 14, lineHeight: 20 },
+  estimatingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  estimatingCard: {
+    width: '100%',
+    borderRadius: 14,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  estimatingTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  estimatingSubtext: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
   footer: { paddingHorizontal: 24, paddingBottom: 24 },
 });

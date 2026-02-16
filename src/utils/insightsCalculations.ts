@@ -480,3 +480,72 @@ export function getWeeklyComparison(scans: ScanHistoryEntry[]): PeriodComparison
     isUp: diff >= 0,
   };
 }
+
+// ==========================================
+// Meal Verification Accuracy
+// ==========================================
+
+export interface VerificationAccuracyStats {
+  score: number; // 0-100 (higher is closer to menu estimate)
+  verifiedCount: number;
+  avgAbsCalorieDelta: number;
+  avgAbsMacroDelta: number;
+}
+
+function safePercentDelta(original: number, revised: number): number {
+  const base = Math.max(1, Math.abs(original));
+  return Math.abs(revised - original) / base;
+}
+
+export function getVerificationAccuracyStats(meals: LoggedMeal[]): VerificationAccuracyStats {
+  const verified = meals.filter((meal) => meal.verification);
+
+  if (verified.length === 0) {
+    return {
+      score: 0,
+      verifiedCount: 0,
+      avgAbsCalorieDelta: 0,
+      avgAbsMacroDelta: 0,
+    };
+  }
+
+  const totals = verified.reduce(
+    (acc, meal) => {
+      const v = meal.verification!;
+      const originalCalories = v.originalCalories ?? meal.item.estimatedCalories;
+      const originalProtein = v.originalProtein ?? meal.item.estimatedProtein;
+      const originalCarbs = v.originalCarbs ?? meal.item.estimatedCarbs;
+      const originalFat = v.originalFat ?? meal.item.estimatedFat;
+
+      const calorieDelta = Math.abs(v.revisedCalories - originalCalories);
+      const macroDelta =
+        (Math.abs(v.revisedProtein - originalProtein) +
+          Math.abs(v.revisedCarbs - originalCarbs) +
+          Math.abs(v.revisedFat - originalFat)) /
+        3;
+
+      const relativeDelta =
+        (safePercentDelta(originalCalories, v.revisedCalories) +
+          safePercentDelta(originalProtein, v.revisedProtein) +
+          safePercentDelta(originalCarbs, v.revisedCarbs) +
+          safePercentDelta(originalFat, v.revisedFat)) /
+        4;
+
+      acc.calorieDelta += calorieDelta;
+      acc.macroDelta += macroDelta;
+      acc.relativeDelta += relativeDelta;
+      return acc;
+    },
+    { calorieDelta: 0, macroDelta: 0, relativeDelta: 0 }
+  );
+
+  const avgRelativeDelta = totals.relativeDelta / verified.length;
+  const score = Math.max(0, Math.round(100 - avgRelativeDelta * 100));
+
+  return {
+    score,
+    verifiedCount: verified.length,
+    avgAbsCalorieDelta: Math.round(totals.calorieDelta / verified.length),
+    avgAbsMacroDelta: Math.round(totals.macroDelta / verified.length),
+  };
+}

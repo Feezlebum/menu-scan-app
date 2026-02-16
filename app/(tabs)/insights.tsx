@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -31,6 +32,7 @@ import {
   getWeeklySpending,
   getSpendingTrend,
   getRestaurantSpending,
+  getVerificationAccuracyStats,
 } from '@/src/utils/insightsCalculations';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -62,6 +64,7 @@ export default function InsightsScreen() {
   const weekSpending = useMemo(() => getWeeklySpending(loggedMeals, 0), [loggedMeals]);
   const spendingTrend = useMemo(() => getSpendingTrend(loggedMeals), [loggedMeals]);
   const restaurantSpending = useMemo(() => getRestaurantSpending(loggedMeals), [loggedMeals]);
+  const accuracyStats = useMemo(() => getVerificationAccuracyStats(loggedMeals), [loggedMeals]);
   const michiRecap = useMemo(() => getMichiRecapMessage(loggedMeals, scans, goal), [loggedMeals, scans, goal]);
 
   const hasData = scans.length > 0 || loggedMeals.length > 0;
@@ -94,6 +97,14 @@ export default function InsightsScreen() {
     setTrendPeriod(period);
   };
 
+  const handleShareAccuracy = async () => {
+    if (accuracyStats.verifiedCount === 0) return;
+    Haptics.selectionAsync();
+    await Share.share({
+      message: `My Michi accuracy score is ${accuracyStats.score}/100 based on ${accuracyStats.verifiedCount} verified meals 📸🍽️`,
+    });
+  };
+
   return (
     <ImageBackground source={HomeBackground} style={styles.container} resizeMode="cover">
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -104,7 +115,14 @@ export default function InsightsScreen() {
           {/* 1. Michi's Weekly Recap */}
           <MichiRecapCard theme={theme} recap={michiRecap} />
 
-          {/* 2. Weekly Scan Summary */}
+          {/* 2. Michi Accuracy Score */}
+          <VerificationAccuracyCard
+            theme={theme}
+            stats={accuracyStats}
+            onShare={handleShareAccuracy}
+          />
+
+          {/* 3. Weekly Scan Summary */}
           <WeeklyScanCard
             theme={theme}
             weeklyScans={weeklyScans}
@@ -196,7 +214,53 @@ function MichiRecapCard({ theme, recap }: CardProps & { recap: ReturnType<typeof
   );
 }
 
-// 2. Weekly Scan Card
+// 2. Verification Accuracy Card
+function VerificationAccuracyCard({
+  theme,
+  stats,
+  onShare,
+}: CardProps & {
+  stats: ReturnType<typeof getVerificationAccuracyStats>;
+  onShare: () => void;
+}) {
+  if (stats.verifiedCount === 0) {
+    return (
+      <View style={[styles.card, { backgroundColor: theme.colors.cardCream }]}> 
+        <AppText style={[styles.sectionHeader, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>Michi Accuracy Score</AppText>
+        <EmptyState theme={theme} message="Verify a meal photo to unlock your accuracy score" />
+      </View>
+    );
+  }
+
+  const scoreColor = stats.score >= 85 ? '#2D6A4F' : stats.score >= 70 ? '#8B5E00' : '#B23A48';
+  const scoreBg = stats.score >= 85 ? '#E8F5E2' : stats.score >= 70 ? '#FFF5CC' : '#FFE4E8';
+
+  return (
+    <View style={[styles.card, { backgroundColor: theme.colors.card }]}> 
+      <AppText style={[styles.sectionHeader, { fontFamily: theme.fonts.heading.semiBold, color: theme.colors.text }]}>Michi Accuracy Score</AppText>
+
+      <View style={styles.accuracyTopRow}>
+        <View style={[styles.accuracyScoreBubble, { backgroundColor: scoreBg }]}> 
+          <AppText style={[styles.accuracyScoreText, { color: scoreColor }]}>{stats.score}</AppText>
+          <AppText style={[styles.accuracyOutOf, { color: scoreColor }]}>/100</AppText>
+        </View>
+
+        <View style={styles.accuracyMeta}>
+          <AppText style={[styles.accuracyMetaText, { color: theme.colors.text }]}>Based on {stats.verifiedCount} verified meals</AppText>
+          <AppText style={[styles.accuracyMetaSub, { color: theme.colors.subtext }]}>Avg calorie difference: ±{stats.avgAbsCalorieDelta} kcal</AppText>
+          <AppText style={[styles.accuracyMetaSub, { color: theme.colors.subtext }]}>Avg macro difference: ±{stats.avgAbsMacroDelta} g</AppText>
+        </View>
+      </View>
+
+      <TouchableOpacity style={[styles.shareButton, { backgroundColor: theme.colors.brand }]} onPress={onShare}>
+        <FontAwesome name="share-alt" size={14} color="#fff" />
+        <AppText style={styles.shareButtonText}>Share my Michi score</AppText>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// 3. Weekly Scan Card
 function WeeklyScanCard({
   theme,
   weeklyScans,
@@ -786,6 +850,54 @@ const styles = StyleSheet.create({
   michiMessage: {
     fontSize: 15,
     lineHeight: 22,
+  },
+
+  accuracyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  accuracyScoreBubble: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accuracyScoreText: {
+    fontSize: 32,
+    fontWeight: '800',
+    lineHeight: 36,
+  },
+  accuracyOutOf: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  accuracyMeta: {
+    flex: 1,
+    gap: 3,
+  },
+  accuracyMetaText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  accuracyMetaSub: {
+    fontSize: 12,
+  },
+  shareButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  shareButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
   },
 
   // Bar Chart

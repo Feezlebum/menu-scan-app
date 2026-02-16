@@ -8,6 +8,10 @@ import type { CurrencyCode } from '@/src/types/spending';
 export interface MealVerification {
   photoUri: string;
   verifiedAt: string;
+  originalCalories?: number;
+  originalProtein?: number;
+  originalCarbs?: number;
+  originalFat?: number;
   revisedCalories: number;
   revisedProtein: number;
   revisedCarbs: number;

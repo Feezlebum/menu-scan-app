@@ -332,6 +332,15 @@ export default function ScanScreen() {
             <FontAwesome name="edit" size={16} color="#FFFFFF" />
             <AppText style={styles.manualEntryText}>Add Item Manually</AppText>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.verifyButton, { borderColor: 'rgba(255,255,255,0.55)' }]}
+            onPress={() => router.push('/meal-verify-picker' as any)}
+            activeOpacity={0.85}
+          >
+            <FontAwesome name="camera" size={16} color="#FFFFFF" />
+            <AppText style={styles.manualEntryText}>Verify Meal Photo</AppText>
+          </TouchableOpacity>
         </SafeAreaView>
       </CameraView>
 
@@ -447,6 +456,17 @@ const styles = StyleSheet.create({
   },
   manualEntryButton: {
     marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+  },
+  verifyButton: {
+    marginTop: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,

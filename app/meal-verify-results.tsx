@@ -113,6 +113,10 @@ export default function MealVerifyResultsScreen() {
     updateMealVerification(meal.id, {
       photoUri,
       verifiedAt: new Date().toISOString(),
+      originalCalories: meal.item.estimatedCalories,
+      originalProtein: meal.item.estimatedProtein,
+      originalCarbs: meal.item.estimatedCarbs,
+      originalFat: meal.item.estimatedFat,
       revisedCalories: result.revisedCalories,
       revisedProtein: result.revisedProtein,
       revisedCarbs: result.revisedCarbs,
@@ -130,6 +134,10 @@ export default function MealVerifyResultsScreen() {
       updateMealVerification(meal.id, {
         photoUri,
         verifiedAt: new Date().toISOString(),
+        originalCalories: meal.item.estimatedCalories,
+        originalProtein: meal.item.estimatedProtein,
+        originalCarbs: meal.item.estimatedCarbs,
+        originalFat: meal.item.estimatedFat,
         revisedCalories: result.revisedCalories,
         revisedProtein: result.revisedProtein,
         revisedCarbs: result.revisedCarbs,

@@ -47,6 +47,7 @@ interface MealCardProps {
   homeCurrency: import('@/src/types/spending').CurrencyCode;
   onPress: () => void;
   onDelete: () => void;
+  onVerify: () => void;
 }
 
 export default function HistoryScreen() {
@@ -270,6 +271,12 @@ export default function HistoryScreen() {
                   meal={item}
                   homeCurrency={homeCurrency}
                   onPress={() => handleMealPress(item)}
+                  onVerify={() =>
+                    router.push({
+                      pathname: '/meal-verify-capture' as any,
+                      params: { mealId: item.id },
+                    })
+                  }
                   onDelete={() => {
                     setMealToDelete(item);
                     setDeleteDialogVisible(true);
@@ -407,7 +414,7 @@ const DayHeader: React.FC<DayHeaderProps> = ({ section, homeCurrency }) => {
   );
 };
 
-const MealCard: React.FC<MealCardProps> = ({ meal, homeCurrency, onPress, onDelete }) => {
+const MealCard: React.FC<MealCardProps> = ({ meal, homeCurrency, onPress, onDelete, onVerify }) => {
   const theme = useAppTheme();
   const price = getMealPrice(meal);
 
@@ -449,6 +456,12 @@ const MealCard: React.FC<MealCardProps> = ({ meal, homeCurrency, onPress, onDele
                   {Math.round(meal.item.score)}
                 </AppText>
               </View>
+
+              {meal.verification?.accepted ? (
+                <View style={[styles.overrideBadge, { backgroundColor: '#E8F5E2' }]}> 
+                  <AppText style={[styles.overrideBadgeText, { color: '#2D6A4F' }]}>✅ photo verified</AppText>
+                </View>
+              ) : null}
             </View>
           </View>
 
@@ -458,6 +471,9 @@ const MealCard: React.FC<MealCardProps> = ({ meal, homeCurrency, onPress, onDele
             </AppText>
             <View style={styles.mealActionsRow}>
               <AppText style={[styles.timestamp, { color: theme.colors.caption }]}>{formatTime(meal.loggedAt)}</AppText>
+              <TouchableOpacity onPress={onVerify} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <AppText style={[styles.verifyInline, { color: theme.colors.brand }]}>📸 Verify</AppText>
+              </TouchableOpacity>
               <TouchableOpacity onPress={onDelete} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <FontAwesome name="trash" size={14} color={theme.colors.trafficRed} />
               </TouchableOpacity>
@@ -829,6 +845,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  verifyInline: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 
   macroRow: {

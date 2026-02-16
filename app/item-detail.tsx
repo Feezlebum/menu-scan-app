@@ -348,9 +348,13 @@ export default function ItemDetailScreen() {
       const message = `${baseMessage}${fxFallbackNote}`;
 
       if (!isMountedRef.current) return;
-      setStatusDialogTitle('Meal Logged');
-      setStatusDialogMessage(message);
-      setStatusDialogVisible(true);
+      router.replace({
+        pathname: '/meal-log-success' as any,
+        params: {
+          mealId,
+          mealName: item.name,
+        },
+      });
     } catch (error) {
       console.error('Error logging meal:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -647,6 +651,20 @@ export default function ItemDetailScreen() {
             {isLogging ? 'Logging...' : 'Log This Meal'}
           </AppText>
         </TouchableOpacity>
+
+        {selectedMealId ? (
+          <TouchableOpacity
+            style={[styles.verifyButton, { borderColor: theme.colors.brand }]}
+            onPress={() =>
+              router.push({
+                pathname: '/meal-verify-capture' as any,
+                params: { mealId: selectedMealId },
+              })
+            }
+          >
+            <AppText style={[styles.verifyButtonText, { color: theme.colors.brand }]}>📸 Verify with photo</AppText>
+          </TouchableOpacity>
+        ) : null}
 
         {hasEnabledTrackers && (
           <AppText style={[styles.trackerHint, { color: theme.colors.subtext }]}>
@@ -1235,6 +1253,17 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 17,
     fontWeight: '600',
+  },
+  verifyButton: {
+    marginTop: 10,
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  verifyButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
   trackerHint: {
     fontSize: 12,

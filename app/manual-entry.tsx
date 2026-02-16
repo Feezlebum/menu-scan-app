@@ -171,7 +171,13 @@ export default function ManualEntryScreen() {
         });
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.replace('/(tabs)/history');
+        router.replace({
+          pathname: '/meal-log-success' as any,
+          params: {
+            mealId,
+            mealName: manualItem.name,
+          },
+        });
       } finally {
         setSaving(false);
       }

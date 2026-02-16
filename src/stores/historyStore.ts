@@ -5,6 +5,19 @@ import { parsePrice } from '@/src/lib/scanService';
 import type { MenuItem, TopPick, ScanResult } from '@/src/lib/scanService';
 import type { CurrencyCode } from '@/src/types/spending';
 
+export interface MealVerification {
+  photoUri: string;
+  verifiedAt: string;
+  revisedCalories: number;
+  revisedProtein: number;
+  revisedCarbs: number;
+  revisedFat: number;
+  confidence: 'low' | 'medium' | 'high';
+  notes: string;
+  portionAssessment: 'smaller' | 'as_expected' | 'larger' | 'much_larger';
+  accepted: boolean;
+}
+
 export interface LoggedMeal {
   id: string;
   item: MenuItem;
@@ -14,6 +27,7 @@ export interface LoggedMeal {
   userPrice?: number;
   userCurrency?: CurrencyCode;
   healthyOverride?: 'healthy' | 'unhealthy' | null;
+  verification?: MealVerification | null;
 }
 
 export interface ScanHistoryEntry {
@@ -52,6 +66,7 @@ interface HistoryState {
     id: string,
     updates: Partial<Pick<LoggedMeal, 'healthyOverride' | 'userPrice' | 'userCurrency'>> & { item?: Partial<MenuItem> }
   ) => void;
+  updateMealVerification: (id: string, verification: MealVerification) => void;
   clearHistory: () => void;
 }
 
@@ -127,6 +142,7 @@ export const useHistoryStore = create<HistoryState>()(
           userPrice: options?.userPrice,
           userCurrency: options?.userCurrency,
           healthyOverride: options?.healthyOverride ?? null,
+          verification: null,
         };
         
         set((state) => ({
@@ -198,6 +214,19 @@ export const useHistoryStore = create<HistoryState>()(
                         },
                       }
                     : {}),
+                }
+              : meal
+          ),
+        }));
+      },
+
+      updateMealVerification: (id, verification) => {
+        set((state) => ({
+          loggedMeals: state.loggedMeals.map((meal) =>
+            meal.id === id
+              ? {
+                  ...meal,
+                  verification,
                 }
               : meal
           ),

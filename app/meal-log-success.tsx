@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import { AppText } from '@/src/components/ui/AppText';
 import { PrimaryButton } from '@/src/components/ui/PrimaryButton';
 import { useAppTheme } from '@/src/theme/theme';
@@ -16,6 +17,50 @@ export default function MealLogSuccessScreen() {
 
   const mealName = params.mealName || 'Meal';
   const mealId = params.mealId;
+  const [schedulingReminder, setSchedulingReminder] = useState(false);
+
+  const remindMeLater = async () => {
+    if (schedulingReminder) return;
+    setSchedulingReminder(true);
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        Alert.alert('Notifications are off', 'Enable notifications to get a reminder when your food arrives.');
+        return;
+      }
+
+      await Notifications.setNotificationChannelAsync('meal-reminders', {
+        name: 'Meal reminders',
+        importance: Notifications.AndroidImportance.DEFAULT,
+      });
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Michi reminder 📸',
+          body: `Time to verify your plate for ${mealName}!`,
+          sound: 'default',
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: 15 * 60,
+          channelId: 'meal-reminders',
+        },
+      });
+
+      Alert.alert('Reminder set', 'I’ll remind you in about 15 minutes.');
+      router.replace('/(tabs)/history');
+    } catch {
+      Alert.alert('Couldn’t set reminder', 'Please try again in a moment.');
+    } finally {
+      setSchedulingReminder(false);
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#FFF5E6' }]} edges={['top', 'left', 'right']}>
@@ -34,9 +79,9 @@ export default function MealLogSuccessScreen() {
           }
         />
 
-        <TouchableOpacity style={styles.secondary} onPress={() => router.replace('/(tabs)/history')}>
+        <TouchableOpacity style={styles.secondary} onPress={remindMeLater} disabled={schedulingReminder}>
           <MichiMoji name="think" size={14} />
-          <AppText style={[styles.secondaryText, { color: theme.colors.subtext }]}>I’ll do it later</AppText>
+          <AppText style={[styles.secondaryText, { color: theme.colors.subtext }]}>{schedulingReminder ? 'Setting reminder…' : 'Remind me later'}</AppText>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.done} onPress={() => router.replace('/(tabs)')}>

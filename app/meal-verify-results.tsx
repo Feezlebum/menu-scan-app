@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AppText } from '@/src/components/ui/AppText';
 import { PrimaryButton } from '@/src/components/ui/PrimaryButton';
@@ -11,6 +11,7 @@ import MichiMoji from '@/src/components/MichiMoji';
 
 export default function MealVerifyResultsScreen() {
   const theme = useAppTheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ mealId?: string; photoUri?: string }>();
   const mealId = params.mealId;
@@ -152,7 +153,7 @@ export default function MealVerifyResultsScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: '#FFF5E6' }]} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#FFF5E6' }]} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.content}>
         <AppText style={[styles.title, { color: theme.colors.text }]}>{meal.item.name}</AppText>
         {!!meal.restaurantName && <AppText style={[styles.subtitle, { color: theme.colors.subtext }]}>{meal.restaurantName}</AppText>}
@@ -186,7 +187,7 @@ export default function MealVerifyResultsScreen() {
         ) : null}
       </View>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(16, insets.bottom + 8) }]}>
         <PrimaryButton label="Update my log" onPress={applyUpdate} disabled={!result || !!error || loading} />
         <TouchableOpacity onPress={keepOriginal} style={styles.keepBtn}>
           <AppText style={[styles.keepText, { color: theme.colors.subtext }]}>Keep original estimate</AppText>
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   note: { marginTop: 2, fontSize: 13, color: '#6B5B4E' },
-  footer: { paddingHorizontal: 20, paddingBottom: 20, gap: 10 },
+  footer: { paddingHorizontal: 20, paddingBottom: 8, gap: 10 },
   keepBtn: { alignItems: 'center' },
   keepText: { color: '#6B5B4E', fontSize: 14 },
   center: { alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 24 },

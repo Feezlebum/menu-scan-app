@@ -32,14 +32,57 @@ export async function verifyMealPhoto(meal: LoggedMeal, localPhotoUri: string): 
     },
   };
 
-  const { data, error } = await supabase.functions.invoke('verify-meal-photo', {
-    body: payload,
-  });
+  const invokeVerify = async () => {
+    const { data, error } = await supabase.functions.invoke('verify-meal-photo', {
+      body: payload,
+    });
 
-  if (error) throw new Error(error.message || 'Verification failed');
-  if (!data?.success || !data?.result) throw new Error(data?.error || 'Verification failed');
+    if (error) {
+      const status = (error as any)?.context?.status;
+      const responseText = (error as any)?.context?.body;
+      let detail = error.message || 'Verification failed';
 
-  const r = data.result;
+      if (typeof responseText === 'string') {
+        try {
+          const parsed = JSON.parse(responseText);
+          if (parsed?.error) detail = parsed.error;
+        } catch {
+          // keep original detail
+        }
+      }
+
+      if (status === 404) {
+        detail = 'Verification service is not deployed yet (verify-meal-photo).';
+      } else if (status === 401 || status === 403) {
+        detail = 'Verification service auth failed. Check Supabase function keys/secrets.';
+      } else if (status === 500 || status === 502 || status === 503) {
+        detail = `Verification service temporary error (${status}). Please retry.`;
+      }
+
+      throw new Error(detail);
+    }
+
+    if (!data?.success || !data?.result) {
+      throw new Error(data?.error || 'Verification failed');
+    }
+
+    return data.result;
+  };
+
+  let r: any;
+  try {
+    r = await invokeVerify();
+  } catch (error: any) {
+    const msg = String(error?.message || '');
+    const isRetryable =
+      msg.includes('temporary error') || msg.includes('non-2xx') || msg.includes('Failed to fetch');
+
+    if (!isRetryable) throw error;
+
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    r = await invokeVerify();
+  }
+
   return {
     revisedCalories: Number(r.revisedCalories),
     revisedProtein: Number(r.revisedProtein),

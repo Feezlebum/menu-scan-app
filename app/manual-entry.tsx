@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -33,6 +33,8 @@ const CUISINE_TYPES = [
 ] as const;
 
 type Step = 1 | 2 | 3;
+
+const MichiMagnifying = require('@/assets/michi-magnifying-glass.png');
 
 export default function ManualEntryScreen() {
   const theme = useAppTheme();
@@ -317,6 +319,7 @@ export default function ManualEntryScreen() {
       {estimating ? (
         <View style={styles.estimatingOverlay}>
           <View style={[styles.estimatingCard, { backgroundColor: theme.colors.card }]}> 
+            <Image source={MichiMagnifying} style={styles.estimatingMichi} resizeMode="contain" />
             <ActivityIndicator size="small" color={theme.colors.brand} />
             <AppText style={[styles.estimatingTitle, { color: theme.colors.text }]}>Michi is estimating nutrition…</AppText>
             <AppText style={[styles.estimatingSubtext, { color: theme.colors.subtext }]}>Analyzing item + cuisine to estimate calories and macros.</AppText>
@@ -437,6 +440,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     alignItems: 'center',
     gap: 8,
+  },
+  estimatingMichi: {
+    width: 72,
+    height: 72,
+    marginBottom: 2,
   },
   estimatingTitle: {
     fontSize: 16,

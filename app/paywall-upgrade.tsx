@@ -11,6 +11,8 @@ import { PrimaryButton } from '@/src/components/ui/PrimaryButton';
 import MichiMoji from '@/src/components/MichiMoji';
 import { useSubscriptionStore } from '@/src/stores/subscriptionStore';
 import { useAppTheme } from '@/src/theme/theme';
+import { playSubscriptionCelebration } from '@/src/lib/subscriptionCelebration';
+import { ConfettiBurst } from '@/src/components/celebration/ConfettiBurst';
 
 type Plan = 'annual' | 'monthly';
 type Feature = {
@@ -53,6 +55,7 @@ export default function PaywallUpgradeScreen() {
 
   const [selectedPlan, setSelectedPlan] = useState<Plan>('annual');
   const [loading, setLoading] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSelectPlan = (plan: Plan) => {
@@ -61,18 +64,21 @@ export default function PaywallUpgradeScreen() {
   };
 
   const handleSubscribe = async () => {
-    if (loading) return;
+    if (loading || celebrating) return;
     setError(null);
     setLoading(true);
     const ok = await subscribe(selectedPlan);
-    setLoading(false);
 
     if (ok) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace('/(tabs)/scan');
+      setCelebrating(true);
+      await playSubscriptionCelebration();
+      setTimeout(() => {
+        router.replace('/(tabs)/scan');
+      }, 850);
       return;
     }
 
+    setLoading(false);
     setError('Purchase did not complete. Please try again.');
   };
 
@@ -178,9 +184,9 @@ export default function PaywallUpgradeScreen() {
           })}
         </View>
         <PrimaryButton
-          label={loading ? 'Processing…' : 'Start 7-Day Free Trial'}
+          label={loading || celebrating ? 'Processing…' : 'Start 7-Day Free Trial'}
           onPress={handleSubscribe}
-          disabled={loading}
+          disabled={loading || celebrating}
         />
 
         <TouchableOpacity onPress={() => router.back()} style={styles.skipButton}>
@@ -205,6 +211,8 @@ export default function PaywallUpgradeScreen() {
           </TouchableOpacity>
         </View>
       </Animated.View>
+
+      <ConfettiBurst visible={celebrating} />
     </SafeAreaView>
   );
 }

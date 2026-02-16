@@ -12,6 +12,8 @@ import { PrimaryButton } from '@/src/components/ui/PrimaryButton';
 import MichiMoji from '@/src/components/MichiMoji';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import { useSubscriptionStore } from '@/src/stores/subscriptionStore';
+import { playSubscriptionCelebration } from '@/src/lib/subscriptionCelebration';
+import { ConfettiBurst } from '@/src/components/celebration/ConfettiBurst';
 
 type Plan = 'annual' | 'monthly';
 
@@ -57,6 +59,7 @@ export default function PaywallScreen() {
 
   const [selectedPlan, setSelectedPlan] = useState<Plan>('annual');
   const [loading, setLoading] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSelectPlan = (plan: Plan) => {
@@ -65,20 +68,23 @@ export default function PaywallScreen() {
   };
 
   const handleSubscribe = async () => {
-    if (loading) return;
+    if (loading || celebrating) return;
 
     setError(null);
     setLoading(true);
     const ok = await subscribe(selectedPlan);
-    setLoading(false);
 
     if (ok) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      completeOnboarding();
-      router.replace('/(tabs)');
+      setCelebrating(true);
+      await playSubscriptionCelebration();
+      setTimeout(() => {
+        completeOnboarding();
+        router.replace('/(tabs)');
+      }, 850);
       return;
     }
 
+    setLoading(false);
     setError('Purchase did not complete. You can continue and restore later from Settings.');
   };
 
@@ -202,9 +208,9 @@ export default function PaywallScreen() {
 
       <Animated.View entering={FadeIn.delay(360)} style={[styles.footer, { paddingBottom: Math.max(20, insets.bottom + 8) }]}>
         <PrimaryButton
-          label={loading ? 'Processing…' : 'Start Pro Free Trial'}
+          label={loading || celebrating ? 'Processing…' : 'Start Pro Free Trial'}
           onPress={handleSubscribe}
-          disabled={loading}
+          disabled={loading || celebrating}
         />
 
         <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
@@ -229,6 +235,8 @@ export default function PaywallScreen() {
           </TouchableOpacity>
         </View>
       </Animated.View>
+
+      <ConfettiBurst visible={celebrating} />
     </SafeAreaView>
   );
 }

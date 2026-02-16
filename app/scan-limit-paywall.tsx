@@ -51,7 +51,7 @@ export default function ScanLimitPaywallScreen() {
         <AppText style={[styles.subtitle, { color: '#6B5B4E' }]}> 
           {isSoft
             ? `Your scans reset in ${daysUntilReset} day${daysUntilReset === 1 ? '' : 's'} or start your free trial now.`
-            : 'You are getting value already — Pro gives unlimited scans and advanced insights.'}
+            : 'Pro gives unlimited scans and advanced insights.'}
         </AppText>
 
         <View style={styles.valueProps}>
